@@ -1,0 +1,5 @@
+*.pdf binary
+*.png binary
+*.wasm binary
+vendor/** -whitespace
+public/vendor/** -whitespace

@@ -1,0 +1,2 @@
+6.5.438
+https://github.com/mozilla/pdf.js/releases/tag/v6.5.438

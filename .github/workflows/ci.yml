@@ -1,0 +1,23 @@
+name: Source checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript
+        run: |
+          for file in *.js; do node --check "$file"; done
+          npm run check --prefix cloudflare
+      - name: Test SaaS foundation
+        run: npm test --prefix cloudflare
+      - name: Check Python syntax
+        run: python -m compileall -q tests
+      - name: Build React bundle
+        working-directory: frontend
+        run: npm ci && npm run build

@@ -1,0 +1,41 @@
+
+/* Local personalization, intentionally independent of server entitlements. */
+.factory-workspace-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.factory-workspace-controls button{padding:8px 13px;border:1px solid #d3dfdb;border-radius:7px;background:#fff;font-weight:600}
+.factory-workspace-controls button[aria-pressed=true]{background:#e6f2ee;border-color:var(--factory-accent)}
+#factory-customize{margin-left:auto}
+.factory-hide-left .workspace{grid-template-columns:minmax(280px,1fr) 290px}
+.factory-hide-right .workspace{grid-template-columns:300px minmax(280px,1fr)}
+.factory-hide-left.factory-hide-right .workspace{grid-template-columns:minmax(0,1fr)}
+.factory-hide-left .list-pane,.factory-hide-right .detail-pane{display:none!important}
+.factory-focus .page-title,.factory-focus .summary-grid,.factory-focus .bottom-note{display:none}
+.factory-focus .workspace{height:calc(100dvh - 170px);max-height:none;min-height:380px}
+.factory-custom-dialog{width:min(700px,calc(100vw - 24px));max-height:90dvh}
+.factory-custom-dialog fieldset{border:1px solid #d6e0dc;border-radius:10px;margin:18px 0;padding:18px}
+.factory-custom-dialog legend{font-weight:700;padding:0 7px}
+.factory-custom-dialog label{display:flex;flex-direction:column;gap:7px;margin:10px 0}
+.factory-custom-dialog select{width:100%;padding:9px;border:1px solid #c6d2cb;border-radius:6px}
+.factory-custom-dialog p,.factory-custom-dialog small{line-height:1.7}
+.factory-icon-mapping{display:grid;grid-template-columns:1fr 1fr;gap:0 15px}
+.factory-icon-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #e1e6e3}
+.factory-icon-row span{overflow-wrap:anywhere;flex:1}
+.factory-icon-row button{border-radius:5px;padding:6px 12px}
+.factory-custom-marker img{width:100%;height:100%;object-fit:contain}
+#factory-icon-error{color:#a32929}
+body[data-factory-density=compact] .record-card{padding:10px 13px}
+body[data-factory-density=compact] .record-card h3{margin:5px 0;font-size:12px}
+body[data-factory-density=compact] .record-card p{margin:4px 0}
+body[data-factory-density=compact] .summary-card{padding:12px}
+body .brand-mark,body .button.primary{background:var(--factory-accent,#167566)}
+body .nav-current{border-bottom-color:var(--factory-accent,#167566)}
+body[data-factory-theme=dark]{background:#151e24;color:#e0e8eb;color-scheme:dark}
+body[data-factory-theme=dark] .app-header,body[data-factory-theme=dark] .list-pane,body[data-factory-theme=dark] .detail-pane,body[data-factory-theme=dark] .map-toolbar,body[data-factory-theme=dark] .map-caption,body[data-factory-theme=dark] .workspace,body[data-factory-theme=dark] .summary-card,body[data-factory-theme=dark] dialog,body[data-factory-theme=dark] .layers-panel,body[data-factory-theme=dark] .factory-workspace-controls button{background:#202d34;color:#e0e8eb;border-color:#44555c}
+body[data-factory-theme=dark] .record-card,body[data-factory-theme=dark] .list-tools,body[data-factory-theme=dark] .pane-tabs,body[data-factory-theme=dark] .list-footer{background:#202d34;color:#e0e8eb;border-color:#44555c}
+body[data-factory-theme=dark] .record-card.selected,body[data-factory-theme=dark] .record-card:hover{background:#30454b}
+body[data-factory-theme=dark] h1,body[data-factory-theme=dark] h2,body[data-factory-theme=dark] h3,body[data-factory-theme=dark] strong{color:#eef4f5}
+body[data-factory-theme=dark] input,body[data-factory-theme=dark] select,body[data-factory-theme=dark] textarea{background:#17252c;color:#eef4f5;border-color:#53666c}
+body[data-factory-theme=dark] .factory-help,body[data-factory-theme=dark] .subtitle,body[data-factory-theme=dark] .record-card p{color:#b4c5cc}
+@media(max-width:950px){.factory-hide-left .workspace,.factory-hide-right .workspace,.factory-hide-left.factory-hide-right .workspace{grid-template-columns:minmax(0,1fr)}.factory-workspace-controls button{font-size:11px;padding:8px}#factory-customize{margin-left:0}.factory-focus .workspace{height:auto}.factory-focus .map-pane{min-height:65dvh}.factory-icon-mapping{grid-template-columns:1fr}}
+
+body[data-factory-theme=dark] .factory-custom-dialog label,body[data-factory-theme=dark] .factory-custom-dialog legend{color:#c1d1d8}
+body[data-factory-theme=dark] .factory-custom-dialog input{background:#17252c;color:#eef4f5;border-color:#53666c}
