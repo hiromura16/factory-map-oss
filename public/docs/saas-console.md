@@ -14,7 +14,7 @@
 ID token はメモリのみに保持し、localStorage / sessionStorageには保存しません。refresh token は要求・保存しません。再読込や期限切れ時は再ログインします。
 フロントの JWT decode と nonce/issuer/audience/expiry/azp 検査は署名検証ではありません。API の RS256/JWKS 検証と組織所属・ロール検証がセキュリティ境界です。APIで検証成功する前にコンソールを接続済みと表示しません。
 この開発APIは ID token を認証証明として使う構成です。一般の任意APIへ ID token を送る実装ではなく、このサーバーの AUTH_AUDIENCE が SPA clientId と一致する必要があります。実 IdP での相互運用・セキュリティ確認は未実施です。
-ログアウトはローカルトークンを破棄するだけで、IdPのSSOセッション失効やサーバー側トークン取消を行いません。SCIMは未対応です。
+ログアウトはローカルトークンを破棄するだけで、IdPのSSOセッション失効やサーバー側トークン取消を行いません。このコンソールにはSCIM管理画面はありません。SCIM Users APIの限定実装は docs/cloudflare.md を参照してください。実IdP互換性は未検証です。
 
 ## データ操作
 組織一覧/選択/新規作成、利用枠、課金モック変更、JSON import-preview/apply/export。更新はrevisionを送り、競合は上書きせずエラー表示します。取り込みは空組織のみ、添付参照が残る場合はブロックします。JSON exportは添付本体を含みません。リアル課金はありません。
