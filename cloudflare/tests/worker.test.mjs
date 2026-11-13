@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import worker from '../worker.mjs';
-globalThis.crypto=webcrypto;
+if (!globalThis.crypto) Object.defineProperty(globalThis, 'crypto', { value: webcrypto });
 const temp=mkdtempSync(path.join(os.tmpdir(),'factory-d1-test-'));
 const dbpath=path.join(temp,'test.sqlite');
 const python=`import sqlite3,json,sys
