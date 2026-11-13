@@ -60,7 +60,7 @@ async def main():
    await page.evaluate('factoryMap.map.setView([1030,1930],0,{animate:false})');await page.locator('#asset-add').click()
    pos=await page.evaluate('()=>{const b=document.getElementById("map").getBoundingClientRect();return {x:b.left+b.width/2,y:b.top+b.height/2}}');await page.mouse.click(pos['x'],pos['y'])
    await page.locator('#asset-dialog [name=name]').fill(PREFIX+'設備');await page.locator('#asset-dialog [name=code]').fill(PREFIX)
-   await page.locator('.equipment-icon-picker label').filter(has=page.locator('input[value="fan"]')).click()
+   await page.locator('#asset-dialog [data-equipment-icon-open]').click();await page.locator('#equipment-icons-dialog [data-icon-choice="fan"]').click()
    await page.locator('#asset-photos .photo-input').set_input_files([{'name':'現況1.png','mimeType':'image/png','buffer':png(120,180,80)},{'name':'現況2.png','mimeType':'image/png','buffer':png(180,80,120)}])
    await page.locator('#asset-photos [data-cover="1"]').click();await page.locator('#asset-dialog [type=submit]').click();await page.locator('#asset-dialog').wait_for(state='hidden')
    asset=await page.evaluate('p=>factoryMap.state.assets.find(a=>a.code===p)',PREFIX);uid=asset['id'];assert asset['icon']=='fan' and len(asset['attachments'])==2 and asset['coverPhotoId']==asset['attachments'][1]['fileId']

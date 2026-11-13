@@ -117,16 +117,7 @@
     const reset=el('button','表示設定を初期化','button secondary');reset.type='button';reset.onclick=()=>{prefs=normalize({plan:FactoryAPI.session?.plan||'free'});persist();apply();window.factoryMap?.render();dialog.close();toast('表示設定を初期化しました。');};
     dialog.append(reset);document.body.append(dialog);
     customize.onclick=()=>{dialog.querySelectorAll('select').forEach(s=>{if(s.parentElement.firstChild.textContent==='テーマ')s.value=prefs.theme;if(s.parentElement.firstChild.textContent==='情報の密度')s.value=prefs.density;});accent.value=prefs.accent;err.textContent='';updateIcons();dialog.showModal();};
-    const original=FactoryEquipment.markerHTML;
-    FactoryEquipment.markerHTML=asset=>{
-      const custom=prefs.icons.find(x=>x.id===(asset.icon?.startsWith('icon-')?asset.icon:prefs.categoryIcons[asset.properties?.category]));
-      if(!custom)return original(asset);
-      const marker=el('div',undefined,'equipment-symbol factory-custom-marker'),img=el('img');img.src=iconURL(custom);img.alt='';marker.append(img);
-      if(asset.locks?.position)marker.append(el('span','▣','equipment-lock-dot'));
-      return marker.outerHTML;
-    };
-    const picker=FactoryEquipment.picker;
-    FactoryEquipment.picker=asset=>picker(asset)+`<fieldset class="equipment-icon-picker"><legend>追加したアイコン</legend>${prefs.icons.length?prefs.icons.map(icon=>`<label><input type="radio" name="icon" value="${icon.id}" ${asset?.icon===icon.id?'checked':''}><span><img width="28" height="28" src="${iconURL(icon)}" alt=""><small>${icon.name.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</small></span></label>`).join(''):'<small>「表示をカスタマイズ」から画像を追加できます。</small>'}</fieldset>`;
+    FactoryEquipment.configureIcons({icons:()=>prefs.icons.map(icon=>({id:icon.id,label:icon.name,url:iconURL(icon)})),categoryIcon:category=>prefs.categoryIcons[category]||''});
     if(server&&!FactoryAPI.session.limits.customization){look.querySelector('[aria-label="テーマ"]').disabled=true;accent.disabled=true;brandInput.disabled=true;input.disabled=true;look.append(el('p','配色・ブランド名・独自アイコンはProの機能です。有料管理者デモでお試しください。'));}
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change',apply);
     window.addEventListener('storage',e=>{if(e.key===KEY){try{prefs=normalize(JSON.parse(e.newValue||'{}'));apply();window.factoryMap?.render();}catch{}}});

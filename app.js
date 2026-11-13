@@ -140,21 +140,23 @@
   function updateDrawingSelect(){$('drawing-select').innerHTML=state.drawings.map(d=>`<option value="${escapeHTML(d.id)}">${escapeHTML(d.name)}</option>`).join('');$('drawing-select').value=currentDrawing;}
   function switchTab(next,doRender=true){if(next==='assets'&&!editor)next='works';tab=next;$('show-assets').checked=next==='assets';selectedId=null;$('works-tab').classList.toggle('selected',next==='works');$('assets-tab').classList.toggle('selected',next==='assets');$('works-tab').setAttribute('aria-selected',String(next==='works'));$('assets-tab').setAttribute('aria-selected',String(next==='assets'));$('search').placeholder=next==='works'?'工事名・場所で検索':'設備名・設備IDで検索';$('search').setAttribute('aria-label',$('search').placeholder);$('status-filter').disabled=next!=='works';$('date-toggle').disabled=next!=='works';if(doRender)render();}
 
+  function workPanes(active){for(const name of ['workEditingPane','workEditVerticesPane']){const pane=map?.getPane(name);if(pane)pane.hidden=!active;}}
   function clearPending(){
     const wasEditing=editingWorkId!==null;editingWorkId=null;document.body.classList.remove('work-form-open');$('drawing-select').disabled=false;
     if($('work-dialog').open)$('work-dialog').close();$('work-dialog').classList.remove('work-edit-panel');
     window.FactoryFeatures?.cancelPlacement();window.FactoryNotes?.cancel();
     if(map?.pm){map.pm.disableDraw();}
     if(pendingLayer){const layer=pendingLayer;pendingLayer=null;layer.pm?.disable();map.removeLayer(layer);}
-    pendingPoints=null;drawingActive=false;map?._container.classList.remove('drawing-now');$('draw-instruction').hidden=true;if(wasEditing&&map&&state)renderMapRecords();
+    pendingPoints=null;drawingActive=false;workPanes(false);map?._container.classList.remove('drawing-now');$('draw-instruction').hidden=true;if(wasEditing&&map&&state)renderMapRecords();
   }
   let redrawId=null;
-  function startDraw(existingId=null){if(!editor)return;clearPending();redrawId=existingId;drawingActive=true;$('draw-instruction').hidden=false;$('layers-panel').hidden=true;$('layers-toggle').setAttribute('aria-expanded','false');map.pm.enableDraw('Polygon',{allowSelfIntersection:false,snappable:true,templineStyle:{color:'#238873'},hintlineStyle:{color:'#238873',dashArray:'5 5'},pathOptions:{color:'#238873',fillOpacity:.14}});}
+  function startDraw(existingId=null){if(!editor)return;clearPending();redrawId=existingId;drawingActive=true;workPanes(true);$('draw-instruction').hidden=false;$('layers-panel').hidden=true;$('layers-toggle').setAttribute('aria-expanded','false');map.pm.enableDraw('Polygon',{allowSelfIntersection:false,snappable:true,templineStyle:{color:'#238873'},hintlineStyle:{color:'#238873',dashArray:'5 5'},pathOptions:{color:'#238873',fillOpacity:.14}});}
   function openWorkForm(record=null){
     if($('work-dialog').open)closeDialog('work-dialog');
     $('work-form').reset();$('form-error').textContent='';$('work-id').value=record?.id||'';$('form-title').textContent=record?'工事情報を編集':'工事を登録';$('field-title').value=record?.title||'';$('field-location').value=record?.location||'';$('field-start').value=record?.start||today();$('field-end').value=record?.end||today();$('field-status').value=record?.status||'planned';$('field-notes').value=record?.notes||'';$('field-contact').value=record?.contact||'施設グループ';$('field-phone').value=record?.phone||'';document.querySelectorAll('[name=impact]').forEach(el=>el.checked=record?.impacts.includes(el.value)||false);$('geometry-message').textContent=pendingPoints?'地図上に指定した範囲を、この工事に保存します。':'登録済みの工事範囲を保持して、情報を更新します。';FactoryFeatures.workPrepare(record);
     const points=pendingPoints||record?.points;
     if(points){
+      workPanes(true);
       editingWorkId=record?.id||'__new__';pendingPoints=structuredClone(points);
       if(!pendingLayer)pendingLayer=L.polygon(points.map(ll),{pane:'workEditingPane',color:'#238873',weight:3,fillOpacity:.18,pmIgnore:false}).addTo(map);
       const capture=()=>{if(pendingLayer)pendingPoints=pendingLayer.getLatLngs()[0].map(point=>[point.lng,point.lat]);};
@@ -177,7 +179,7 @@
     const submit=$('work-form').querySelector('[type=submit]');submit.disabled=true;
     try{
       const media=await FactoryFeatures.workFiles();const attachments=media.attachments;
-      const record={id:existing?.id||uid(),code:existing?.code||`WK-${String(state.works.length+1).padStart(3,'0')}`,drawingId:currentDrawing,title,location:$('field-location').value.trim(),start,end,status:$('field-status').value,notes:$('field-notes').value.trim(),contact:$('field-contact').value.trim(),phone:$('field-phone').value.trim(),impacts:[...document.querySelectorAll('[name=impact]:checked')].map(x=>x.value),points:pendingPoints||existing.points,updatedAt:new Date().toISOString(),attachments,coverPhotoId:media.coverPhotoId,assetIds:[...$('work-asset-ids').selectedOptions].map(o=>o.value)};
+      const record={id:existing?.id||uid(),code:existing?.code||`WK-${String(state.works.length+1).padStart(3,'0')}`,drawingId:currentDrawing,title,location:$('field-location').value.trim(),start,end,status:$('field-status').value,notes:$('field-notes').value.trim(),contact:$('field-contact').value.trim(),phone:$('field-phone').value.trim(),impacts:[...document.querySelectorAll('[name=impact]:checked')].map(x=>x.value),points:pendingPoints||existing.points,updatedAt:new Date().toISOString(),attachments,coverPhotoId:media.coverPhotoId,assetIds:FactoryFeatures.workAssetIds()};
       await changeState(()=>{if(existing)state.works[state.works.findIndex(w=>w.id===existing.id)]=record;else state.works.push(record);});
       $('work-dialog').close();clearPending();switchTab('works',false);$('status-filter').value='all';$('search').value='';$('date-toggle').setAttribute('aria-pressed','false');$('date-filter-wrap').hidden=true;impactOnly=false;document.querySelectorAll('[data-summary]').forEach(x=>x.classList.toggle('active',x.dataset.summary==='all'));selectedId=record.id;render();toast(existing?'工事情報を更新しました。':'工事を登録しました。');
     }catch(error){$('form-error').textContent=`保存できませんでした。${error.message||'サーバーとの接続を確認してください。'}`;}finally{submit.disabled=false;}
@@ -240,7 +242,7 @@
     try{
       state=await FactoryAPI.load();const auth=await FactoryAPI.request('/api/auth/status');editor=auth.editor;document.body.classList.toggle('read-only',!editor);$('view-mode').textContent=editor?'施設担当モード':'閲覧モード';$('view-mode').setAttribute('aria-pressed',String(editor));$('page-heading').textContent=editor?'工事と施設を、ひとつの図面で。':'構内の工事とお知らせ。';$('page-subtitle').textContent=editor?'構内の作業予定や設備の情報を、場所から確認できます。':'工事範囲や作業予定、お知らせを確認できます。';
       map=L.map('map',{crs:L.CRS.Simple,minZoom:-12,maxZoom:8,zoomSnap:.25,attributionControl:true,preferCanvas:true});
-      map.createPane('workEditingPane').style.zIndex=685;map.createPane('workEditVerticesPane').style.zIndex=695;map.pm.setGlobalOptions({panes:{vertexPane:'workEditVerticesPane',layerPane:'workEditingPane',markerPane:'workEditVerticesPane'}});
+      map.createPane('workEditingPane').style.zIndex=685;map.createPane('workEditVerticesPane').style.zIndex=695;workPanes(false);map.pm.setGlobalOptions({panes:{vertexPane:'workEditVerticesPane',layerPane:'workEditingPane',markerPane:'workEditVerticesPane'}});
       map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer">Leaflet</a>');
       baseGroup=L.layerGroup().addTo(map);workGroup=L.layerGroup().addTo(map);assetGroup=L.layerGroup().addTo(map);
       window.factoryMap={get state(){return state;},get map(){return map;},get editor(){return editor;},get currentDrawing(){return currentDrawing;},importDXF,changeState,render,setEditor,toast,fail,today,clearPending,

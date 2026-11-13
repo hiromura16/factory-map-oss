@@ -160,10 +160,18 @@ window.FactoryNotes = (() => {
 
   function bindResizeHandles(marker, note) {
     marker.getElement().querySelectorAll('[data-note-resize]').forEach(handle => {
+      let interaction = null;
       L.DomEvent.disableClickPropagation(handle);
       handle.addEventListener('pointerdown', event => {
         if (event.button !== 0 || !event.isPrimary) return;
-        event.preventDefault();event.stopPropagation();beginResize(marker,note,handle,event);
+        event.preventDefault();event.stopPropagation();interaction=beginResize(marker,note,handle,event);
+      });
+      // At small zoom levels a grip can cover the entire paper. A click still edits;
+      // a drag resizes, without also opening the editor on pointer release.
+      handle.addEventListener('click', event => {
+        event.preventDefault();event.stopPropagation();
+        if ((event.detail === 0 || !interaction?.changed) && !resizeSaving && app().editor && !placing)
+          open(app().state.notes.find(item => item.id === note.id) ?? note);
       });
       handle.addEventListener('keydown', event => {
         const delta = {ArrowLeft:[-10,0],ArrowRight:[10,0],ArrowUp:[0,-10],ArrowDown:[0,10]}[event.key];
@@ -275,10 +283,10 @@ window.FactoryNotes = (() => {
       const editable = app().editor;
       const marker = L.marker([note.point[1], note.point[0]], {
         pane:'stickyNotesPane', draggable:editable, autoPan:true, pmIgnore:true,
-        title:editable ? '付箋：本文をドラッグで移動、縁や角をドラッグで縦横のサイズを変更' : '付箋：クリックで全文を表示',
+        title:editable ? '付箋：クリックで編集。本文をドラッグで移動、縁や角をドラッグでサイズ変更' : '付箋：クリックで全文を表示',
         icon:L.divIcon({className:'sticky-note-marker' + (editable ? ' editable' : ''),
           html:`<div class="sticky-note-paper"><span class="sticky-note-text">${escape(note.text)}</span></div>`+
-            (editable ? Object.entries(resizeEdges).map(([edge,label]) => `<button type="button" class="note-resize-handle resize-${edge}" data-note-resize="${edge}" aria-label="付箋の${label}をドラッグしてサイズ変更" title="ドラッグでサイズ変更（矢印キーでも調整）"></button>`).join('') : ''),
+            (editable ? '<button type="button" class="note-edit-button" aria-label="付箋を編集" title="付箋を編集">✎ 編集</button>' + Object.entries(resizeEdges).map(([edge,label]) => `<button type="button" class="note-resize-handle resize-${edge}" data-note-resize="${edge}" aria-label="付箋の${label}をドラッグしてサイズ変更" title="ドラッグでサイズ変更（矢印キーでも調整）"></button>`).join('') : ''),
           iconSize:null, iconAnchor:[14,14]})
       });
       marker.on('add', () => {
@@ -289,7 +297,12 @@ window.FactoryNotes = (() => {
         const paper = element.querySelector('.sticky-note-paper');
         applyColors(paper, note.color);applyTypography(paper,note);
         scaleMarker(marker, note);
-        if (editable) bindResizeHandles(marker, note);
+        if (editable) {
+          bindResizeHandles(marker, note);
+          const edit = element.querySelector('.note-edit-button');
+          L.DomEvent.disableClickPropagation(edit);
+          edit.onclick = event => {event.preventDefault();event.stopPropagation();if(!placing)open(app().state.notes.find(item => item.id === note.id) ?? note);};
+        }
         const observer = new ResizeObserver(() => scaleMarker(marker, note));
         observer.observe(paper);
         marker.once('remove', () => observer.disconnect());

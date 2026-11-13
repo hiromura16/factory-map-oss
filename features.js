@@ -6,7 +6,7 @@ window.FactoryFeatures = (() => {
   const api = (...args) => FactoryAPI.request(...args);
   const app = () => window.factoryMap;
   const types = {text:'テキスト',number:'数値',date:'日付',checkbox:'チェックボックス',select:'選択',multiselect:'複数選択',url:'URL'};
-  let pointMode = false, stagedWork = [], workPhotos = null;
+  let pointMode = false, stagedWork = [], workPhotos = null, selectedWorkAssets = new Set();
   function open(id) { $(id).showModal(); }
   function dialog(id,title,body) {
     let el=$(id); if(!el){el=document.createElement('dialog');el.id=id;el.className='form-dialog';document.body.append(el);}
@@ -116,6 +116,27 @@ window.FactoryFeatures = (() => {
     const type=el.querySelector('[name=type]');const toggle=()=>$('options-editor').hidden=!['select','multiselect'].includes(type.value);type.onchange=toggle;toggle();
     if(def)$('property-delete').onclick=async()=>{if(!confirm('このプロパティと、全設備の対応する値を削除しますか？'))return;try{await api('/api/properties/'+encodeURIComponent(def.id),{method:'DELETE'});await app().refresh();el.close();}catch(e){el.querySelector('.form-error').textContent=e.message;}};
   }
+  function workAssetPicker(container, record) {
+    const assets=app().state.assets,byId=new Map(assets.map(a=>[a.id,a])),definition=app().state.propertyDefinitions.find(d=>d.id==='category');
+    selectedWorkAssets=new Set((record?.assetIds||[]).filter(id=>byId.has(id)));
+    container.innerHTML=`<legend>関連する設備（複数選択可）</legend><div class="work-asset-filters"><label class="work-asset-search">設備を検索<input type="search" id="work-asset-search" aria-label="関連設備を検索" placeholder="設備名・設備ID・場所"></label><label>設備分類<select id="work-asset-category" aria-label="関連設備の分類"><option value="">すべての分類</option><option value="__unset">未設定</option>${(definition?.options||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('')}</select></label><label>図面<select id="work-asset-drawing" aria-label="関連設備の図面"><option value="">すべての図面</option>${app().state.drawings.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')}</select></label></div><div id="work-assets-selected" class="work-assets-selected" aria-label="選択済みの関連設備"></div><div class="work-asset-result-heading"><small id="work-assets-count" role="status"></small><button type="button" class="text-link" id="work-assets-reset">条件をクリア</button></div><div id="work-asset-results" class="work-asset-results"></div><small class="work-asset-help">絞り込みを変えても選択した設備は保持します。</small>`;
+    const search=$('work-asset-search'),category=$('work-asset-category'),drawing=$('work-asset-drawing');
+    const normalize=value=>String(value||'').normalize('NFKC').toLocaleLowerCase();
+    function drawSelected(){
+      const root=$('work-assets-selected');root.innerHTML=[...selectedWorkAssets].map(id=>{const a=byId.get(id);return `<button type="button" data-work-asset-remove="${esc(id)}" aria-label="${esc(a.code)}の関連付けを解除"><span>${esc(a.code)} · ${esc(a.name)}</span><b aria-hidden="true">×</b></button>`;}).join('');
+      root.querySelectorAll('[data-work-asset-remove]').forEach(button=>button.onclick=()=>{selectedWorkAssets.delete(button.dataset.workAssetRemove);draw();});
+    }
+    function draw(){
+      const words=normalize(search.value).trim().split(/\s+/).filter(Boolean),matches=assets.filter(a=>(!category.value||(category.value==='__unset'?!a.properties?.category:a.properties?.category===category.value))&&(!drawing.value||a.drawingId===drawing.value)&&words.every(word=>normalize([a.name,a.code,a.location].join(' ')).includes(word)));
+      const root=$('work-asset-results');
+      $('work-assets-count').textContent=`候補 ${matches.length}台 / 選択 ${selectedWorkAssets.size}台${matches.length>100?'（先頭100台を表示）':''}`;
+      root.innerHTML=matches.length?matches.slice(0,100).map(a=>`<label class="work-asset-option"><input type="checkbox" data-work-asset="${esc(a.id)}" aria-label="${esc(a.code+' '+a.name)}" ${selectedWorkAssets.has(a.id)?'checked':''}><span><b>${esc(a.name)}</b><small>${esc(a.code)}${a.location?' · '+esc(a.location):''}</small></span></label>`).join(''):'<p class="work-asset-empty">該当する設備がありません。検索語や条件を変えてください。</p>';
+      root.querySelectorAll('[data-work-asset]').forEach(input=>input.onchange=()=>{if(input.checked)selectedWorkAssets.add(input.dataset.workAsset);else selectedWorkAssets.delete(input.dataset.workAsset);drawSelected();$('work-assets-count').textContent=`候補 ${matches.length}台 / 選択 ${selectedWorkAssets.size}台${matches.length>100?'（先頭100台を表示）':''}`;});
+      drawSelected();
+    }
+    search.oninput=category.onchange=drawing.onchange=draw;
+    $('work-assets-reset').onclick=()=>{search.value=category.value=drawing.value='';draw();search.focus();};draw();
+  }
   function workPrepare(record) {
     stagedWork=structuredClone((record?.attachments||[]).filter(file=>!FactoryMedia.isPhoto(file)));
     const input=$('field-attachment');input.multiple=true;input.removeAttribute('accept');
@@ -123,8 +144,8 @@ window.FactoryFeatures = (() => {
     workPhotos=FactoryMedia.editor(photoArea,record||{},$('work-dialog'));
     let area=$('work-existing-files');if(!area){area=document.createElement('div');area.id='work-existing-files';input.closest('label').before(area);}
     const draw=()=>{area.innerHTML=stagedWork.map((a,i)=>`<div class="file-row"><span>${esc(a.name)}</span><button type="button" data-remove-work-file="${i}">×</button></div>`).join('');area.querySelectorAll('[data-remove-work-file]').forEach(b=>b.onclick=()=>{stagedWork.splice(Number(b.dataset.removeWorkFile),1);draw();});};draw();
-    let label=$('work-assets-label');if(!label){label=document.createElement('label');label.id='work-assets-label';input.closest('label').before(label);}
-    label.innerHTML='関連する設備（複数選択可）<select id="work-asset-ids" multiple size="4">'+app().state.assets.map(a=>`<option value="${esc(a.id)}" ${record?.assetIds?.includes(a.id)?'selected':''}>${esc(a.code+' / '+a.name)}</option>`).join('')+'</select>';
+    let label=$('work-assets-label');if(!label){label=document.createElement('fieldset');label.id='work-assets-label';input.closest('label').before(label);}
+    workAssetPicker(label,record);
   }
   async function workFiles(){const photos=await workPhotos.read();return {attachments:[...stagedWork,...await FactoryAPI.upload([...$('field-attachment').files]),...photos.attachments],coverPhotoId:photos.coverPhotoId};}
   function workRelations(w) {if(!app().editor)return '';return '<h3>関連する設備</h3>'+ (w.assetIds||[]).map(id=>{const a=app().state.assets.find(a=>a.id===id);return a?`<button class="related-link" data-open-asset="${esc(id)}">${esc(a.name)} ↗</button>`:'';}).join('');}
@@ -138,5 +159,5 @@ window.FactoryFeatures = (() => {
     document.addEventListener('keydown',e=>{if(e.key==='Escape'){pointMode=false;app().map.getContainer().classList.remove('asset-placing');}});
   }
   function filters(){const sel=$('asset-category'),value=sel.value;const def=app().state.propertyDefinitions.find(d=>d.id==='category');sel.innerHTML='<option value="">すべての設備分類</option>'+(def?.options||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('');sel.value=(def?.options||[]).some(o=>o.id===value)?value:'';}
-  return {setup,cancelPlacement,filters,filesHTML,bindFiles,assetHTML,bindAsset,workPrepare,workFiles,workRelations,bindWork,displayValue};
+  return {setup,cancelPlacement,filters,filesHTML,bindFiles,assetHTML,bindAsset,workPrepare,workFiles,workAssetIds:()=>[...selectedWorkAssets],workRelations,bindWork,displayValue};
 })();
