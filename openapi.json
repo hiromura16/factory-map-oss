@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "PlantDesk API",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "施設管理・工事台帳・点検・図面階層・お知らせの共有API。Cloudflare Access SSOで認証し、施設担当モードで更新します。閲覧モードには公開されたお知らせと図面のみ返します。"
   },
   "servers": [
@@ -4056,6 +4056,1049 @@
           }
         }
       }
+    },
+    "/api/tasks": {
+      "get": {
+        "summary": "作業一覧",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        }
+      },
+      "post": {
+        "summary": "作業を登録",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "record"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/TeamTask"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "get": {
+        "summary": "作業詳細",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "作業を更新",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "record"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/TeamTask"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "作業を削除",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/teamMembers": {
+      "get": {
+        "summary": "担当者名簿一覧",
+        "description": "作業の割り振り用名簿です。ログインアカウントの作成・SSO招待・権限変更は行いません。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        }
+      },
+      "post": {
+        "summary": "担当者名簿を登録",
+        "description": "作業の割り振り用名簿です。ログインアカウントの作成・SSO招待・権限変更は行いません。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "record"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/TeamMember"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teamMembers/{id}": {
+      "get": {
+        "summary": "担当者名簿詳細",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "担当者名簿を更新",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "record"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/TeamMember"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "担当者名簿を削除",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/inspectionPlans": {
+      "get": {
+        "summary": "点検計画一覧",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        }
+      },
+      "post": {
+        "summary": "点検計画を登録",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "record"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/InspectionPlan"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/inspectionPlans/{id}": {
+      "get": {
+        "summary": "点検計画詳細",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "点検計画を更新",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "record"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/InspectionPlan"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "点検計画を削除",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/tasks/{id}/history": {
+      "get": {
+        "summary": "作業の変更・引き継ぎ履歴",
+        "description": "組織ごとの追記専用履歴。削除後も残ります。beforeでリビジョンのカーソル指定が可能。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ]
+      }
+    },
+    "/api/tasks/{id}/comments": {
+      "post": {
+        "summary": "引き継ぎコメントを保存",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "text"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 3000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/tasks/{id}/complete": {
+      "post": {
+        "summary": "作業を完了し点検結果を台帳へ記録",
+        "description": "全チェック項目の確認が必要。点検は対象設備・実施日・結果・内容を必須とし履歴を一度だけ追加。次回日プロパティの更新はupdateNextDateで指定しロックを尊重。要対応時はcreateFollowupとfollowupDueDateで修理作業も同じ保存内で追加。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/TeamTask"
+                  },
+                  "checklist": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "done": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "normal",
+                      "attention",
+                      "repaired"
+                    ]
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 5000
+                  },
+                  "nextDate": {
+                    "type": "string"
+                  },
+                  "updateNextDate": {
+                    "type": "boolean"
+                  },
+                  "createFollowup": {
+                    "type": "boolean"
+                  },
+                  "followupDueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "inspector": {
+                    "type": "string",
+                    "maxLength": 100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/inspectionPlans/{id}/generate": {
+      "post": {
+        "summary": "今回の点検作業をまとめ起票",
+        "description": "",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "cycleDate"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "cycleDate": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/inspectionPlans/{id}/preview": {
+      "get": {
+        "summary": "今回起票する点検の内容確認",
+        "description": "cycleDate、次回日、設備ごとの起票済み判定、revisionを返します。起票はgenerateを明示的に呼び出す方式です。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/team/report": {
+      "get": {
+        "summary": "朝会・引き継ぎレポート",
+        "description": "現在の作業から期限超過・未割り当て・手配待ち・担当者別見積時間・直近7日完了とMarkdown本文を生成。過去時点の状態復元ではありません。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ]
+      }
+    },
+    "/api/team/demo": {
+      "post": {
+        "summary": "チーム管理のサンプルを追加",
+        "description": "作業・担当者・点検計画がすべて空の場合だけ、担当者4名・作業8件・計画1件を追加。既存の設備や工事は保持します。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4446,6 +5489,200 @@
             "type": "array",
             "items": {
               "type": "object"
+            }
+          }
+        }
+      },
+      "TeamTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "task",
+              "inspection",
+              "repair",
+              "coordination"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "in_progress",
+              "waiting",
+              "done",
+              "cancelled"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "urgent",
+              "high",
+              "normal",
+              "low"
+            ]
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "assigneeId": {
+            "type": "string"
+          },
+          "assetId": {
+            "type": "string"
+          },
+          "workId": {
+            "type": "string"
+          },
+          "drawingId": {
+            "type": "string"
+          },
+          "estimatedMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10080
+          },
+          "blocker": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "checklist": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "text"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "done": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "TeamMember": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "specialty": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "contact": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "color": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "InspectionPlan": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "description": {
+            "type": "string"
+          },
+          "assetIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "items": {
+              "type": "string"
+            }
+          },
+          "assigneeId": {
+            "type": "string"
+          },
+          "nextDue": {
+            "type": "string",
+            "format": "date"
+          },
+          "intervalDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 730
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "urgent",
+              "high",
+              "normal",
+              "low"
+            ]
+          },
+          "estimatedMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10080
+          },
+          "checklist": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "text"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "done": {
+                  "type": "boolean"
+                }
+              }
             }
           }
         }

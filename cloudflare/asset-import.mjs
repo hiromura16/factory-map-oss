@@ -21,7 +21,7 @@ export function previewAssets(input,current,plan){
    if(existing&&['history','attachments','locks'].some(k=>Object.hasOwn(row,k)))throw new Error('既存設備のhistory・attachments・locksは一括更新できません。省略すると現在の内容を保持します。');
    const record=existing?{...existing,...row,id:existing.id,properties:{...existing.properties,...row.properties}}:{history:[],attachments:[],properties:{},...row,id:row.id||crypto.randomUUID(),drawingId:row.drawingId||input?.drawingId};
    if(ids.has(record.id))throw new Error('内部IDが重複しています。');ids.add(record.id);
-   const candidate={...current,assets:[record],works:[]};
+   const candidate={...current,assets:[record],works:[],tasks:[],inspectionPlans:[]};
    validateMap(candidate,plan,{assets:existing?[existing]:[]});
    record.updatedAt=new Date().toISOString();if(existing){next.assets[next.assets.findIndex(a=>a.id===record.id)]=record;updated++;}else{next.assets.push(record);created++;}
    items.push({row:index+1,code:row.code,name:record.name,action:existing?'update':'create',id:record.id});

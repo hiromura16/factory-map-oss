@@ -10,7 +10,7 @@ if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto
 const directory=mkdtempSync(path.join(os.tmpdir(),'factory-map-product-')),dbpath=path.join(directory,'test.sqlite');
 const python=`import json,sqlite3,sys\ndb=sqlite3.connect(sys.argv[1]);db.execute('PRAGMA foreign_keys=ON');db.row_factory=sqlite3.Row\nx=json.load(sys.stdin)\nif 'schema' in x:db.executescript(x['schema']);db.commit();print('[]');sys.exit()\nr=[]\nwith db:\n for q in x['queries']:\n  c=db.execute(q['sql'],q['params']);r.append({'results':[dict(row)for row in c.fetchall()]if c.description else [],'meta':{'changes':max(c.rowcount,0)}})\nprint(json.dumps(r))`;
 function execute(input){const r=spawnSync('python3',['-c',python,dbpath],{input:JSON.stringify(input),encoding:'utf8',timeout:10000,maxBuffer:16*1024*1024});if(r.status!==0)throw new Error(r.stderr||String(r.error));return JSON.parse(r.stdout);}
-for(const file of ['0001_tenants.sql','0002_scim.sql','0003_map_product.sql','0004_work_events.sql'])execute({schema:readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8')});
+for(const file of ['0001_tenants.sql','0002_scim.sql','0003_map_product.sql','0004_work_events.sql','0005_team_tasks.sql'])execute({schema:readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8')});
 const DB={prepare(sql){return{sql,params:[],bind(...params){this.params=params;return this;},async all(){return execute({queries:[this]})[0];},async first(){return(await this.all()).results[0]??null;},async run(){return this.all();}};},async batch(queries){return execute({queries});}};
 const keys=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']),jwk=await crypto.subtle.exportKey('jwk',keys.publicKey);jwk.kid='map-test';
 const oldFetch=globalThis.fetch;globalThis.fetch=async url=>{assert.equal(String(url),'https://access.example/cdn-cgi/access/certs');return new Response(JSON.stringify({keys:[jwk]}));};
@@ -126,4 +126,53 @@ test('equipment-only JSON import previews errors and applies atomically without 
  assert.equal((await call2('/api/assets/import-preview','POST',data,'factory_mode=viewer')).status,403);
  r=await(await call2('/api/assets/import-preview','POST',{assets:[{code:'FOREIGN-FILE',name:'Bad ref',drawingId:'site',point:[1,2],properties:{},attachments:[{fileId:iconFile}]}]})).json();assert.equal(r.canApply,false);
  updated=(await get()).state.assets.find(x=>x.id===a.id);assert.equal(updated.locks.attributes,true);assert.equal(updated.name,'JSONで更新');
+});
+test('team workboard retains assignments, blockers, comments and optimistic revisions',async()=>{
+ const team=(p,m='GET',b,cookie='')=>call(p,m,b,'pro','team-user',cookie),snapshot=async()=>await(await team('/api/state')).json();
+ let current=await snapshot();assert.equal((await team('/api/team/demo','POST',{revision:current.revision})).status,201);assert.equal((await team('/api/team/demo','POST',{revision:(await snapshot()).revision})).status,409);
+ current=await snapshot();assert.equal(current.state.tasks.length,8);assert.equal(current.state.teamMembers.length,4);
+ const task=current.state.tasks.find(t=>t.status==='open'&&t.kind==='task');let r=await team('/api/tasks/'+task.id,'PATCH',{revision:current.revision,record:{assigneeId:current.state.teamMembers[1].id,priority:'urgent',status:'waiting',blocker:'部品の到着を待つ'}});assert.equal(r.status,200);
+ assert.equal((await team('/api/tasks/'+task.id,'PATCH',{revision:current.revision,record:{title:'stale'}})).status,409);
+ current=await snapshot();r=await team('/api/tasks/'+task.id+'/comments','POST',{revision:current.revision,text:'明日の朝会で納期を確認します。'});assert.equal(r.status,201);
+ const history=await(await team('/api/tasks/'+task.id+'/history')).json();assert.equal(history.items[0].action,'comment');assert.ok(history.items[0].comment.includes('朝会'));assert.ok(history.items.some(e=>e.action==='created'));assert.ok(history.items.some(e=>e.action==='updated'));
+ current=await snapshot();assert.equal((await team('/api/tasks/'+task.id,'PATCH',{revision:current.revision,record:{assigneeId:'foreign-member'}})).status,422);assert.equal((await team('/api/tasks/'+task.id,'PATCH',{record:{title:'no revision'}})).status,422);
+ const report=await(await team('/api/team/report')).json();assert.ok(report.waiting>=2);assert.ok(report.unassigned>=1);assert.ok(report.loads.some(m=>m.minutes>0));assert.ok(report.markdown.includes('部品の到着'));assert.ok(report.markdown.includes('明日の朝会で納期を確認'));
+ for(const path of ['/api/tasks','/api/teamMembers','/api/inspectionPlans','/api/team/report','/api/tasks/'+task.id+'/history'])assert.equal((await team(path,'GET',undefined,'factory_mode=viewer')).status,403);
+ const view=(await(await team('/api/state','GET',undefined,'factory_mode=viewer')).json()).state;for(const k of ['tasks','teamMembers','inspectionPlans'])assert.deepEqual(view[k],[]);
+ assert.equal((await call('/api/tasks/'+task.id,'GET',undefined,'pro','other-team-user')).status,404);
+});
+test('inspection planning creates one task per equipment and cycle with stale and duplicate guards',async()=>{
+ const team=(p,m='GET',b)=>call(p,m,b,'pro','team-user'),snapshot=async()=>await(await team('/api/state')).json();let current=await snapshot(),plan=current.state.inspectionPlans[0];
+ let preview=await(await team('/api/inspectionPlans/'+plan.id+'/preview')).json();assert.equal(preview.created,3);
+ const applied=await team('/api/inspectionPlans/'+plan.id+'/generate','POST',{revision:preview.revision,cycleDate:preview.cycleDate});assert.equal(applied.status,201);
+ assert.equal((await team('/api/inspectionPlans/'+plan.id+'/generate','POST',{revision:preview.revision,cycleDate:preview.cycleDate})).status,409);
+ current=await snapshot();const generated=current.state.tasks.filter(t=>t.origin?.planId===plan.id);assert.equal(generated.length,3);assert.equal(new Set(generated.map(t=>t.assetId)).size,3);assert.equal(current.state.inspectionPlans[0].nextDue,preview.nextDue);
+ assert.equal((await team('/api/inspectionPlans/'+plan.id,'PATCH',{revision:current.revision,record:{nextDue:preview.cycleDate}})).status,200);
+ preview=await(await team('/api/inspectionPlans/'+plan.id+'/preview')).json();assert.equal(preview.created,0);assert.equal(preview.skipped,3);
+ assert.equal((await team('/api/inspectionPlans/'+plan.id+'/generate','POST',{revision:preview.revision,cycleDate:preview.cycleDate})).status,201);assert.equal((await snapshot()).state.tasks.filter(t=>t.origin?.planId===plan.id).length,3);
+});
+test('completing inspection is atomic, checks required items, preserves locks and records history once',async()=>{
+ const team=(p,m='GET',b)=>call(p,m,b,'pro','team-user'),snapshot=async()=>await(await team('/api/state')).json();let current=await snapshot();const t=current.state.tasks.find(t=>t.origin&&t.status==='open'),a=current.state.assets.find(a=>a.id===t.assetId),day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo'}).format(new Date());
+ const completion={date:day,result:'attention',text:'振動あり。修理の手配が必要。',createFollowup:true,followupDueDate:day,nextDate:'2027-01-01',updateNextDate:true};
+ assert.equal((await team('/api/tasks/'+t.id+'/complete','POST',{...completion,revision:current.revision})).status,422);
+ assert.equal((await team('/api/tasks/'+t.id,'PATCH',{revision:current.revision,record:{status:'done'}})).status,422);
+ assert.equal((await team('/api/assets/'+a.id,'PATCH',{locks:{attributes:true,position:true}})).status,200);current=await snapshot();
+ const checked=t.checklist.map(c=>({id:c.id,done:true}));assert.equal((await team('/api/tasks/'+t.id+'/complete','POST',{...completion,revision:current.revision,checklist:checked})).status,423);assert.equal((await snapshot()).state.assets.find(x=>x.id===a.id).history.length,a.history.length);
+ assert.equal((await team('/api/tasks/'+t.id+'/complete','POST',{...completion,updateNextDate:false,revision:current.revision,checklist:checked})).status,200);
+ current=await snapshot();const asset=current.state.assets.find(x=>x.id===a.id),done=current.state.tasks.find(x=>x.id===t.id),h=asset.history.find(h=>h.taskId===t.id);assert.equal(current.state.tasks.filter(x=>x.followupFor===t.id).length,1);assert.ok(done.followupTaskId);assert.equal(done.status,'done');assert.equal(h.result,'attention');assert.equal(h.inspector,'空調・熱源担当');assert.equal(asset.history.length,a.history.length+1);assert.equal(asset.properties.nextInspection,a.properties.nextInspection);
+ assert.equal((await team('/api/tasks/'+t.id+'/complete','POST',{...completion,revision:current.revision,checklist:checked})).status,409);
+ assert.equal((await team('/api/tasks/'+t.id,'PATCH',{revision:current.revision,record:{status:'open'}})).status,422);
+ assert.equal((await team('/api/assets/'+a.id+'/maintenance/'+h.id,'DELETE')).status,422);
+});
+test('task attachments remain available in immutable history after task deletion',async()=>{
+ const team=(p,m='GET',b)=>call(p,m,b,'pro','team-files'),snapshot=async()=>await(await team('/api/state')).json();let current=await snapshot();
+ const form=new FormData();form.append('file',new Blob(['%PDF-1.4\nTask evidence'],{type:'application/pdf'}),'task.pdf');const f=(await(await team('/api/files','POST',form)).json()).files[0];
+ let r=await team('/api/tasks','POST',{revision:current.revision,record:{title:'添付資料のある仕事',attachments:[f]}});assert.equal(r.status,201);const task=(await r.json()).record;current=await snapshot();
+ assert.equal((await team('/api/tasks/'+task.id,'DELETE',{revision:current.revision})).status,200);assert.equal((await team('/api/files/'+f.fileId,'DELETE')).status,409);assert.equal((await team('/api/files/'+f.fileId+'?inline=1')).status,200);
+ const history=await(await team('/api/tasks/'+task.id+'/history')).json();assert.ok(history.items.some(e=>e.action==='deleted'));assert.ok(history.items.some(e=>e.after?.attachments?.length));
+});
+test('equipment import remains valid when tasks and inspection plans reference other equipment',async()=>{
+ const team=(p,m='GET',b)=>call(p,m,b,'pro','team-user');const s=await(await team('/api/state')).json(),a=s.state.assets[5],payload={mode:'upsert',assets:[{code:a.code,location:'作業管理開始後に取り込み'}]};
+ const preview=await(await team('/api/assets/import-preview','POST',payload)).json();assert.equal(preview.canApply,true,JSON.stringify(preview.errors));assert.equal((await team('/api/assets/import','POST',{...payload,revision:preview.revision,confirm:'IMPORT_ASSETS'})).status,200);
+ const next=(await(await team('/api/state')).json()).state;assert.equal(next.tasks.length,s.state.tasks.length);assert.equal(next.inspectionPlans.length,s.state.inspectionPlans.length);assert.equal(next.assets[5].location,'作業管理開始後に取り込み');
 });

@@ -6,7 +6,7 @@ export const PLANS = Object.freeze({
   pro: { drawings: 30, assets: 2000, customization: true },
   enterprise: { drawings: 100, assets: 10000, customization: true }
 });
-export const KINDS = ['drawings', 'works', 'assets', 'propertyDefinitions', 'notes', 'layers', 'drawingLinks', 'layerSets'];
+export const KINDS = ['drawings', 'works', 'assets', 'propertyDefinitions', 'notes', 'layers', 'drawingLinks', 'layerSets', 'tasks', 'teamMembers', 'inspectionPlans'];
 export const MAX_BYTES = 750000; // Below D1's per-row limit. R2 stores binaries, not this JSON.
 const isObject = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 function fail(message) { throw new ApiError(422, message); }
@@ -17,7 +17,7 @@ export function validateState(input, plan = 'free') {
   if (!Object.hasOwn(PLANS, plan)) fail('Unknown plan');
   if (new TextEncoder().encode(JSON.stringify(state)).byteLength > MAX_BYTES) fail('Snapshot exceeds 750 KB; split the workspace before importing');
   for (const kind of KINDS) {
-    if (['layers','drawingLinks','layerSets'].includes(kind) && state[kind]===undefined) continue;
+    if (['layers','drawingLinks','layerSets','tasks','teamMembers','inspectionPlans'].includes(kind) && state[kind]===undefined) continue;
     if (!Array.isArray(state[kind])) fail(kind + ' must be an array');
     if (state[kind].length > 20000) fail(kind + ' exceeds safety limit');
     const ids = new Set();
