@@ -24,7 +24,7 @@ window.FactoryWebMCP = (() => {
       await registry.registerTool({name,description,inputSchema:schema,annotations:{readOnlyHint:readOnly,untrustedContentHint:true},async execute(input){const result=await execute(validate(schema,input));return result;}},{signal:lifecycle.signal});
     }
     try{
-      for(const [kind,label]of [['works','工事'],['assets','設備'],['drawings','図面'],['properties','設備プロパティ'],['notes','付箋'],['layers','レイヤー'],['drawingLinks','図面リンク']]){
+      for(const [kind,label]of [['works','工事'],['assets','設備'],['drawings','図面'],['properties','設備プロパティ'],['notes','付箋'],['layers','レイヤー'],['drawingLinks','図面リンク'],['layerSets','レイヤーセット']]){
         await add('list_'+kind,label+'を検索・一覧取得します。',object({q:{type:'string'},drawingId:string}),async input=>request('/api/'+kind+'?'+new URLSearchParams({...input,limit:'1000'})),true);
         const idSchema={...object({id:string}),required:['id']};
         await add('get_'+kind,label+'の詳細を取得します。',idSchema,input=>request('/api/'+kind+'/'+encodeURIComponent(input.id)),true);
@@ -48,6 +48,10 @@ window.FactoryWebMCP = (() => {
       await add('get_display_preferences','表示サイズ・ズーム連動・レイヤー表示・プリセットなどの設定を取得します。',object({}),()=>request('/api/preferences'),true);
       await add('update_display_preferences','表示設定を更新し、このアカウントに保存します。',{...object({preferences:{type:'object'}}),required:['preferences']},async input=>{const current=FactoryPreferences.getPreferences();await FactoryPreferences.update({...input.preferences,...(input.preferences.appearance?{appearance:{...current.appearance,...input.preferences.appearance}}:{})});return {preferences:FactoryPreferences.getPreferences()};});
       await add('set_layer_visibility','追加レイヤーの表示・非表示を切り替え、保存します。',{...object({id:string,visible:{type:'boolean'}}),required:['id','visible']},async input=>{if(!app.state.layers.some(l=>l.id===input.id))throw new Error('レイヤーがありません。');const ids=new Set(FactoryPreferences.getPreferences().hiddenLayerIds);if(input.visible)ids.delete(input.id);else ids.add(input.id);await FactoryPreferences.update({hiddenLayerIds:[...ids]});return {id:input.id,visible:input.visible};});
+      await add('apply_layer_sets','複数レイヤーセットの保存状態・表示・非表示・和集合・共通部分を適用します。',{...object({ids:{type:'array',items:string},operation:{type:'string',enum:['saved','show','hide','isolate','intersection']}}),required:['ids']},input=>FactoryLayerSets.apply(input.ids,input.operation));
+      await add('go_parent_drawing','上の図面へ戻ります。',object({}),()=>{FactoryOrganization.goParent();return{drawingId:app.currentDrawing};},true);
+      await add('preview_equipment_json','設備JSONの追加・更新・エラーを保存せず確認します。',{...object({assets:{type:'array'},mode:{type:'string',enum:['add','upsert']},drawingId:string}),required:['assets']},input=>request('/api/assets/import-preview',{method:'POST',body:input}),true);
+      await add('import_equipment_json','プレビュー後の設備JSONを一括保存します。点検履歴と添付資料を保持しロックを守ります。',{...object({assets:{type:'array'},mode:{type:'string',enum:['add','upsert']},drawingId:string,revision:{type:'number'},confirm:{type:'string',enum:['IMPORT_ASSETS']}}),required:['assets','revision','confirm']},async input=>{const r=await request('/api/assets/import',{method:'POST',body:input});await app.refresh();return r;});
       registered=true;window.dispatchEvent(new Event('factory-webmcp-ready'));
     }catch(error){console.error('WebMCP registration:',error);}
   }

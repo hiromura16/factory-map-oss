@@ -1,8 +1,9 @@
 {
-  "name": "factory-map-saas",
+  "name": "plantdesk",
   "main": "worker.mjs",
   "compatibility_date": "2026-11-13",
   "workers_dev": true,
+  "preview_urls": false,
   "observability": {"enabled":true,"traces":{"enabled":true}},
   "d1_databases": [
     {

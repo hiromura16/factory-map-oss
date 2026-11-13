@@ -18,6 +18,8 @@
   <script defer src="appearance.js"></script>
   <script defer src="api-client.js"></script>
   <script defer src="map-display.js"></script>
+  <script defer src="layer-set-state.js"></script>
+  <script defer src="layer-sets.js"></script>
   <script defer src="map-organization.js"></script>
   <script defer src="pdf-preview.js"></script>
   <script defer src="media.js"></script>
@@ -58,7 +60,7 @@
       </aside>
 
       <div class="map-pane">
-        <div class="map-toolbar"><div class="drawing-selector"><span class="toolbar-label">図面</span><select id="drawing-select" aria-label="表示する図面"></select></div><div class="map-tools"><button id="fit-map" title="図面全体を表示" aria-label="図面全体を表示"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M3 8V3h5m4 0h5v5m0 4v5h-5m-4 0H3v-5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><button id="layers-toggle" aria-expanded="false" title="表示するレイヤー">▱ <span>レイヤー</span></button></div></div>
+        <div class="map-toolbar"><div class="drawing-selector"><span class="toolbar-label">図面</span><select id="drawing-select" aria-label="表示する図面"></select><button id="drawing-up" type="button" aria-label="上の図面へ戻る" disabled>↑ 上の図面へ</button></div><div class="map-tools"><button id="fit-map" title="図面全体を表示" aria-label="図面全体を表示"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M3 8V3h5m4 0h5v5m0 4v5h-5m-4 0H3v-5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><button id="layers-toggle" aria-expanded="false" title="表示するレイヤー">▱ <span>レイヤー</span></button></div></div>
         <div id="map" aria-label="工事範囲と設備を表示する敷地図"></div>
         <div id="layers-panel" class="layers-panel" hidden><h3>表示する情報</h3><label><input type="checkbox" id="show-works" checked>工事範囲</label><label class="editor-only"><input type="checkbox" id="show-assets">設備の位置</label><label><input type="checkbox" id="show-notes" checked>付箋</label><div id="cad-layers"></div></div>
         <div class="drawing-instruction" id="note-instruction" hidden><span>付箋を貼る場所をクリックしてください。</span><button id="note-cancel">キャンセル</button></div><div class="drawing-instruction" id="draw-instruction" hidden><span>地図をクリックして工事範囲を囲み、最初の点をもう一度クリックしてください。</span><button id="draw-cancel">キャンセル</button></div>

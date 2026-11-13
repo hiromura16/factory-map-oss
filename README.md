@@ -2,9 +2,9 @@
 
 施設管理チームの設備・工事・点検をつなぐ管理ワークスペースと、構内のお知らせに使えるSaaSデモです。
 
-- [SaaSデモ](https://factory-map-saas.pirosea-demo.workers.dev/)
-- [管理ダッシュボード](https://factory-map-saas.pirosea-demo.workers.dev/console.html)
-- [API / Swagger UI](https://factory-map-saas.pirosea-demo.workers.dev/api-docs)
+- [SaaSデモ](https://plantdesk.pirosea-demo.workers.dev/)
+- [管理ダッシュボード](https://plantdesk.pirosea-demo.workers.dev/console.html)
+- [API / Swagger UI](https://plantdesk.pirosea-demo.workers.dev/api-docs)
 - [Cloudflareへの配置](docs/cloudflare.md)
 
 **決済・カード登録・請求はありません。** 有料化した場合の機能差を、2つのデモアカウントで体験できます。掲載URLはCloudflare Accessで保護されており、許可したメールアドレスでログインします。
@@ -49,7 +49,7 @@
 - 設定・アイコン・写真・台帳・履歴はCloudflare D1に保存。別ブラウザでも同じデモアカウントのデータを利用できます。
 - JSONの事前検証と取り込み、設備台帳と点検履歴のCSV出力、他システムからCSVに書き出した点検履歴の取り込み。
 - Proのバックアップ作成・復元、未使用資料の整理、サーバーの操作履歴。
-- REST API、OpenAPI / Swagger UI、69操作のOpenAPIと対応ブラウザの44個のWebMCPツール。
+- REST API、OpenAPI / Swagger UI、77操作のOpenAPIと対応ブラウザの53個のWebMCPツール。
 
 工場・設備・資料は架空のサンプルです。Freeは12台、Proは12分類64台と点検履歴から始まります。
 
@@ -111,3 +111,19 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chrome python3 tests/product_ui.py
 このサンプルをそのまま商用SaaSの完成品とは扱っていません。料金契約・決済・請求、組織への招待、実IdPとのSCIM運用、大規模データの正規化、負荷試験、保管ポリシー、監視・バックアップ運用は別工程です。SCIM Usersと汎用OIDCの実験的な基盤は `cloudflare/scim.mjs` などに残していますが、このデモのログインはCloudflare Accessを使います。
 
 MIT License。依存ソフトウェアのライセンスは `THIRD_PARTY_NOTICES.md` と `vendor/` を参照してください。
+
+### レイヤーセット・図面階層・設備一括登録
+
+- 地図の「レイヤー」から、目的別のレイヤーセットを作成できます。同じレイヤーを複数セットに登録し、表示・非表示を保存、復元できます。セット単位の表示／非表示、複数セットの和集合／共通部分にも対応。標準（未分類）とCAD背景はセット操作の対象外です。
+- セットを公開しても、施設担当専用レイヤーは公開しません。重複メンバーは最後の操作を反映します。セットの定義は共有データ、表示状態はアカウントごとのDB設定です。
+- 図面名の横の「↑ 上の図面へ」で上位へ戻れます。リンク経由で開いた図面は元の表示位置を復元。直接選択した詳細図も上位・全体図へ戻れます。
+- 管理ダッシュボード → 設備一覧 →「JSONで一括登録」で、テンプレート保存・ファイル選択・直接入力・行ごとの事前確認ができます。新規追加のみ、設備IDでの追加と更新を選択可能。点検履歴・資料・ロックは既存設備への一括入力を拒否して保持します。エラー時は全件保存せず、同時更新・プラン上限も検証します。
+- 台帳の「表示列・並び順」で、名前・IDを検索し、追加プロパティをまとめて選べます。工事一覧には関連設備の現在のプロパティも列に追加できます。複数設備の値は重複をまとめて「 / 」で表示します。最大100列、横スクロール、順番の保存、表示列に沿ったCSV出力に対応します。
+
+設備JSON（SaaS API）は次の形式です。図面座標は `[x, y]`。プロパティ・選択肢のIDは取り込み画面で確認できます。新規設備は `name` と `point` が必須です。更新時は省略した項目を保持します。
+
+```json
+{"assets":[{"code":"AC-NEW-001","name":"新しい空調機","drawingId":"site","point":[550,900],"properties":{"category":"hvac"}}]}
+```
+
+`POST /api/assets/import-preview` で確認し、`POST /api/assets/import` に同じデータと `mode`（`add` / `upsert`）、取得した `revision`、`confirm: "IMPORT_ASSETS"` を送ると保存します。最大2,000件／回。ワークスペース全体を置き換える既存のJSON取り込みとは別の操作です。

@@ -96,3 +96,34 @@ test('work history retains snapshots and attachments through edits, stale saves 
  for(const path of ['/api/work-register','/api/works/'+id+'/history','/api/dashboard'])assert.equal((await call(path,'GET',undefined,'pro','alice','factory_mode=viewer')).status,403);
  assert.equal((await call('/api/works/'+id+'/history','GET',undefined,'pro','bob')).status,404);
 });
+test('layer sets allow overlapping membership, saved states, unions and intersections without publishing private layers',async()=>{
+ const call2=(p,m='GET',b,cookie='')=>call(p,m,b,'pro','sets-user',cookie);
+ for(const [id,audience]of [['ls-a','public'],['ls-b','public'],['ls-private','facility']])assert.equal((await call2('/api/layers','POST',{id,name:id,color:'#224466',audience})).status,201);
+ const one={id:'set-one',name:'空調巡回',color:'#224466',description:'巡回用',audience:'public',mode:'merge',rules:[{layerId:'ls-a',visible:true},{layerId:'ls-b',visible:false},{layerId:'ls-private',visible:true}]};
+ const two={...one,id:'set-two',name:'工事確認',rules:[{layerId:'ls-a',visible:true},{layerId:'ls-b',visible:true}]};
+ assert.equal((await call2('/api/layerSets','POST',one)).status,201);assert.equal((await call2('/api/layerSets','POST',two)).status,201);
+ let r=await(await call2('/api/layer-sets/apply','POST',{ids:['set-one'],operation:'saved'})).json();assert.ok(r.preferences.hiddenLayerIds.includes('ls-b'));assert.ok(!r.preferences.hiddenLayerIds.includes('ls-a'));assert.equal(r.preferences.mapTypes.assets,true);
+ r=await(await call2('/api/layer-sets/apply','POST',{ids:['set-one','set-two'],operation:'intersection'})).json();assert.ok(!r.preferences.hiddenLayerIds.includes('ls-a'));assert.ok(r.preferences.hiddenLayerIds.includes('ls-b'));assert.ok(r.preferences.hiddenLayerIds.includes('ls-private'));
+ r=await(await call2('/api/layer-sets/apply','POST',{ids:['set-one','set-two'],operation:'isolate'})).json();assert.ok(!r.preferences.hiddenLayerIds.includes('ls-b'));
+ const viewer=(await(await call2('/api/state','GET',undefined,'factory_mode=viewer')).json()).state;assert.equal(viewer.layerSets.length,2);assert.ok(!JSON.stringify(viewer).includes('ls-private'));assert.equal(viewer.layerSets[0].rules.length,2);
+ assert.equal((await call2('/api/layerSets','POST',{...one,id:'bad-set',rules:[{layerId:'missing',visible:true}]})).status,422);
+ assert.equal((await call2('/api/layerSets/set-one','PATCH',{rules:[one.rules[0],one.rules[0]]})).status,422);
+ assert.equal((await call2('/api/layerSets','POST',{...one,id:'staff-set',audience:'facility'})).status,201);
+ assert.equal((await call2('/api/layer-sets/apply','POST',{ids:['staff-set']},'factory_mode=viewer')).status,422);
+ assert.equal((await call2('/api/layers/ls-a','DELETE')).status,200);assert.ok((await(await call2('/api/layerSets/set-one')).json()).record.rules.every(r=>r.layerId!=='ls-a'));
+});
+test('equipment-only JSON import previews errors and applies atomically without replacing records or histories',async()=>{
+ const call2=(p,m='GET',b,cookie='')=>call(p,m,b,'pro','import-user',cookie),get=async()=>await(await call2('/api/state')).json();
+ let s=await get();const a=s.state.assets[0],before=structuredClone(a);
+ const data={mode:'upsert',assets:[{code:a.code,name:'JSONで更新',properties:{model:'NEW MODEL'}},{code:'JSON-NEW-1',name:'冷却ポンプ',drawingId:'site',point:[150,220],properties:{category:'cool'}}]};
+ let r=await(await call2('/api/assets/import-preview','POST',data)).json();assert.equal(r.canApply,true);assert.equal(r.created,1);assert.equal(r.updated,1);assert.equal((await get()).revision,s.revision);
+ assert.equal((await call2('/api/assets/import','POST',{...data,revision:r.revision,confirm:'IMPORT_ASSETS'})).status,200);s=await get();let updated=s.state.assets.find(x=>x.id===a.id);assert.equal(updated.name,'JSONで更新');assert.deepEqual(updated.history,before.history);assert.deepEqual(updated.attachments,before.attachments);assert.equal(updated.properties.category,before.properties.category);assert.deepEqual(updated.point,before.point);assert.equal(s.state.assets.length,65);assert.equal(s.state.works.length,6);
+ assert.equal((await call2('/api/assets/import','POST',{...data,revision:r.revision,confirm:'IMPORT_ASSETS'})).status,409);
+ const bad={assets:[{code:'GOOD-1',name:'Good',drawingId:'site',point:[1,2],properties:{}},{code:'BAD-1',name:'Missing position',drawingId:'site',properties:{}}]};r=await(await call2('/api/assets/import-preview','POST',bad)).json();assert.equal(r.canApply,false);assert.equal(r.errors[0].row,2);assert.equal((await call2('/api/assets/import','POST',{...bad,revision:s.revision,confirm:'IMPORT_ASSETS'})).status,422);assert.ok(!(await get()).state.assets.some(x=>x.code==='GOOD-1'));
+ r=await(await call2('/api/assets/import-preview','POST',{assets:[{code:a.code,name:'Duplicate',point:[1,2],properties:{}}]})).json();assert.equal(r.canApply,false);
+ assert.equal((await call2('/api/assets/'+a.id,'PATCH',{locks:{position:true,attributes:true}})).status,200);
+ for(const patch of [{name:'locked'},{point:[1,2]},{locks:{position:false,attributes:false}},{history:[]},{attachments:[]},{properties:{unknown:'bad'}}]){r=await(await call2('/api/assets/import-preview','POST',{mode:'upsert',assets:[{code:a.code,...patch}]})).json();assert.equal(r.canApply,false,JSON.stringify(patch));}
+ assert.equal((await call2('/api/assets/import-preview','POST',data,'factory_mode=viewer')).status,403);
+ r=await(await call2('/api/assets/import-preview','POST',{assets:[{code:'FOREIGN-FILE',name:'Bad ref',drawingId:'site',point:[1,2],properties:{},attachments:[{fileId:iconFile}]}]})).json();assert.equal(r.canApply,false);
+ updated=(await get()).state.assets.find(x=>x.id===a.id);assert.equal(updated.locks.attributes,true);assert.equal(updated.name,'JSONで更新');
+});

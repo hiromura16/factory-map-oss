@@ -3,7 +3,7 @@
 ## リソース
 
 - Worker: `factory-map-saas`
-- 仮URL: `https://factory-map-saas.pirosea-demo.workers.dev`
+- 仮URL: `https://plantdesk.pirosea-demo.workers.dev`
 - D1: `factory-map-saas-demo` / binding `DB`
 - 静的ファイル: `public/` / binding `ASSETS`。Workerを先に実行。
 - 認証: Cloudflare Access。Worker全体を保護し、許可したメールアドレスのみ。

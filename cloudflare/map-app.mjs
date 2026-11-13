@@ -1,6 +1,8 @@
 import {ApiError, KINDS, importPreview} from './core.mjs';
 import {authenticate} from './auth.mjs';
 import {LIMITS, validateMap, visibleState, fileIds, preferences} from './map-validation.mjs';
+import layerSets from '../layer-set-state.js';
+import {previewAssets} from './asset-import.mjs';
 import seed from '../server/seed.json' with {type:'json'};
 
 const now=()=>new Date().toISOString(), enc=new TextEncoder();
@@ -26,7 +28,7 @@ async function actor(request,env){
  else throw new ApiError(401,'Cloudflare Accessでログインしてください。');
  const id=await sha(JSON.stringify([identity.issuer,identity.subject]));return{id,identity};
 }
-function seedState(profile){const s={...structuredClone(seed),layers:[],drawingLinks:[]};if(profile==='free'){s.assets=s.assets.slice(0,12);const ids=new Set(s.assets.map(a=>a.id));s.works.forEach(w=>w.assetIds=(w.assetIds||[]).filter(id=>ids.has(id)));}function clean(x){if(Array.isArray(x))return x.map(clean);if(!x||typeof x!=='object')return x;return Object.fromEntries(Object.entries(x).map(([k,v])=>[k,k==='attachments'?[]:clean(v)]));}return clean(s);}
+function seedState(profile){const s={...structuredClone(seed),layers:[],drawingLinks:[],layerSets:[]};if(profile==='free'){s.assets=s.assets.slice(0,12);const ids=new Set(s.assets.map(a=>a.id));s.works.forEach(w=>w.assetIds=(w.assetIds||[]).filter(id=>ids.has(id)));}function clean(x){if(Array.isArray(x))return x.map(clean);if(!x||typeof x!=='object')return x;return Object.fromEntries(Object.entries(x).map(([k,v])=>[k,k==='attachments'?[]:clean(v)]));}return clean(s);}
 async function bootstrap(env,user){
  const uid=user.id,when=now();await env.DB.prepare('INSERT OR IGNORE INTO users(id,issuer,subject,created_at) VALUES(?,?,?,?)').bind(uid,user.identity.issuer,user.identity.subject,when).run();
  for(const profile of ['free','pro']){const id='demo-'+profile+'-'+uid.slice(0,32);await env.DB.batch([
@@ -42,7 +44,7 @@ async function context(request,env){
  const found=await env.DB.prepare('SELECT count(*) AS n FROM demo_profiles WHERE user_id=?').bind(user.id).first();if(found.n!==2)await bootstrap(env,user);
  const requested=request.headers.get('x-factory-profile')||readCookie(request,'factory_profile')||'pro';const profile=requested==='free'?'free':'pro';
  const org=await env.DB.prepare('SELECT o.*,m.role FROM organizations o JOIN demo_profiles p ON p.organization_id=o.id JOIN memberships m ON m.organization_id=o.id AND m.user_id=p.user_id WHERE p.user_id=? AND p.profile=? AND m.active=1').bind(user.id,profile).first();if(!org)throw new ApiError(403,'このデモにアクセスできません。');
- const state=JSON.parse(org.state_json);state.layers??=[];state.drawingLinks??=[];return{user,org,state,profile,editor:readCookie(request,'factory_mode')!=='viewer'&&['owner','editor'].includes(org.role),limits:LIMITS[org.plan]};
+ const state=JSON.parse(org.state_json);state.layers??=[];state.drawingLinks??=[];state.layerSets??=[];return{user,org,state,profile,editor:readCookie(request,'factory_mode')!=='viewer'&&['owner','editor'].includes(org.role),limits:LIMITS[org.plan]};
 }
 function editable(c){if(!c.editor||!['owner','editor'].includes(c.org.role))throw new ApiError(403,'施設担当モードに切り替えてください。');}
 function owner(c){if(c.org.role!=='owner')throw new ApiError(403,'管理者アカウントの機能です。');}
@@ -66,7 +68,7 @@ function mutate(state,kind,id,method,input){
  if(method==='POST'){record={...input,id:input.id||crypto.randomUUID(),updatedAt:now()};if(list.some(x=>x.id===record.id))throw new ApiError(409,'IDが重複しています。');if(key==='assets'){record.history??=[];record.attachments??=[];record.properties??={};}list.push(record);}
  else if(index<0)throw new ApiError(404,'対象が見つかりません。');
  else if(method==='PATCH'){record={...list[index],...input,id,updatedAt:now()};list[index]=record;}
- else if(method==='DELETE'){record=list.splice(index,1)[0];if(key==='propertyDefinitions')state.assets.forEach(a=>delete a.properties[id]);if(key==='assets')state.works.forEach(w=>w.assetIds=(w.assetIds||[]).filter(x=>x!==id));if(key==='layers')for(const x of [...state.assets,...state.works,...state.notes,...state.drawingLinks])if(x.layerId===id)delete x.layerId;}
+ else if(method==='DELETE'){record=list.splice(index,1)[0];if(key==='propertyDefinitions')state.assets.forEach(a=>delete a.properties[id]);if(key==='assets')state.works.forEach(w=>w.assetIds=(w.assetIds||[]).filter(x=>x!==id));if(key==='layers')for(const set of state.layerSets)set.rules=set.rules.filter(r=>r.layerId!==id);if(key==='layers')for(const x of [...state.assets,...state.works,...state.notes,...state.drawingLinks])if(x.layerId===id)delete x.layerId;}
  else throw new ApiError(405,'この操作に対応していません。');return record;
 }
 function visibleFile(c,id,prefs){return c.editor||fileIds(visibleState(c.state,false)).includes(id);}
@@ -97,8 +99,8 @@ export async function handleMap(request,env){
  const c=await context(request,env),state=c.state;
  if(path==='/api/session')return json({saas:true,sso:'Cloudflare Access',profile:c.profile,editor:c.editor,role:c.org.role,organization:{id:c.org.id,name:c.org.name},plan:c.org.plan,limits:c.limits,mockBilling:true,profiles:[{id:'free',name:'無料デモ',plan:'free',role:'editor'},{id:'pro',name:'有料管理者デモ',plan:'pro',role:'owner'}],preferences:await settings(env,c)});
  if(path==='/api/demo/profile'&&method==='POST'){const input=await readJSON(request);if(!['free','pro'].includes(input.profile))throw new ApiError(422,'アカウントを選択してください。');return json({profile:input.profile},200,{'set-cookie':cookie('factory_profile',input.profile)});}
- if(path==='/api/health')return json({ok:true,database:'Cloudflare D1',version:'2.0.0',billing:'demo-no-payments'});
- if(path==='/api/capabilities')return json({version:'2.0.0',authentication:'Cloudflare Access SSO',billing:'demo-no-payments',webmcp:true,tools:44,profile:c.profile,plan:c.org.plan,limits:c.limits,fileLimitBytes:5*1024*1024,snapshotLimitBytes:750000,features:['works','assets','drawings','properties','notes','inspection-history','photo-thumbnails','pdf-preview','shared-icons','shared-preferences','csv-history-import','json-import-export','backups','audit','demo-accounts','display-presets','custom-layers','drawing-hierarchy','work-history','configurable-registers']});
+ if(path==='/api/health')return json({ok:true,database:'Cloudflare D1',version:'2.1.0',billing:'demo-no-payments'});
+ if(path==='/api/capabilities')return json({version:'2.1.0',authentication:'Cloudflare Access SSO',billing:'demo-no-payments',webmcp:true,tools:53,profile:c.profile,plan:c.org.plan,limits:c.limits,fileLimitBytes:5*1024*1024,snapshotLimitBytes:750000,features:['works','assets','drawings','properties','notes','inspection-history','photo-thumbnails','pdf-preview','shared-icons','shared-preferences','csv-history-import','json-import-export','backups','audit','demo-accounts','display-presets','custom-layers','drawing-hierarchy','work-history','configurable-registers','layer-sets','equipment-json-import']});
  if(path==='/api/auth/status')return json({editor:c.editor,role:c.org.role,sso:true});
  if(path==='/api/auth/login'&&method==='POST'){if(!['owner','editor'].includes(c.org.role))throw new ApiError(403,'施設担当者の権限が必要です。');return json({editor:true,sso:true},200,{'set-cookie':cookie('factory_mode','facility')});}
  if(path==='/api/auth/logout'&&method==='POST')return json({editor:false},200,{'set-cookie':cookie('factory_mode','viewer')});
@@ -127,6 +129,16 @@ export async function handleMap(request,env){
   const input=await readJSON(request);const count=await env.DB.prepare('SELECT count(*) AS n FROM map_snapshots WHERE organization_id=?').bind(c.org.id).first();if(count.n>=c.limits.snapshots)throw new ApiError(409,'バックアップの上限です。古いものを削除してください。');const id=crypto.randomUUID();await env.DB.prepare('INSERT INTO map_snapshots(id,organization_id,name,state_json,created_at) VALUES(?,?,?,?,?)').bind(id,c.org.id,String(input.name||'バックアップ').slice(0,80),JSON.stringify(state),now()).run();return json({id},201);
  }
  const snapshot=path.match(/^\/api\/snapshots\/([a-zA-Z0-9-]+)(\/restore)?$/);if(snapshot){owner(c);editable(c);if(!c.limits.snapshots)throw new ApiError(403,'Proの機能です。');const s=await env.DB.prepare('SELECT * FROM map_snapshots WHERE id=? AND organization_id=?').bind(snapshot[1],c.org.id).first();if(!s)throw new ApiError(404,'バックアップが見つかりません。');if(method==='DELETE'){await env.DB.prepare('DELETE FROM map_snapshots WHERE id=? AND organization_id=?').bind(s.id,c.org.id).run();return json({deleted:true});}if(method==='POST'&&snapshot[2]){const input=await readJSON(request);return json({revision:await commit(env,c,JSON.parse(s.state_json),'snapshot.restore',input.revision)});}}
+ if(path==='/api/layer-sets/apply'&&method==='POST'){
+  const input=await readJSON(request),p=await settings(env,c);let patch;try{patch=layerSets.apply(visibleState(state,c.editor),p,input);}catch(e){throw new ApiError(422,e.message);}
+  const result=preferences({...p,...patch},c.org.plan);await env.DB.prepare('INSERT INTO map_preferences(user_id,organization_id,value_json) VALUES(?,?,?) ON CONFLICT(user_id,organization_id) DO UPDATE SET value_json=excluded.value_json').bind(c.user.id,c.org.id,JSON.stringify(result)).run();return json({preferences:result});
+ }
+ if(['/api/assets/import-preview','/api/assets/import'].includes(path)&&method==='POST'){
+  editable(c);const input=await readJSON(request),preview=previewAssets(input,state,c.org.plan);if(preview.canApply)try{await validateFiles(env,c,preview.next);}catch(e){preview.errors.push({row:null,code:'',message:e.message});preview.canApply=false;}
+  const {next,...result}=preview;if(path.endsWith('import-preview'))return json({...result,revision:c.org.revision});
+  if(!Number.isSafeInteger(input.revision))throw new ApiError(422,'プレビューで取得したrevisionが必要です。');if(input.confirm!=='IMPORT_ASSETS')throw new ApiError(422,'設備取り込みの確認が必要です。');if(!preview.canApply)throw new ApiError(422,preview.errors.map(e=>(e.row?'行'+e.row+': ':'')+e.message).join(' / '));
+  return json({...result,revision:await commit(env,c,next,'assets.import',input.revision)});
+ }
  if(path==='/api/work-register'&&method==='GET'){
   editable(c);const offset=Math.min(10000000,Math.max(0,Math.floor(Number(url.searchParams.get('offset'))||0))),limit=Math.min(200,Math.max(1,Math.floor(Number(url.searchParams.get('limit'))||100)));
   const deleted=await env.DB.prepare("SELECT e.work_id,e.before_json,e.created_at,e.revision FROM map_work_events e WHERE e.organization_id=? AND e.action='deleted' AND e.revision=(SELECT MAX(newer.revision) FROM map_work_events newer WHERE newer.organization_id=e.organization_id AND newer.work_id=e.work_id) ORDER BY e.created_at DESC LIMIT ? OFFSET ?").bind(c.org.id,limit+1,offset).all();
@@ -141,7 +153,7 @@ export async function handleMap(request,env){
  if(path==='/api/search'&&method==='GET'){const q=(url.searchParams.get('q')||'').toLocaleLowerCase(),s=visibleState(state,c.editor);const items=['works','assets','drawings','notes'].flatMap(kind=>s[kind].filter(x=>JSON.stringify(x).toLocaleLowerCase().includes(q)).map(record=>({kind,record})));return json({items:items.slice(0,200),total:items.length});}
  if(path==='/api/batch'&&method==='POST'){editable(c);const input=await readJSON(request);if(!Array.isArray(input.operations)||input.operations.length>100)throw new ApiError(422,'一括操作は100件までです。');const next=structuredClone(state),results=[];for(const o of input.operations){const kind=o.kind||o.collection,op=o.operation||o.action;const method=o.method||({create:'POST',update:'PATCH',delete:'DELETE'}[op]);results.push(mutate(next,kind,o.id,method,o.record||o.data||{}));}return json({results,revision:await commit(env,c,next,'batch.update')});}
  const history=path.match(/^\/api\/assets\/([^/]+)\/maintenance(?:\/([^/]+))?$/);if(history){editable(c);const next=structuredClone(state),a=next.assets.find(x=>x.id===history[1]);if(!a)throw new ApiError(404,'設備がありません。');if(method==='GET')return json({items:a.history});const input=method==='DELETE'?{}:await readJSON(request);let record;const i=a.history.findIndex(h=>h.id===history[2]);if(method==='POST'){record={...input,id:input.id||crypto.randomUUID()};a.history.unshift(record);}else if(i<0)throw new ApiError(404,'点検履歴がありません。');else if(method==='PATCH'){record={...a.history[i],...input,id:history[2]};a.history[i]=record;}else if(method==='DELETE')record=a.history.splice(i,1)[0];return json({record,revision:await commit(env,c,next,'inspection.'+method.toLowerCase())});}
- const entity=path.match(/^\/api\/(drawings|works|assets|properties|notes|layers|drawingLinks)(?:\/([^/]+))?$/);if(entity){const[,kind,id]=entity,key=kind==='properties'?'propertyDefinitions':kind;if(method==='GET'){if(['assets','properties'].includes(kind)&&!c.editor)throw new ApiError(403,'施設担当モードに切り替えてください。');let list=visibleState(state,c.editor)[key];if(id){const record=list.find(x=>x.id===id);if(!record)throw new ApiError(404,'対象が見つかりません。');return json({record,revision:c.org.revision});}const q=(url.searchParams.get('q')||'').toLocaleLowerCase(),drawing=url.searchParams.get('drawingId');list=list.filter(x=>(!drawing||x.drawingId===drawing)&&(!q||JSON.stringify(x).toLocaleLowerCase().includes(q)));return json({items:list.slice(0,1000),total:list.length});}
+ const entity=path.match(/^\/api\/(drawings|works|assets|properties|notes|layers|drawingLinks|layerSets)(?:\/([^/]+))?$/);if(entity){const[,kind,id]=entity,key=kind==='properties'?'propertyDefinitions':kind;if(method==='GET'){if(['assets','properties'].includes(kind)&&!c.editor)throw new ApiError(403,'施設担当モードに切り替えてください。');let list=visibleState(state,c.editor)[key];if(id){const record=list.find(x=>x.id===id);if(!record)throw new ApiError(404,'対象が見つかりません。');return json({record,revision:c.org.revision});}const q=(url.searchParams.get('q')||'').toLocaleLowerCase(),drawing=url.searchParams.get('drawingId');list=list.filter(x=>(!drawing||x.drawingId===drawing)&&(!q||JSON.stringify(x).toLocaleLowerCase().includes(q)));return json({items:list.slice(0,1000),total:list.length});}
   editable(c);const next=structuredClone(state),input=method==='DELETE'?{}:await readJSON(request),record=mutate(next,kind,id,method,input);return json({record,revision:await commit(env,c,next,kind+'.'+method.toLowerCase())},method==='POST'?201:200);
  }
  throw new ApiError(404,'このAPIはありません。');

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check worker.mjs && node --check core.mjs && node --check auth.mjs && node --check scim.mjs && node --check map-app.mjs && node --check map-validation.mjs",
+    "check": "node --check worker.mjs && node --check core.mjs && node --check auth.mjs && node --check scim.mjs && node --check map-app.mjs && node --check map-validation.mjs && node --check asset-import.mjs",
     "build": "node ../scripts/build-saas.mjs",
     "dev": "wrangler dev --port 18018",
     "test:runtime": "node ../tests/worker-auth-runtime.mjs"

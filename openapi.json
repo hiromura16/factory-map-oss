@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "PlantDesk API",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "施設管理・工事台帳・点検・図面階層・お知らせの共有API。Cloudflare Access SSOで認証し、施設担当モードで更新します。閲覧モードには公開されたお知らせと図面のみ返します。"
   },
   "servers": [
@@ -3618,6 +3618,444 @@
           }
         }
       }
+    },
+    "/api/layerSets": {
+      "get": {
+        "summary": "レイヤーセット詳細・一覧",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "drawingId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "description": "同じ追加レイヤーを複数セットへ登録できます。rulesでレイヤーごとの表示・非表示を保存。mergeは対象だけ変更し、replaceは他の追加レイヤーを非表示にします。閲覧モードは公開セットの公開レイヤーだけを返します。レイヤー削除時は各セットの参照を除去します。"
+      },
+      "post": {
+        "summary": "レイヤーセット登録",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LayerSet"
+              }
+            }
+          }
+        },
+        "description": "同じ追加レイヤーを複数セットへ登録できます。rulesでレイヤーごとの表示・非表示を保存。mergeは対象だけ変更し、replaceは他の追加レイヤーを非表示にします。閲覧モードは公開セットの公開レイヤーだけを返します。レイヤー削除時は各セットの参照を除去します。"
+      }
+    },
+    "/api/layerSets/{id}": {
+      "get": {
+        "summary": "レイヤーセット詳細・一覧",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "同じ追加レイヤーを複数セットへ登録できます。rulesでレイヤーごとの表示・非表示を保存。mergeは対象だけ変更し、replaceは他の追加レイヤーを非表示にします。閲覧モードは公開セットの公開レイヤーだけを返します。レイヤー削除時は各セットの参照を除去します。"
+      },
+      "patch": {
+        "summary": "レイヤーセット更新",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LayerSet"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "同じ追加レイヤーを複数セットへ登録できます。rulesでレイヤーごとの表示・非表示を保存。mergeは対象だけ変更し、replaceは他の追加レイヤーを非表示にします。閲覧モードは公開セットの公開レイヤーだけを返します。レイヤー削除時は各セットの参照を除去します。"
+      },
+      "delete": {
+        "summary": "レイヤーセット削除",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "同じ追加レイヤーを複数セットへ登録できます。rulesでレイヤーごとの表示・非表示を保存。mergeは対象だけ変更し、replaceは他の追加レイヤーを非表示にします。閲覧モードは公開セットの公開レイヤーだけを返します。レイヤー削除時は各セットの参照を除去します。"
+      }
+    },
+    "/api/layer-sets/apply": {
+      "post": {
+        "summary": "レイヤーセットの表示を適用",
+        "description": "savedは入力順に保存ルールを適用。show/hideは全メンバー、isolateは表示ルールの和集合、intersectionは共通部分だけ表示。標準・CAD背景は変更しません。ユーザーの表示設定だけを変更し、公開範囲は変更しません。",
+        "tags": [
+          "Map organization"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "operation": {
+                    "type": "string",
+                    "enum": [
+                      "saved",
+                      "show",
+                      "hide",
+                      "isolate",
+                      "intersection"
+                    ],
+                    "default": "saved"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "競合・プラン上限"
+          },
+          "422": {
+            "description": "入力エラー"
+          }
+        }
+      }
+    },
+    "/api/assets/import-preview": {
+      "post": {
+        "summary": "設備JSONの追加・更新を事前確認",
+        "description": "保存せず行別のエラー・追加数・更新数とrevisionを返します。新規はnameとpointが必要。drawingIdは既定図面を指定できます。propertiesは登録済みIDで指定します。",
+        "tags": [
+          "SaaS"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "assets"
+                ],
+                "properties": {
+                  "assets": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "items": {
+                      "$ref": "#/components/schemas/EquipmentImportRecord"
+                    }
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "add",
+                      "upsert"
+                    ],
+                    "default": "add"
+                  },
+                  "drawingId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "競合・プラン上限"
+          },
+          "422": {
+            "description": "入力エラー"
+          }
+        }
+      }
+    },
+    "/api/assets/import": {
+      "post": {
+        "summary": "設備JSONを一括追加・更新",
+        "description": "プレビューのrevisionを指定。全件成功時のみ保存します。更新はcodeで照合し、省略フィールドとpropertiesの省略キーを保持。既存のhistory・attachments・locksを入力すると拒否。ロックとプラン上限と添付ファイルの所有権を検証します。",
+        "tags": [
+          "SaaS"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "assets",
+                  "revision",
+                  "confirm"
+                ],
+                "properties": {
+                  "assets": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "items": {
+                      "$ref": "#/components/schemas/EquipmentImportRecord"
+                    }
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "add",
+                      "upsert"
+                    ],
+                    "default": "add"
+                  },
+                  "drawingId": {
+                    "type": "string"
+                  },
+                  "revision": {
+                    "type": "integer"
+                  },
+                  "confirm": {
+                    "type": "string",
+                    "enum": [
+                      "IMPORT_ASSETS"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "競合・プラン上限"
+          },
+          "422": {
+            "description": "入力エラー"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3888,6 +4326,127 @@
               "facility",
               "public"
             ]
+          }
+        }
+      },
+      "LayerSet": {
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "color",
+          "audience",
+          "mode",
+          "rules"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "facility",
+              "public"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "merge",
+              "replace"
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "required": [
+                "layerId",
+                "visible"
+              ],
+              "properties": {
+                "layerId": {
+                  "type": "string"
+                },
+                "visible": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      },
+      "EquipmentImportRecord": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "drawingId": {
+            "type": "string"
+          },
+          "point": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          },
+          "location": {
+            "type": "string"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "layerId": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "iconId": {
+            "type": "string"
+          },
+          "locks": {
+            "type": "object"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
           }
         }
       }
