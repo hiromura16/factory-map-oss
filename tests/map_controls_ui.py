@@ -55,6 +55,8 @@ try:
    page.get_by_label('関連設備を検索').fill(device['code']);page.get_by_label('関連設備の分類').select_option(device['properties']['category'])
    assert page.locator('#work-asset-results input').count()==1
    page.locator('#work-asset-results input').check()
+  boxes=page.locator('#work-asset-results .work-asset-option').first.evaluate('(row)=>{const a=row.querySelector("input").getBoundingClientRect(),b=row.querySelector("span").getBoundingClientRect();return {checkboxRight:a.right,textLeft:b.left,checkboxTop:a.top,textTop:b.top};}')
+  assert boxes['checkboxRight']<=boxes['textLeft'] and abs(boxes['checkboxTop']-boxes['textTop'])<8,boxes
   assert page.locator('#work-assets-selected button').count()==2
   page.get_by_label('関連設備を検索').fill('該当なしxyz');assert page.locator('.work-asset-empty').is_visible()
   page.get_by_label('関連設備の図面').select_option('floor-a1');assert page.locator('#work-assets-selected button').count()==2
