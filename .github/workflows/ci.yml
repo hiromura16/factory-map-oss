@@ -23,3 +23,7 @@ jobs:
       - name: Build React bundle
         working-directory: frontend
         run: npm ci && npm run build
+      - name: Verify authentication in Workers runtime
+        run: |
+          npm ci --prefix cloudflare
+          node tests/worker-auth-runtime.mjs

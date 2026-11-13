@@ -32,7 +32,8 @@ export async function authenticate(request, env) {
     if (header.alg !== 'RS256' || typeof header.kid !== 'string' || header.crit) throw new Error('unsupported header');
     let cached = jwksCache.get(jwksUrl.href);
     if (!cached || cached.until < Date.now()) {
-      const response = await fetch(jwksUrl.href, { redirect: 'error', signal: AbortSignal.timeout(5000) });
+      // Workers supports only follow/manual. Reject redirects without following them.
+      const response = await fetch(jwksUrl.href, { redirect: 'manual', signal: AbortSignal.timeout(5000) });
       if (!response.ok) throw new Error('provider unavailable');
       const text = await response.text();
       if (text.length > 100000) throw new Error('oversized JWKS');
