@@ -47,6 +47,6 @@ export function preferences(input,plan){
  if(icons.length>LIMITS[plan].icons)throw new ApiError(403,'カスタムアイコンはProの機能です。');
  result.icons=icons.map(x=>{if(!object(x)||typeof x.id!=='string'||!/^icon-[\da-z-]{1,60}$/.test(x.id)||typeof x.fileId!=='string'||typeof x.name!=='string')error('アイコンの情報が不正です。');return{id:x.id,fileId:x.fileId,name:x.name.slice(0,60)};});
  if(new Set(result.icons.map(x=>x.id)).size!==result.icons.length)error('アイコンIDが重複しています。');
- result.categoryIcons={};for(const[k,v]of Object.entries(input.categoryIcons||{})){if(/^[a-z]{1,30}$/.test(k)&&result.icons.some(x=>x.id===v))result.categoryIcons[k]=v;}
+ result.categoryIcons={};for(const[k,v]of Object.entries(input.categoryIcons||{})){if(/^[a-zA-Z0-9_.:-]{1,100}$/.test(k)&&result.icons.some(x=>x.id===v))result.categoryIcons[k]=v;}
  return result;
 }

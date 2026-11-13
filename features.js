@@ -55,7 +55,7 @@ window.FactoryFeatures = (() => {
     return app().state.propertyDefinitions.map(d=>{
       const v=asset?.properties?.[d.id],name='prop-'+d.id,required=d.required?'required':'';
       if(d.type==='checkbox')return `<label class="checkbox-property"><input type="checkbox" name="${esc(name)}" ${v?'checked':''}>${esc(d.name)}</label>`;
-      if(d.type==='select'||d.type==='multiselect')return `<label>${esc(d.name)}<select name="${esc(name)}" ${d.type==='multiselect'?'multiple size="3"':''} ${required}>${d.type==='select'?'<option value="">未設定</option>':''}${(d.options||[]).map(o=>`<option value="${esc(o.id)}" ${(Array.isArray(v)?v:[v]).includes(o.id)?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label>`;
+      if(d.type==='select'||d.type==='multiselect')return `<label>${esc(d.name)}<select aria-label="${esc(d.name)}" name="${esc(name)}" ${d.type==='multiselect'?'multiple size="3"':''} ${required}>${d.type==='select'?'<option value="">未設定</option>':''}${(d.options||[]).map(o=>`<option value="${esc(o.id)}" ${(Array.isArray(v)?v:[v]).includes(o.id)?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label>`;
       return field(d.name+(d.unit?' ('+d.unit+')':''),name,v??'',d.type==='number'?'number':d.type==='date'?'date':d.type==='url'?'url':'text',`${required} ${d.type==='number'?'step="any"':''}`);
     }).join('');
   }
@@ -102,7 +102,7 @@ window.FactoryFeatures = (() => {
   function propertyManager() {
     const defs=app().state.propertyDefinitions;
     const el=dialog('properties-dialog','設備のプロパティ',`<p class="form-context">全設備で使う項目を追加・編集できます。既存データと合わない型への変更は保存時にお知らせします。</p><div class="property-list">${defs.map(d=>`<button data-property="${esc(d.id)}"><b>${esc(d.name)}</b><span>${esc(types[d.type])} ›</span></button>`).join('')}</div><div class="dialog-actions"><button id="property-add" class="button primary">＋ プロパティを追加</button></div>`);
-    el.querySelectorAll('[data-property]').forEach(b=>b.onclick=()=>{el.close();propertyForm(defs.find(d=>d.id===b.dataset.property));});$('property-add').onclick=()=>{el.close();propertyForm();};
+    el.querySelectorAll('[data-property]').forEach(b=>b.onclick=()=>{el.close();if(b.dataset.property==='category')FactoryCategories.open();else propertyForm(defs.find(d=>d.id===b.dataset.property));});$('property-add').onclick=()=>{el.close();propertyForm();};
   }
   function propertyForm(def=null) {
     let options=structuredClone(def?.options||[]);
@@ -130,13 +130,13 @@ window.FactoryFeatures = (() => {
   function workRelations(w) {if(!app().editor)return '';return '<h3>関連する設備</h3>'+ (w.assetIds||[]).map(id=>{const a=app().state.assets.find(a=>a.id===id);return a?`<button class="related-link" data-open-asset="${esc(id)}">${esc(a.name)} ↗</button>`:'';}).join('');}
   function bindWork(w){bindFiles($('detail-pane'));document.querySelectorAll('[data-open-asset]').forEach(b=>b.onclick=()=>app().openRecord('assets',b.dataset.openAsset));}
   function setup() {
-    $('view-mode').onclick=()=>mode().catch(app().fail);$('password-open').onclick=password;$('asset-add').onclick=startAsset;$('properties-open').onclick=propertyManager;
+    $('view-mode').onclick=()=>mode().catch(app().fail);$('password-open').onclick=password;$('asset-add').onclick=startAsset;$('properties-open').onclick=propertyManager;$('categories-open').onclick=()=>FactoryCategories.open();
     $('refresh-data').onclick=()=>app().refresh().then(()=>app().toast('最新の情報を読み込みました。')).catch(app().fail);
     $('asset-category').onchange=()=>app().render();
     app().map.on('click',e=>{if(!pointMode||!app().editor)return;pointMode=false;app().map.getContainer().classList.remove('asset-placing');assetForm(null,[Math.round(e.latlng.lng*100)/100,Math.round(e.latlng.lat*100)/100]);});
     window.addEventListener('factory-session-expired',()=>app().setEditor(false));
     document.addEventListener('keydown',e=>{if(e.key==='Escape'){pointMode=false;app().map.getContainer().classList.remove('asset-placing');}});
   }
-  function filters(){const sel=$('asset-category'),value=sel.value;const def=app().state.propertyDefinitions.find(d=>d.id==='category');sel.innerHTML='<option value="">すべての設備分類</option>'+(def?.options||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('');sel.value=value;}
+  function filters(){const sel=$('asset-category'),value=sel.value;const def=app().state.propertyDefinitions.find(d=>d.id==='category');sel.innerHTML='<option value="">すべての設備分類</option>'+(def?.options||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('');sel.value=(def?.options||[]).some(o=>o.id===value)?value:'';}
   return {setup,cancelPlacement,filters,filesHTML,bindFiles,assetHTML,bindAsset,workPrepare,workFiles,workRelations,bindWork,displayValue};
 })();

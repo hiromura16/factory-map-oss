@@ -10,4 +10,5 @@ assert.equal(normalize({icons:[icon],categoryIcons:{hvac:'icon-one'}}).categoryI
 assert.equal(normalize({icons:[icon],categoryIcons:{fire:'missing'}}).categoryIcons.fire,undefined);
 assert.equal(normalize({icons:Array.from({length:60},(_,i)=>({...icon,id:'icon-'+i}))}).icons.length,50);
 assert.equal(normalize({icons:[{...icon,id:'<script>'}]}).icons.length,0);
-console.log('preferences validation: 10 assertions passed');
+assert.equal(normalize({icons:[icon],categoryIcons:{'category-1234-abcd':'icon-one'}}).categoryIcons['category-1234-abcd'],'icon-one');
+console.log('preferences validation: 11 assertions passed');

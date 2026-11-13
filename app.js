@@ -111,7 +111,7 @@
     if($('show-works').checked){if(!map.hasLayer(workGroup))workGroup.addTo(map);}else map.removeLayer(workGroup);
     if(editor&&$('show-assets').checked){if(!map.hasLayer(assetGroup))assetGroup.addTo(map);}else map.removeLayer(assetGroup);
   }
-  function render(){FactoryEquipment.refresh();updateSummary();renderList();renderDetail();renderMapRecords();FactoryNotes.render();FactoryFeatures.filters();$('asset-category').hidden=tab!=='assets';}
+  function render(){FactoryEquipment.refresh();FactoryFeatures.filters();updateSummary();renderList();renderDetail();renderMapRecords();FactoryNotes.render();$('asset-category').hidden=tab!=='assets';}
   function selectRecord(id,zoom){selectedId=id;render();const record=getRecord();if(zoom&&record){if(tab==='works')map.fitBounds(L.latLngBounds(record.points.map(ll)).pad(1.8),{maxZoom:2,animate:true});else map.panTo(ll(record.point));}}
   function fitMap(){const compact=window.matchMedia('(max-width:680px)').matches;if(current())map.fitBounds(current().bounds,{padding:compact?[15,45]:[45,65],animate:false});}
   function setDrawing(id){

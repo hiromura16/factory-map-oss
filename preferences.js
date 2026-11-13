@@ -3,14 +3,13 @@
   'use strict';
   const KEY='factory-map.preferences.v1', MAX_ICONS=50;
   const DEFAULTS={theme:'system',accent:'#167566',density:'comfortable',left:false,right:false,focus:false,plan:'free',icons:[],categoryIcons:{}};
-  const CATEGORIES={hvac:'空調',water:'給排水',pipe:'配管',power:'電気',air:'圧縮空気',fire:'防災',heat:'熱源',cool:'冷却',building:'建築',handling:'搬送',effluent:'排水処理',safety:'安全'};
   const PLANS={free:{name:'Community',drawings:3,assets:100},pro:{name:'Team',drawings:30,assets:2000},enterprise:{name:'Enterprise',drawings:100,assets:10000}};
   const validImage=v=>typeof v==='string' && v.length<=90000 && /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(v);
   function normalize(raw={}) {
     const o=raw && typeof raw==='object'?raw:{};
     const icons=Array.isArray(o.icons)?o.icons.filter(x=>x && typeof x.id==='string' && /^icon-[a-z0-9-]{1,50}$/.test(x.id) && (validImage(x.data)||typeof x.fileId==='string'&&/^[a-zA-Z0-9-]{1,80}$/.test(x.fileId))).slice(0,MAX_ICONS).map(x=>({id:x.id,name:String(x.name||'アイコン').slice(0,40),...(x.fileId?{fileId:x.fileId}:{data:x.data})})):[];
     const categoryIcons={};
-    for(const key of Object.keys(CATEGORIES)) if(icons.some(x=>x.id===o.categoryIcons?.[key])) categoryIcons[key]=o.categoryIcons[key];
+    for(const [key,value] of Object.entries(o.categoryIcons||{})) if(/^[a-zA-Z0-9_.:-]{1,100}$/.test(key)&&icons.some(x=>x.id===value)) categoryIcons[key]=value;
     return {...DEFAULTS,brandName:typeof o.brandName==='string'?o.brandName.slice(0,60):'',theme:['light','dark','system'].includes(o.theme)?o.theme:'system',accent:/^#[0-9a-f]{6}$/i.test(o.accent)?o.accent:DEFAULTS.accent,density:o.density==='compact'?'compact':'comfortable',left:o.left===true,right:o.right===true,focus:o.focus===true,plan:Object.hasOwn(PLANS,o.plan)?o.plan:'free',icons,categoryIcons};
   }
   const api={normalize,validImage,PLANS};
@@ -62,7 +61,7 @@
     }
     if(!prefs.icons.length)list.append(el('p','まだカスタムアイコンはありません。'));
     const mapping=$('#factory-icon-mapping');mapping.replaceChildren();
-    for(const [key,label] of Object.entries(CATEGORIES))mapping.append(select(label,prefs.categoryIcons[key]||'',{'':'標準の図形',...Object.fromEntries(prefs.icons.map(x=>[x.id,x.name]))},value=>{
+    for(const {id:key,label} of window.factoryMap?.state.propertyDefinitions.find(d=>d.id==='category')?.options||[])mapping.append(select(label,prefs.categoryIcons[key]||'',{'':'標準の図形',...Object.fromEntries(prefs.icons.map(x=>[x.id,x.name]))},value=>{
       prefs.categoryIcons[key]=value;prefs=normalize(prefs);persist();window.factoryMap?.render();
     }));
   }
@@ -92,15 +91,6 @@
       await persist();updateIcons();toast('アイコンを保存しました。分類や個々の設備に割り当てられます。');
     }finally{if(temporaryURL)URL.revokeObjectURL(temporaryURL);temporaryURL=undefined;uploadPending=false;}
   }
-  function usage(container){
-    container.replaceChildren();
-    const state=window.factoryMap?.state,plan=PLANS[prefs.plan];
-    for(const [label,key] of [['図面','drawings'],['設備','assets']]){
-      const value=state?.[key]?.length;
-      container.append(el('p',label+': '+(value===undefined?'未取得':value)+' / '+plan[key].toLocaleString()+' （プラン案）'));
-    }
-    container.append(el('small',server?'料金プランのデモです。実際の請求はありません。登録数とPro機能の制限はAPIでも検証します。':'このプラン切替は課金モックです。'));
-  }
   async function init(){
     for(let i=0;i<100&&!window.factoryMap;i++)await new Promise(r=>setTimeout(r,50));
     server=!!window.FactoryAPI?.saas;
@@ -124,11 +114,9 @@
     const label=el('label','アイコン画像を追加'),input=el('input');input.type='file';input.accept='image/png,image/jpeg,image/webp';input.onchange=async()=>{err.textContent='';try{await addRaster(input.files[0]);}catch(e){$('#factory-icon-error').textContent=e.message;}finally{input.value='';}};
     label.append(input);const err=el('p');err.id='factory-icon-error';err.setAttribute('role','alert');const list=el('div');list.id='factory-icon-list';const mapping=el('div',undefined,'factory-icon-mapping');mapping.id='factory-icon-mapping';
     iconField.append(label,err,list,el('h3','設備分類ごとの表示'),mapping);dialog.append(iconField);
-    const billing=fieldset('プランシミュレーター · 課金なし'),meter=el('div');meter.id='factory-plan-usage';
-    if(server){const link=el('a','無料版と有料版の違いを見る ↗');link.href='console.html#plans';billing.append(link,meter);}else billing.append(select('デモプラン',prefs.plan,{free:'Community',pro:'Team',enterprise:'Enterprise'},v=>{set('plan',v);usage(meter);}),meter);dialog.append(billing);
     const reset=el('button','表示設定を初期化','button secondary');reset.type='button';reset.onclick=()=>{prefs=normalize({plan:FactoryAPI.session?.plan||'free'});persist();apply();window.factoryMap?.render();dialog.close();toast('表示設定を初期化しました。');};
     dialog.append(reset);document.body.append(dialog);
-    customize.onclick=()=>{dialog.querySelectorAll('select').forEach(s=>{if(s.parentElement.firstChild.textContent==='テーマ')s.value=prefs.theme;if(s.parentElement.firstChild.textContent==='情報の密度')s.value=prefs.density;if(s.parentElement.firstChild.textContent==='デモプラン')s.value=prefs.plan;});accent.value=prefs.accent;err.textContent='';updateIcons();usage(meter);dialog.showModal();};
+    customize.onclick=()=>{dialog.querySelectorAll('select').forEach(s=>{if(s.parentElement.firstChild.textContent==='テーマ')s.value=prefs.theme;if(s.parentElement.firstChild.textContent==='情報の密度')s.value=prefs.density;});accent.value=prefs.accent;err.textContent='';updateIcons();dialog.showModal();};
     const original=FactoryEquipment.markerHTML;
     FactoryEquipment.markerHTML=asset=>{
       const custom=prefs.icons.find(x=>x.id===(asset.icon?.startsWith('icon-')?asset.icon:prefs.categoryIcons[asset.properties?.category]));

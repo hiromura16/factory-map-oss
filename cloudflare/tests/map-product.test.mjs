@@ -42,5 +42,25 @@ test('viewer projection hides assets and equipment files',async()=>{const r=awai
 test('free drawing quota is enforced on the server',async()=>{const r=await(await call('/api/state','GET',undefined,'free')).json();r.state.drawings.push({...r.state.drawings[0],id:'third'},{...r.state.drawings[0],id:'fourth'});assert.equal((await call('/api/state','PUT',r,'free')).status,409);});
 test('backup restore, audit and free feature gates',async()=>{const r=await call('/api/snapshots','POST',{name:'Before inspection'});assert.equal(r.status,201);const{id}=await r.json(),current=await(await call('/api/state')).json();current.state.assets[0].name='Changed again';assert.equal((await call('/api/state','PUT',current)).status,200);const fresh=await(await call('/api/state')).json();assert.equal((await call('/api/snapshots/'+id+'/restore','POST',{revision:fresh.revision})).status,200);assert.equal((await(await call('/api/state')).json()).state.assets[0].name,'Updated unit');assert.equal((await call('/api/snapshots','GET',undefined,'free')).status,403);assert.equal((await call('/api/audit','GET',undefined,'free')).status,403);assert.ok((await(await call('/api/audit')).json()).items.some(x=>x.action==='snapshot.restore'));});
 test('cross-site writes, bad properties and foreign file refs are rejected',async()=>{const r=new Request('https://map.example/api/state',{method:'PUT',headers:{'cf-access-jwt-assertion':await token('alice'),origin:'https://evil.example'},body:'{}'});assert.equal((await worker.fetch(r,env)).status,403);const current=await(await call('/api/state')).json();current.state.assets[0].attachments=[{fileId:'foreign'}];assert.equal((await call('/api/state','PUT',current)).status,422);});
+test('custom categories, icon mappings and equipment reassignment persist atomically',async()=>{
+ const current=await(await call('/api/state')).json(),definition=current.state.propertyDefinitions.find(d=>d.id==='category'),id='category-'+crypto.randomUUID(),asset=current.state.assets[0],original=structuredClone(asset);
+ definition.options.push({id,label:'生産設備'},{id:'category-second',label:'計測機器'});
+ asset.properties.category=id;
+ assert.equal((await call('/api/state','PUT',current)).status,200);
+ assert.equal((await call('/api/preferences','PUT',{icons:[{id:'icon-custom',fileId:iconFile,name:'Custom'}],categoryIcons:{[id]:'icon-custom'}})).status,200);
+ assert.equal((await(await call('/api/preferences')).json()).preferences.categoryIcons[id],'icon-custom');
+ const invalid=await(await call('/api/state')).json();invalid.state.propertyDefinitions.find(d=>d.id==='category').options=definition.options.filter(o=>o.id!==id);
+ assert.equal((await call('/api/state','PUT',invalid)).status,422);
+ assert.equal((await(await call('/api/state')).json()).state.propertyDefinitions.find(d=>d.id==='category').options.length,14);
+ invalid.state.assets[0].properties.category='category-second';
+ assert.equal((await call('/api/assets/'+asset.id,'PATCH',{locks:{attributes:true,position:false}})).status,200);
+ invalid.revision=(await(await call('/api/state')).json()).revision;
+ assert.equal((await call('/api/state','PUT',invalid)).status,423);
+ assert.equal((await call('/api/assets/'+asset.id,'PATCH',{locks:{attributes:false,position:false}})).status,200);
+ invalid.revision=(await(await call('/api/state')).json()).revision;
+ assert.equal((await call('/api/state','PUT',invalid)).status,200);
+ const saved=(await(await call('/api/state')).json()).state;
+ assert.equal(saved.assets[0].properties.category,'category-second');assert.deepEqual(saved.assets[0].history,original.history);assert.deepEqual(saved.assets[0].point,original.point);assert.equal(saved.assets.length,current.state.assets.length);
+});
 test('maximum-sized file round trip stays within a single small D1 batch',async()=>{const data=new Uint8Array(5*1024*1024);data[0]=101;data[data.length-1]=99;const form=new FormData();form.append('file',new Blob([data]),'large.bin');const upload=await call('/api/files','POST',form);assert.equal(upload.status,201);const f=(await upload.json()).files[0];const current=await(await call('/api/state')).json();current.state.assets[0].attachments=[f];assert.equal((await call('/api/state','PUT',current)).status,200);const response=await call('/api/files/'+f.fileId);assert.equal(response.status,200);const actual=new Uint8Array(await response.arrayBuffer());assert.equal(actual.length,data.length);assert.equal(actual[0],101);assert.equal(actual[actual.length-1],99);const chunks=execute({queries:[{sql:'SELECT count(*) AS n FROM map_file_chunks WHERE file_id=?',params:[f.fileId]}]})[0].results[0].n;assert.ok(chunks<=27);});
 test.after(()=>{globalThis.fetch=oldFetch;rmSync(directory,{recursive:true,force:true});});

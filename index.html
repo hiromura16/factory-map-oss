@@ -20,6 +20,7 @@
   <script defer src="media.js"></script>
   <script defer src="equipment.js"></script>
   <script defer src="vendor/factory-ui.js"></script>
+  <script defer src="categories.js"></script>
   <script defer src="features.js"></script>
   <script defer src="notes.js"></script>
   <script defer src="webmcp.js"></script>
@@ -30,12 +31,12 @@
 <body class="read-only">
   <header class="app-header">
     <a class="brand" href="./" aria-label="構内マップ ホーム"><span class="brand-mark" aria-hidden="true">▦</span><span>構内マップ<small>FACILITY & WORKS</small></span></a>
-    <nav aria-label="メインメニュー"><button class="nav-current" id="map-nav">敷地マップ</button><button id="refresh-data">更新</button><a href="console.html" class="saas-console-link">ワークスペース</a></nav>
+    <nav aria-label="メインメニュー"><button class="nav-current" id="map-nav">構内マップ</button><a href="console.html" class="saas-console-link">管理ダッシュボード</a><a href="index.html?plans=1" id="plans-open" hidden>プラン比較</a><button id="refresh-data">更新</button></nav>
     <div class="header-right"><span class="demo-indicator"><i></i>サンプル敷地</span><button id="view-mode" class="mode-switch" aria-pressed="false">閲覧モード</button><button id="password-open" class="text-link editor-only">パスワード変更</button><span class="avatar" aria-hidden="true">施</span><div id="developer-tools-root" class="editor-only"><a href="/api-docs" target="_blank" rel="noopener">API / WebMCP ↗</a></div></div>
   </header>
 
   <button id="plan-open" hidden>開発情報</button><main>
-    <section class="page-title"><div><p class="eyebrow">SITE OVERVIEW</p><h1 id="page-heading">構内の工事とお知らせ。</h1><p class="subtitle" id="page-subtitle">工事範囲や作業予定、お知らせを確認できます。</p></div><div class="title-actions"><button class="button secondary editor-only" id="equipment-lock-all">全設備をロック</button><button class="button secondary editor-only" id="note-add">▧ 付箋を貼る</button><button class="button secondary editor-only" id="properties-open">プロパティ</button><button class="button secondary editor-only" id="asset-add">＋ 設備を登録</button><button class="button secondary editor-only" id="import-open"><span aria-hidden="true">↥</span> 図面を読み込む</button><button class="button primary editor-only" id="work-add"><span aria-hidden="true">＋</span> 工事を登録</button></div></section>
+    <section class="page-title"><div><p class="eyebrow">SITE OVERVIEW</p><h1 id="page-heading">構内の工事とお知らせ。</h1><p class="subtitle" id="page-subtitle">工事範囲や作業予定、お知らせを確認できます。</p></div><div class="title-actions"><button class="button secondary editor-only" id="equipment-lock-all">全設備をロック</button><button class="button secondary editor-only" id="note-add">▧ 付箋を貼る</button><button class="button secondary editor-only" id="categories-open">設備分類</button><button class="button secondary editor-only" id="properties-open">プロパティ</button><button class="button secondary editor-only" id="asset-add">＋ 設備を登録</button><button class="button secondary editor-only" id="import-open"><span aria-hidden="true">↥</span> 図面を読み込む</button><button class="button primary editor-only" id="work-add"><span aria-hidden="true">＋</span> 工事を登録</button></div></section>
 
     <section class="summary-grid" aria-label="工事の状況">
       <button class="summary-card active" data-summary="all"><span class="summary-icon teal">▧</span><span><small>登録されている工事</small><strong id="total-count">—</strong></span><span class="summary-end">件</span></button>
