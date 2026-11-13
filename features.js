@@ -32,12 +32,13 @@ window.FactoryFeatures = (() => {
     });
   }
   function attachmentEditor(container,attachments=[]) {
-    const staged=structuredClone(attachments);container.innerHTML='<div class="existing-files"></div><label>ファイルを添付<input class="new-files" type="file" multiple><small>PDF・画像・図面・その他の資料。各20MBまで / 一度に30ファイル。</small></label>';
+    const staged=structuredClone(attachments);container.innerHTML='<div class="existing-files"></div><label>ファイルを添付<input class="new-files" type="file" multiple><small>PDF・画像・図面・その他の資料。各5MBまで / 一度に5ファイル。</small></label>';
     const draw=()=>{container.querySelector('.existing-files').innerHTML=staged.map((a,i)=>`<div class="file-row"><span>${esc(a.name)}</span><button type="button" data-remove="${i}" aria-label="${esc(a.name)}を外す">×</button></div>`).join('');container.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{staged.splice(Number(b.dataset.remove),1);draw();});};draw();
     return async()=>[...staged,...await FactoryAPI.upload([...container.querySelector('.new-files').files])];
   }
   async function mode() {
     if(app().editor){await api('/api/auth/logout',{method:'POST'});app().setEditor(false);await app().refresh();return;}
+    if(FactoryAPI.saas){await api('/api/auth/login',{method:'POST',body:{}});await app().refresh();app().setEditor(true);return;}
     formDialog('login-dialog','施設グループ ログイン',`${field('パスワード','password','','password','required autocomplete="current-password"')}<p class="form-context">施設担当者だけが登録・編集できます。</p>`,async f=>{await api('/api/auth/login',{method:'POST',body:{password:f.get('password')}});await app().refresh();app().setEditor(true);});
     $('login-dialog').querySelector('input').focus();
   }

@@ -1,17 +1,20 @@
 {
-  "name": "factory-map-oss",
+  "name": "factory-map-saas",
   "main": "worker.mjs",
-  "compatibility_date": "2026-11-01",
-  "workers_dev": false,
+  "compatibility_date": "2026-11-13",
+  "workers_dev": true,
+  "observability": {"enabled":true,"traces":{"enabled":true}},
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "factory-map",
-      "database_id": "REPLACE_AFTER_HOME_SETUP",
+      "database_name": "factory-map-saas-demo",
+      "database_id": "375e3015-0558-48c7-a54c-fe9aa1695592",
       "migrations_dir": "migrations"
     }
   ],
   "vars": {
+    "ACCESS_TEAM": "https://komagibase.cloudflareaccess.com",
+    "ACCESS_AUD": "2642827876aed5946805ac7df162227045c65679e47d01b7e531cb6d6a41d689",
     "AUTH_ISSUER": "https://REPLACE_WITH_OIDC_ISSUER",
     "AUTH_AUDIENCE": "REPLACE_WITH_CLIENT_ID",
     "AUTH_JWKS_URL": "https://REPLACE_WITH_OIDC_ISSUER/.well-known/jwks.json",

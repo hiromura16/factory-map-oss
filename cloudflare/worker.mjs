@@ -1,6 +1,7 @@
 import { handleScim } from './scim.mjs';
 import { ApiError, PLANS, MAX_BYTES, KINDS, validateState, importPreview, validateCustomization, requireRole } from './core.mjs';
 import { authenticate } from './auth.mjs';
+import { handleMap } from './map-app.mjs';
 const JSON_HEADERS = {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer'};
 function json(data, status=200) { return new Response(JSON.stringify(data), {status,headers:JSON_HEADERS}); }
 async function body(request) {
@@ -42,12 +43,18 @@ export default {
  async fetch(request,env) {
   try {
    const url=new URL(request.url);
+   if(url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/api/v1/')) return await handleMap(request,env);
    if(url.pathname === '/scim/v2' || url.pathname.startsWith('/scim/v2/')) return handleScim(request,env);
    if(!/^\/(api|scim)(\/|$)/.test(url.pathname) && url.pathname!=='/health') {
      if(!['GET','HEAD'].includes(request.method)) throw new ApiError(405,'Method not allowed');
      if(!env.ASSETS) throw new ApiError(503,'Static assets are not configured');
-     if(url.pathname==='/') return Response.redirect(url.origin+'/saas.html',302);
-     return env.ASSETS.fetch(request);
+     const target=new URL(request.url);
+     if(target.pathname==='/')target.pathname='/index.html';
+     if(target.pathname==='/saas.html')target.pathname='/console.html';
+     if(target.pathname==='/api-docs')target.pathname='/api-docs.html';
+     const response=await env.ASSETS.fetch(new Request(target,request));
+     const headers=new Headers(response.headers);headers.set('x-content-type-options','nosniff');headers.set('referrer-policy','same-origin');headers.set('x-frame-options','SAMEORIGIN');
+     return new Response(response.body,{status:response.status,headers});
    }
    if(url.pathname==='/health' && request.method==='GET') return json({status:'ok',stage:'development-foundation',billing:'mock-only',legacyUiCompatible:false});
    // No CORS, no cookies, no session fallback: every business request verifies a bearer identity.
@@ -121,6 +128,7 @@ export default {
    throw new ApiError(404,'Not found');
   } catch(error) {
    if(error instanceof ApiError) return json({error:error.message},error.status);
+   console.error(JSON.stringify({event:'request_failed',type:error?.name||'Error',path:new URL(request.url).pathname}));
    return json({error:'Internal server error'},500);
   }
  }

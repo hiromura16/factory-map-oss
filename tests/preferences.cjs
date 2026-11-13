@@ -8,6 +8,6 @@ assert.equal(validImage('https://example.com/icon.png'),false);
 const icon={id:'icon-one',name:'Demo',data:'data:image/png;base64,YQ=='};
 assert.equal(normalize({icons:[icon],categoryIcons:{hvac:'icon-one'}}).categoryIcons.hvac,'icon-one');
 assert.equal(normalize({icons:[icon],categoryIcons:{fire:'missing'}}).categoryIcons.fire,undefined);
-assert.equal(normalize({icons:Array.from({length:20},(_,i)=>({...icon,id:'icon-'+i}))}).icons.length,12);
+assert.equal(normalize({icons:Array.from({length:60},(_,i)=>({...icon,id:'icon-'+i}))}).icons.length,50);
 assert.equal(normalize({icons:[{...icon,id:'<script>'}]}).icons.length,0);
 console.log('preferences validation: 10 assertions passed');

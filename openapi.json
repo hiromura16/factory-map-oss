@@ -1,13 +1,14 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "構内マップ API",
-    "version": "0.2.0",
-    "description": "工事範囲・お知らせ・付箋は未ログインで閲覧できます。設備台帳・属性・点検履歴・設備専用資料の取得と、すべての更新は施設グループの認証が必要です。Rust / PostgreSQL API。WebMCPは対応ブラウザーでマップ画面を開くと登録されます。"
+    "title": "構内マップ SaaS Demo API",
+    "version": "1.0.0",
+    "description": "Cloudflare Access SSOで認証する工場敷地GIS。無料・有料管理者デモは別ワークスペースです。決済・請求はありません。"
   },
   "servers": [
     {
-      "url": "/"
+      "url": "/",
+      "description": "現在のSaaSワークスペース"
     }
   ],
   "paths": {
@@ -1614,7 +1615,7 @@
     },
     "/api/auth/login": {
       "post": {
-        "summary": "施設担当ログイン（8時間）",
+        "summary": "SSO認証済み利用者が施設担当モードに切り替える",
         "tags": [
           "Auth"
         ],
@@ -1641,20 +1642,12 @@
           }
         },
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "password"
-                ],
-                "properties": {
-                  "password": {
-                    "type": "string",
-                    "format": "password"
-                  }
-                }
+                "properties": {}
               }
             }
           }
@@ -1687,69 +1680,6 @@
           },
           "422": {
             "description": "入力・型・日付・参照エラー"
-          }
-        }
-      }
-    },
-    "/api/auth/password": {
-      "put": {
-        "summary": "パスワード変更・他のセッションを無効化",
-        "tags": [
-          "Auth"
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "施設担当ログインが必要"
-          },
-          "409": {
-            "description": "競合・参照中"
-          },
-          "422": {
-            "description": "入力・型・日付・参照エラー"
-          }
-        },
-        "security": [
-          {
-            "Session": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "currentPassword",
-                  "newPassword"
-                ],
-                "properties": {
-                  "currentPassword": {
-                    "type": "string",
-                    "format": "password"
-                  },
-                  "newPassword": {
-                    "type": "string",
-                    "minLength": 10,
-                    "format": "password"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -2188,6 +2118,17 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "資料"
+        ],
+        "summary": "資料・写真・アイコンの一覧",
+        "responses": {
+          "200": {
+            "description": "ファイルと参照状況"
+          }
+        }
       }
     },
     "/api/files/{id}": {
@@ -2240,6 +2181,30 @@
           }
         ],
         "description": "未ログインの場合は工事・お知らせ・付箋に公開範囲を限定します。設備情報・設備専用資料は認証後に取得できます。"
+      },
+      "delete": {
+        "tags": [
+          "資料"
+        ],
+        "summary": "未使用のファイルを削除",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "削除結果"
+          },
+          "409": {
+            "description": "使用中のファイル"
+          }
+        }
       }
     },
     "/api/export": {
@@ -2314,158 +2279,6 @@
           },
           {
             "Bearer": []
-          }
-        ]
-      }
-    },
-    "/api/tokens": {
-      "get": {
-        "summary": "APIトークン一覧（秘密値は返さない）",
-        "tags": [
-          "Tokens"
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "施設担当ログインが必要"
-          },
-          "409": {
-            "description": "競合・参照中"
-          },
-          "422": {
-            "description": "入力・型・日付・参照エラー"
-          }
-        },
-        "security": [
-          {
-            "Session": []
-          },
-          {
-            "Bearer": []
-          }
-        ]
-      },
-      "post": {
-        "summary": "APIトークン発行（30日・秘密値は一度だけ表示）",
-        "tags": [
-          "Tokens"
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "施設担当ログインが必要"
-          },
-          "409": {
-            "description": "競合・参照中"
-          },
-          "422": {
-            "description": "入力・型・日付・参照エラー"
-          }
-        },
-        "security": [
-          {
-            "Session": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "name",
-                  "scope"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "scope": {
-                    "type": "string",
-                    "enum": [
-                      "viewer",
-                      "editor"
-                    ]
-                  }
-                }
-              },
-              "example": {
-                "name": "連携ツール",
-                "scope": "viewer"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/tokens/{id}": {
-      "delete": {
-        "summary": "APIトークン失効",
-        "tags": [
-          "Tokens"
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "施設担当ログインが必要"
-          },
-          "409": {
-            "description": "競合・参照中"
-          },
-          "422": {
-            "description": "入力・型・日付・参照エラー"
-          }
-        },
-        "security": [
-          {
-            "Session": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
           }
         ]
       }
@@ -2852,18 +2665,339 @@
           }
         }
       }
+    },
+    "/api/session": {
+      "get": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "SSOと現在のデモアカウント",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        }
+      }
+    },
+    "/api/demo/profile": {
+      "post": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "無料／有料管理者デモを切り替える",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/preferences": {
+      "get": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "保存した表示設定と独自アイコン",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "表示設定と独自アイコンを保存",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard": {
+      "get": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "設備・点検・容量と利用枠",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        }
+      }
+    },
+    "/api/import-preview": {
+      "post": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "JSON取り込みの事前検証",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/import": {
+      "post": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "確認したJSONを取り込む",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/snapshots": {
+      "get": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "Proバックアップの一覧",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "Proバックアップを作成",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/snapshots/{id}": {
+      "delete": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "バックアップを削除",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/snapshots/{id}/restore": {
+      "post": {
+        "tags": [
+          "SaaS"
+        ],
+        "summary": "バックアップから復元",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSOログインが必要"
+          },
+          "403": {
+            "description": "モード・プラン・権限の制限"
+          },
+          "409": {
+            "description": "競合・利用枠"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "securitySchemes": {
-      "Session": {
+      "AccessSSO": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "factory_session"
-      },
-      "Bearer": {
-        "type": "http",
-        "scheme": "bearer"
+        "name": "CF_Authorization",
+        "description": "Cloudflare Accessでログインして取得するセッション。Swagger UIからパスワードやトークンを入力する必要はありません。"
       }
     },
     "schemas": {
@@ -3044,5 +3178,10 @@
         }
       }
     }
-  }
+  },
+  "security": [
+    {
+      "AccessSSO": []
+    }
+  ]
 }

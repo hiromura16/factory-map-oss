@@ -1,3 +1,4 @@
+import './product.jsx';
 import React,{useState,useEffect,useRef,useImperativeHandle,forwardRef,createRef} from 'react';
 import {createRoot} from 'react-dom/client';
 import {flushSync} from 'react-dom';
@@ -53,7 +54,7 @@ const PhotoEditor=forwardRef(function PhotoEditor({record},ref){
     <label className={'react-photo-dropzone '+(dragging?'drag-over':'')} onDragOver={event=>{event.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={event=>{event.preventDefault();setDragging(false);add([...event.dataTransfer.files]);}}>
       <input ref={input} type="file" className="photo-input" multiple accept="image/jpeg,image/png,image/webp,image/gif" onChange={event=>{add([...event.target.files]);event.target.value='';}}/>
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><circle cx="8" cy="10" r="2"/><path d="m4 18 5-5 4 4 3-3 5 5M16 3h6m-3-3v6"/></svg>
-      <strong>写真をドラッグして追加</strong><span>またはクリックしてファイルを選択</span><small>JPEG・PNG・WebP・GIF ／ 各20MBまで</small>
+      <strong>写真をドラッグして追加</strong><span>またはクリックしてファイルを選択</span><small>JPEG・PNG・WebP・GIF ／ 各5MBまで</small>
     </label>
     {error&&<p className="photo-input-error" role="alert">{error}</p>}
     <p className="photo-help">代表写真が、地図にマウスを重ねたときの先頭画像になります。</p>

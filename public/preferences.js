@@ -1,17 +1,17 @@
-/* Browser-local presentation preferences. Never grants server entitlements. */
+/* Workspace presentation preferences; API permissions are the authority. */
 (() => {
   'use strict';
-  const KEY='factory-map.preferences.v1', MAX_ICONS=12;
+  const KEY='factory-map.preferences.v1', MAX_ICONS=50;
   const DEFAULTS={theme:'system',accent:'#167566',density:'comfortable',left:false,right:false,focus:false,plan:'free',icons:[],categoryIcons:{}};
   const CATEGORIES={hvac:'空調',water:'給排水',pipe:'配管',power:'電気',air:'圧縮空気',fire:'防災',heat:'熱源',cool:'冷却',building:'建築',handling:'搬送',effluent:'排水処理',safety:'安全'};
   const PLANS={free:{name:'Community',drawings:3,assets:100},pro:{name:'Team',drawings:30,assets:2000},enterprise:{name:'Enterprise',drawings:100,assets:10000}};
   const validImage=v=>typeof v==='string' && v.length<=90000 && /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(v);
   function normalize(raw={}) {
     const o=raw && typeof raw==='object'?raw:{};
-    const icons=Array.isArray(o.icons)?o.icons.filter(x=>x && typeof x.id==='string' && /^icon-[a-z0-9-]{1,50}$/.test(x.id) && validImage(x.data)).slice(0,MAX_ICONS).map(x=>({id:x.id,name:String(x.name||'アイコン').slice(0,40),data:x.data})):[];
+    const icons=Array.isArray(o.icons)?o.icons.filter(x=>x && typeof x.id==='string' && /^icon-[a-z0-9-]{1,50}$/.test(x.id) && (validImage(x.data)||typeof x.fileId==='string'&&/^[a-zA-Z0-9-]{1,80}$/.test(x.fileId))).slice(0,MAX_ICONS).map(x=>({id:x.id,name:String(x.name||'アイコン').slice(0,40),...(x.fileId?{fileId:x.fileId}:{data:x.data})})):[];
     const categoryIcons={};
     for(const key of Object.keys(CATEGORIES)) if(icons.some(x=>x.id===o.categoryIcons?.[key])) categoryIcons[key]=o.categoryIcons[key];
-    return {...DEFAULTS,theme:['light','dark','system'].includes(o.theme)?o.theme:'system',accent:/^#[0-9a-f]{6}$/i.test(o.accent)?o.accent:DEFAULTS.accent,density:o.density==='compact'?'compact':'comfortable',left:o.left===true,right:o.right===true,focus:o.focus===true,plan:Object.hasOwn(PLANS,o.plan)?o.plan:'free',icons,categoryIcons};
+    return {...DEFAULTS,brandName:typeof o.brandName==='string'?o.brandName.slice(0,60):'',theme:['light','dark','system'].includes(o.theme)?o.theme:'system',accent:/^#[0-9a-f]{6}$/i.test(o.accent)?o.accent:DEFAULTS.accent,density:o.density==='compact'?'compact':'comfortable',left:o.left===true,right:o.right===true,focus:o.focus===true,plan:Object.hasOwn(PLANS,o.plan)?o.plan:'free',icons,categoryIcons};
   }
   const api={normalize,validImage,PLANS};
   if(typeof window==='undefined'){if(typeof module!=='undefined')module.exports=api;return;}
@@ -22,12 +22,18 @@
   const $=s=>document.querySelector(s);
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   const toast=message=>window.factoryMap?.toast(message);
-  function persist(){try{localStorage.setItem(KEY,JSON.stringify(prefs));return true;}catch{toast('ブラウザーに保存できません。設定はこの画面を閉じるまで有効です。');return false;}}
+  let saveChain=Promise.resolve(),server=false;
+  function persist(){
+    if(server){const value=structuredClone(prefs);delete value.plan;saveChain=saveChain.catch(()=>{}).then(async()=>{try{await FactoryAPI.request('/api/preferences',{method:'PUT',body:value});document.dispatchEvent(new CustomEvent('factory-preferences-saved'));}catch(error){toast(error.message);const current=await FactoryAPI.request('/api/preferences');prefs=normalize({...current.preferences,plan:FactoryAPI.session.plan});apply();window.factoryMap?.render();throw error;}});saveChain.catch(()=>{});return saveChain;}
+    try{localStorage.setItem(KEY,JSON.stringify(prefs));return Promise.resolve();}catch{toast('ブラウザーに保存できません。');return Promise.reject(new Error('保存できません。'));}
+  }
+  const iconURL=icon=>icon.fileId?'/api/files/'+encodeURIComponent(icon.fileId)+'?inline=1':icon.data;
   function apply(){
     const dark=prefs.theme==='dark'||(prefs.theme==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);
     document.body.dataset.factoryTheme=dark?'dark':'light';
     document.body.dataset.factoryDensity=prefs.density;
     document.body.style.setProperty('--factory-accent',prefs.accent);
+    if(prefs.brandName)document.querySelector('.brand>span:last-child').firstChild.textContent=prefs.brandName;
     document.body.classList.toggle('factory-hide-left',prefs.left);
     document.body.classList.toggle('factory-hide-right',prefs.right);
     document.body.classList.toggle('factory-focus',prefs.focus);
@@ -49,7 +55,7 @@
   function updateIcons(){
     const list=$('#factory-icon-list');list.replaceChildren();
     for(const icon of prefs.icons){
-      const row=el('div',undefined,'factory-icon-row'),img=el('img');img.src=icon.data;img.alt='';img.width=32;img.height=32;
+      const row=el('div',undefined,'factory-icon-row'),img=el('img');img.src=iconURL(icon);img.alt='';img.width=32;img.height=32;
       const remove=el('button','削除');remove.type='button';remove.setAttribute('aria-label',icon.name+'を削除');
       remove.onclick=()=>{prefs.icons=prefs.icons.filter(x=>x.id!==icon.id);prefs=normalize(prefs);persist();updateIcons();window.factoryMap?.render();};
       row.append(img,el('span',icon.name),remove);list.append(row);
@@ -63,7 +69,8 @@
   async function addRaster(file){
     if(!file)return;
     if(uploadPending)return;
-    if(prefs.icons.length>=MAX_ICONS)throw new Error('アイコンは12個までです。不要なものを削除してください。');
+    if(server&&!FactoryAPI.session.limits.customization)throw new Error('独自アイコンはProの機能です。有料管理者デモに切り替えてお試しください。');
+    if(prefs.icons.length>=MAX_ICONS)throw new Error('アイコンは50個までです。不要なものを削除してください。');
     if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>1024*1024)throw new Error('1MB以下のPNG・JPEG・WebPを選んでください。SVGは読み込みません。');
     uploadPending=true;
     try{
@@ -79,8 +86,10 @@
       const scale=Math.min(64/img.naturalWidth,64/img.naturalHeight),w=img.naturalWidth*scale,h=img.naturalHeight*scale;
       canvas.getContext('2d').drawImage(img,(64-w)/2,(64-h)/2,w,h);
       const data=canvas.toDataURL('image/png');if(!validImage(data))throw new Error('画像を小さくして再度お試しください。');
-      prefs.icons.push({id:'icon-'+crypto.randomUUID(),name:file.name.slice(0,40),data});
-      persist();updateIcons();toast('アイコンを追加しました。分類に割り当てると地図に反映されます。');
+      let ref={data};
+      if(server){const blob=await(await fetch(data)).blob();const [uploaded]=await FactoryAPI.upload([new File([blob],file.name.replace(/\.[^.]+$/,'')+'.png',{type:'image/png'})]);ref={fileId:uploaded.fileId};}
+      prefs.icons.push({id:'icon-'+crypto.randomUUID(),name:file.name.slice(0,40),...ref});
+      await persist();updateIcons();toast('アイコンを保存しました。分類や個々の設備に割り当てられます。');
     }finally{if(temporaryURL)URL.revokeObjectURL(temporaryURL);temporaryURL=undefined;uploadPending=false;}
   }
   function usage(container){
@@ -90,9 +99,12 @@
       const value=state?.[key]?.length;
       container.append(el('p',label+': '+(value===undefined?'未取得':value)+' / '+plan[key].toLocaleString()+' （プラン案）'));
     }
-    container.append(el('small','このプラン切替は課金モックです。請求・制限の強制・権限変更は行いません。実際のプラン制御はサーバー側で実装します。'));
+    container.append(el('small',server?'料金プランのデモです。実際の請求はありません。登録数とPro機能の制限はAPIでも検証します。':'このプラン切替は課金モックです。'));
   }
-  function init(){
+  async function init(){
+    for(let i=0;i<100&&!window.factoryMap;i++)await new Promise(r=>setTimeout(r,50));
+    server=!!window.FactoryAPI?.saas;
+    if(server)prefs=normalize({...FactoryAPI.session.preferences,plan:FactoryAPI.session.plan});
     const tools=el('div',undefined,'factory-workspace-controls');tools.setAttribute('aria-label','表示設定');
     for(const [id,key,controls] of [['factory-left-toggle','left','record-list'],['factory-right-toggle','right','detail-pane'],['factory-focus-toggle','focus','']]){
       const button=el('button');button.id=id;button.type='button';if(controls)button.setAttribute('aria-controls',controls);button.onclick=()=>set(key,!prefs[key]);tools.append(button);
@@ -102,31 +114,35 @@
     dialog=el('dialog',undefined,'form-dialog factory-custom-dialog');dialog.id='factory-custom-dialog';dialog.setAttribute('aria-labelledby','factory-custom-title');
     const heading=el('div',undefined,'dialog-heading'),title=el('h2','自分に合った構内マップ');title.id='factory-custom-title';
     const close=el('button','×','icon-close');close.type='button';close.setAttribute('aria-label','閉じる');close.onclick=()=>dialog.close();
-    heading.append(title,close);dialog.append(heading,el('p','表示設定・アイコンはこのブラウザーだけに保存されます。設備台帳や他の利用者の表示は変更しません。','factory-help'));
+    heading.append(title,close);dialog.append(heading,el('p',server?'表示設定と追加アイコンは、このデモアカウントのデータベースに保存します。':'表示設定はこのブラウザーに保存されます。','factory-help'));
     const look=fieldset('見やすさ');
     look.append(select('テーマ',prefs.theme,{system:'端末に合わせる',light:'ライト',dark:'ダーク'},v=>set('theme',v)),select('情報の密度',prefs.density,{comfortable:'ゆったり',compact:'コンパクト'},v=>set('density',v)));
     const accentLabel=el('label','アクセントカラー'),accent=el('input');accent.type='color';accent.value=prefs.accent;accent.oninput=()=>set('accent',accent.value);accentLabel.append(accent);look.append(accentLabel);dialog.append(look);
-    const iconField=fieldset('カスタムアイコン · Team機能のプレビュー');
-    iconField.append(el('p','PNG / JPEG / WebP、1MBまで。64pxのPNGに変換して保存します。最大12個。SVG・アニメーション・外部URLは保存しません。'));
+    const brand=el('label','ワークスペースの表示名'),brandInput=el('input');brandInput.type='text';brandInput.maxLength=60;brandInput.value=prefs.brandName||'';brandInput.onchange=()=>set('brandName',brandInput.value);brand.append(brandInput);look.append(brand);
+    const iconField=fieldset('カスタムアイコン · Pro');
+    iconField.append(el('p','後から画像を追加・削除できます。PNG / JPEG / WebP、1MBまで。64pxに変換して保存。最大50個。'));
     const label=el('label','アイコン画像を追加'),input=el('input');input.type='file';input.accept='image/png,image/jpeg,image/webp';input.onchange=async()=>{err.textContent='';try{await addRaster(input.files[0]);}catch(e){$('#factory-icon-error').textContent=e.message;}finally{input.value='';}};
     label.append(input);const err=el('p');err.id='factory-icon-error';err.setAttribute('role','alert');const list=el('div');list.id='factory-icon-list';const mapping=el('div',undefined,'factory-icon-mapping');mapping.id='factory-icon-mapping';
     iconField.append(label,err,list,el('h3','設備分類ごとの表示'),mapping);dialog.append(iconField);
     const billing=fieldset('プランシミュレーター · 課金なし'),meter=el('div');meter.id='factory-plan-usage';
-    billing.append(select('デモプラン',prefs.plan,{free:'Community',pro:'Team',enterprise:'Enterprise'},v=>{set('plan',v);usage(meter);}),meter);dialog.append(billing);
-    const reset=el('button','表示設定を初期化','button secondary');reset.type='button';reset.onclick=()=>{prefs=normalize();persist();apply();window.factoryMap?.render();dialog.close();toast('このブラウザーの表示設定とカスタムアイコンを初期化しました。');};
+    if(server){const link=el('a','無料版と有料版の違いを見る ↗');link.href='console.html#plans';billing.append(link,meter);}else billing.append(select('デモプラン',prefs.plan,{free:'Community',pro:'Team',enterprise:'Enterprise'},v=>{set('plan',v);usage(meter);}),meter);dialog.append(billing);
+    const reset=el('button','表示設定を初期化','button secondary');reset.type='button';reset.onclick=()=>{prefs=normalize({plan:FactoryAPI.session?.plan||'free'});persist();apply();window.factoryMap?.render();dialog.close();toast('表示設定を初期化しました。');};
     dialog.append(reset);document.body.append(dialog);
     customize.onclick=()=>{dialog.querySelectorAll('select').forEach(s=>{if(s.parentElement.firstChild.textContent==='テーマ')s.value=prefs.theme;if(s.parentElement.firstChild.textContent==='情報の密度')s.value=prefs.density;if(s.parentElement.firstChild.textContent==='デモプラン')s.value=prefs.plan;});accent.value=prefs.accent;err.textContent='';updateIcons();usage(meter);dialog.showModal();};
     const original=FactoryEquipment.markerHTML;
     FactoryEquipment.markerHTML=asset=>{
-      const custom=prefs.icons.find(x=>x.id===prefs.categoryIcons[asset.properties?.category]);
+      const custom=prefs.icons.find(x=>x.id===(asset.icon?.startsWith('icon-')?asset.icon:prefs.categoryIcons[asset.properties?.category]));
       if(!custom)return original(asset);
-      const marker=el('div',undefined,'equipment-symbol factory-custom-marker'),img=el('img');img.src=custom.data;img.alt='';marker.append(img);
+      const marker=el('div',undefined,'equipment-symbol factory-custom-marker'),img=el('img');img.src=iconURL(custom);img.alt='';marker.append(img);
       if(asset.locks?.position)marker.append(el('span','▣','equipment-lock-dot'));
       return marker.outerHTML;
     };
+    const picker=FactoryEquipment.picker;
+    FactoryEquipment.picker=asset=>picker(asset)+`<fieldset class="equipment-icon-picker"><legend>追加したアイコン</legend>${prefs.icons.length?prefs.icons.map(icon=>`<label><input type="radio" name="icon" value="${icon.id}" ${asset?.icon===icon.id?'checked':''}><span><img width="28" height="28" src="${iconURL(icon)}" alt=""><small>${icon.name.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</small></span></label>`).join(''):'<small>「表示をカスタマイズ」から画像を追加できます。</small>'}</fieldset>`;
+    if(server&&!FactoryAPI.session.limits.customization){look.querySelector('[aria-label="テーマ"]').disabled=true;accent.disabled=true;brandInput.disabled=true;input.disabled=true;look.append(el('p','配色・ブランド名・独自アイコンはProの機能です。有料管理者デモでお試しください。'));}
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change',apply);
     window.addEventListener('storage',e=>{if(e.key===KEY){try{prefs=normalize(JSON.parse(e.newValue||'{}'));apply();window.factoryMap?.render();}catch{}}});
-    apply();api.getPreferences=()=>structuredClone(prefs);
+    apply();window.factoryMap?.render();api.getPreferences=()=>structuredClone(prefs);api.flush=()=>saveChain;window.dispatchEvent(new Event('factory-preferences-ready'));
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

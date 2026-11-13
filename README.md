@@ -1,99 +1,102 @@
-# Factory Map OSS (development)
+# 構内マップ / Factory Map OSS
 
-[OSS/SaaS roadmap](docs/oss-roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [MIT License](LICENSE)
+工場の図面・工事のお知らせ・設備台帳・点検履歴を、場所から操作するSaaSデモです。
 
-Cloudflare SaaS integration is in development; the existing PostgreSQL demo is not yet a production multi-tenant SaaS. Billing is mock-only.
+- [SaaSデモ](https://factory-map-saas.pirosea-demo.workers.dev/)
+- [管理ダッシュボード](https://factory-map-saas.pirosea-demo.workers.dev/console.html)
+- [API / Swagger UI](https://factory-map-saas.pirosea-demo.workers.dev/api-docs)
+- [Cloudflareへの配置](docs/cloudflare.md)
 
-## New SaaS console (experimental)
+**決済・カード登録・請求はありません。** 有料化した場合の機能差を、2つのデモアカウントで体験できます。掲載URLはCloudflare Accessで保護されており、許可したメールアドレスでログインします。
 
-- `saas.html`: OIDC Authorization Code + PKCE login, organization selection/creation, usage and mock billing, JSON import preview/export.
-- `cloudflare/`: tenant-isolated D1 API and scoped SCIM Users provisioning.
-- `docs/saas-console.md` and `docs/cloudflare.md`: setup contracts and limitations.
-- Identity-provider and Cloudflare setup are still required. The existing map is **not yet connected** to this SaaS API. SCIM Groups, binary attachment migration, production hardening and real billing are not complete.
+## 使い方
 
-# 構内マップ
+1. Cloudflare Accessから届くメールのコードでログインします。別のアプリにも同じAccessのSSOセッションを利用できます。
+2. 画面上部で「無料デモ」「有料管理者デモ」を切り替えます。最初のログイン時に両方を自動作成します。
+3. 地図では工事・設備・付箋を操作します。「閲覧モード」に切り替えると、設備・属性・点検資料を非表示にします。
+4. 「表示をカスタマイズ」で左右パネルの開閉・集中表示・密度を設定できます。Proではテーマ・ブランド名・独自アイコンも変更できます。
+5. 管理ダッシュボードから点検期限、設備一覧、資料、データ移行、バックアップ、操作履歴を確認できます。
 
-約2kmの工場敷地を想定した、React / Leaflet + Rust/Axum + PostgreSQLの共有アプリです。
-React 19.3.1で写真編集と右上の開発メニューを実装しています。地図・図面編集はLeafletと連携するJavaScriptで実装しています。
-工事周知と設備台帳を同じ図面から操作できます。サンプルの工場・設備・履歴は架空です。
+2つのデモは**別々のデータ**を持ちます。同じSSOログインから切り替えるデモ用アカウントで、別のメールアドレスを作成する必要はありません。SSOの利用者が異なる場合も、データを分離します。
 
-## 実装した機能
+## プランのサンプル
 
-- 付箋：図面をクリックしてテキストを貼付（2000文字まで）。編集・削除・ドラッグ移動、表示切り替え、共有DBへの保存。図面に連動して付箋と文字も拡大縮小。サイズ1〜300%・6色パレット＋任意色を変更可能。施設モードで付箋の4辺・4隅をドラッグすると幅・高さを別々に変更し、縦横比を保存。フォント（ゴシック・明朝・等幅）、文字サイズ6〜120px、文字色と自動配色を指定可能
-- 工事の「情報を編集」中は入力パネルを開いたまま、地図の頂点をドラッグして範囲を調整。保存で確定、キャンセルで取り消し。
-- 全体図と棟内図の切り替え、工事の範囲描画・登録・編集、状態・期間・キーワードでの絞り込み
-- ASCII DXF取り込み、レイヤーの切り替え、未対応要素の通知。DWGはDXFに変換して読み込み
-- 設備マークを直接ドラッグして移動・保存。設備ごとのアイコン選択、位置・属性/写真の個別ロックと全設備の一括ロック。ロックはAPI・一括操作にも適用し、点検履歴は記録可能。
-- 設備・工事への写真添付、代表写真の選択、地図上のホバーサムネイル。最大320×240の画像をRustで生成しPostgreSQLにキャッシュ。設備写真は未ログインでは取得不可。
-- 設備を地図上のクリックで追加、設備ID・位置・場所を編集、設備と工事の相互リンク
-- Notion形式のプロパティ追加・変更・削除。テキスト、数値、日付、チェック、選択、複数選択、URL
-- 設備の点検・保守履歴の追加・編集・削除、実施者・結果・次回点検日・資料
-- 工事・設備・点検への複数添付（各20MB、1回30ファイル）。マニュアル・点検用紙・点検履歴のPDFをアプリ内で描画し、ページ送り・拡大縮小・ダウンロードに対応。画像もプレビュー可能
-- 閲覧が初期状態。施設グループはパスワードでログイン。サーバーでも全更新操作を認証
-- Argon2パスワードハッシュ、HttpOnly/SameSiteセッション、CSRF検査、試行回数制限
-- 登録データ、型定義、図面原本、履歴、資料本体（BYTEA）をPostgreSQLに保存
-- 更新リビジョンによる競合検出、操作履歴、APIトークン、一括操作のトランザクション
-- `/api-docs` にSwagger UI、`/openapi.json` に48操作のAPI定義
-- 対応ブラウザーの `document.modelContext` に29個のネイティブWebMCPツール。認証・入力検証はREST APIと共通
-- 12分類64台のサンプル設備、125件の点検履歴、PDF資料
+| 機能 | Free | Pro | Enterprise（設計例） |
+|---|---:|---:|---:|
+| 図面 | 3枚 | 30枚 | 100枚 |
+| 設備 | 100台 | 2,000台 | 10,000台 |
+| 資料保存 | 10MB | 100MB | 300MB |
+| 独自アイコン | ― | 50個 | 100個 |
+| 配色・テーマ・ブランド名 | ― | 対応 | 対応 |
+| バックアップ | ― | 10世代 | 30世代 |
+| 管理者の操作履歴 | ― | 対応 | 対応 |
 
-## UIのビルド
+無料・有料の2アカウントを切り替えて比較できます。料金は未設定です。利用枠と有料機能の制限はAPIでも検証します。
 
-写真アップロードはReactコンポーネントで、複数写真・ドラッグ＆ドロップ・代表写真の選択に対応します。API / WebMCPメニューは右上に配置しています。ビルド済みJSは `vendor/factory-ui.js` に含まれます。UIソースを変更した場合はNode.js環境で `cd frontend && npm ci && npm run build` を実行し、配信対象のpublicディレクトリーにも反映してください。
+このデモでは台帳データ全体750KB、添付は各5MB・1回合計5MBまでです。表の件数上限に達する前にデータ容量の上限となる場合があります。本格運用で大きな図面や多数の点検履歴を扱う際は、台帳の分割・正規化とR2への資料保存を進めてください。
 
-## 起動
+## 機能
 
-このPCでは専用データベース `factory_map` と専用ユーザーを用意済みです。接続先は `.runtime/config.json` に保存しています。認証情報のある `.runtime/` は公開・配布に含めません。
+- 敷地全体図・棟内図、ASCII DXFのアップロードとレイヤー表示。DWGはDXFへの変換が必要です。
+- 工事範囲の描画、頂点の編集、期間・影響・状態による絞り込み。
+- 設備の登録・ドラッグ移動・編集、設備ごとの位置／属性ロック。ロックはAPIや一括操作にも適用します。
+- Notion形式のカスタム属性：テキスト・数値・日付・選択・複数選択・チェック・URL。
+- 点検・保守履歴、実施者・結果・次回点検日、点検期限と要対応設備の一覧。
+- 写真・PDF・点検用紙などの添付、写真のホバーサムネイル、PDFのページ送り・拡大表示。
+- 独自アイコンの**後からの追加・削除・割り当て**。PNG / JPEG / WebPを64pxのPNGに変換し、設備分類や個々の設備に設定。
+- 図面に連動する付箋、縁・角からのリサイズ、色・フォント・文字サイズの変更。
+- 左右パネルの個別開閉、集中表示、表示密度、ライト／ダーク、配色、ブランド名。
+- 設定・アイコン・写真・台帳・履歴はCloudflare D1に保存。別ブラウザでも同じデモアカウントのデータを利用できます。
+- JSONの事前検証と取り込み、設備台帳と点検履歴のCSV出力、他システムからCSVに書き出した点検履歴の取り込み。
+- Proのバックアップ作成・復元、未使用資料の整理、サーバーの操作履歴。
+- REST API、OpenAPI / Swagger UI、対応ブラウザの29個のWebMCPツール。
 
-Rustが利用できる環境では以下でビルド・起動します。
+工場・設備・資料は架空のサンプルです。Freeは12台、Proは12分類64台と点検履歴から始まります。
+
+## データ移行
+
+旧PostgreSQL版の `GET /api/export` で得たJSONを管理画面で読み込み、内容を確認してから保存します。重複ID・設備コード・参照先・型・プラン上限を検証します。JSONに添付本体は含まれません。未移行の添付参照は拒否します。
+
+他の点検DBは、CSVに書き出して取り込めます。必須列は「設備ID」「点検日」「内容」。任意列は「種類」「結果」「実施者」「次回点検日」。テンプレートを管理画面からダウンロードできます。設備IDで照合し、現在の履歴に追加した結果を確認してから保存します。任意DBへの直接接続や、添付本体の一括移行は未実装です。
+
+## 技術構成
+
+- フロント：React 19、Leaflet、Leaflet-Geoman、PDF.js、dxf-parser、esbuild。
+- SaaS：Cloudflare Workers、Static Assets、D1、Cloudflare AccessのメールSSO。
+- 台帳はリビジョンによる同時更新検出、資料は所有アカウントと参照状態を確認して配信。
+- R2や有料のCloudflare Imagesは初期デモでは不要です。画像サムネイルをブラウザで生成し、資料本体とともにD1へ保存します。
+- `server/` は以前のRust / Axum / PostgreSQL版です。Cloudflare版はこのPCを経由せず動作します。
+
+## ビルドと検証
+
+Node.js 22以降、Python 3が必要です。
 
 ```sh
-cargo build --manifest-path server/Cargo.toml
-./server/target/debug/factory-map-server
+npm ci --prefix frontend
+npm ci --prefix cloudflare
+node frontend/build.mjs
+node scripts/build-saas.mjs
+npm run check --prefix cloudflare
+npm test --prefix cloudflare
+node tests/preferences.cjs
+node tests/saas.cjs
+npx --prefix cloudflare wrangler deploy --dry-run --config cloudflare/wrangler.jsonc
 ```
 
-初期状態は `http://127.0.0.1:18017` です。`FACTORY_MAP_BIND` で変更できます。
-初期パスワードは初回起動時にランダム生成し `.runtime/initial-admin-password.txt`（所有者のみ閲覧可）に保存します。画面の「閲覧モード」からログインし、「パスワード変更」で変更できます。
+ブラウザでの統合検証にはPython PlaywrightとChromiumを使います。
 
-別環境での接続設定例（値は自身の専用DB接続先に置き換え、ファイルの権限を600に設定）：
-
-```json
-{"database_url":"postgresql://APP_USER:APP_PASSWORD@DATABASE_HOST:5432/APP_DATABASE"}
+```sh
+PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chrome python3 tests/product_ui.py
 ```
 
-## 公開
+このテストはループバック限定の一時サーバー、テスト専用の署名鍵、SQLiteを使います。`tests/map-local-server.mjs` は検証用で、公開対象に含めません。
 
-SitesのWorkerが、HTTPSトンネルを経由してこのPCのRustサーバーに接続します。
-Cloudflareのアカウントやルーターのポート開放は不要です。PC、PostgreSQL、Rustサーバー、トンネルが稼働している必要があります。
-無料のQuick Tunnelは再起動でURLが変わります。変わった場合は同じSitesプロジェクトの `UPSTREAM_ORIGIN` を更新して再配信します。継続運用では固定トンネル・監視・社内認証を整備してください。
+## セルフホスト版
 
-閲覧モードは工事範囲・お知らせ・付箋のみ表示します。設備の位置・台帳・属性・点検履歴・設備専用添付は施設グループのログイン後に表示します。APIの一覧・検索・集計・ファイル取得にも同じ制限を適用します。工事のお知らせとその添付は公開されます。
+旧Rust版は `cargo build --manifest-path server/Cargo.toml` でビルドします。専用PostgreSQLの接続文字列を `.runtime/config.json` の `database_url` に設定し、`server/target/debug/factory-map-server` を起動します。初期管理パスワードは `.runtime/initial-admin-password.txt` に生成されます。このディレクトリはGitHubに含めません。新しいSaaS用管理画面とプラン機能はCloudflare版向けです。
 
-## API
+## 本番化の残作業
 
-設備閲覧（要認証）の例：`GET /api/assets?q=空調`、`GET /api/assets/a1/maintenance`、`GET /api/stats`。
-更新はログインのセッションCookie、または `Authorization: Bearer …` の編集トークンが必要です。
-`POST /api/tokens` で30日間のトークンを発行できます。viewerトークンで更新はできません。
-`POST /api/batch` は最大100操作を一括確定し、途中で失敗した場合は反映しません。
-添付は `POST /api/files` の戻り値を対象レコードの `attachments` に保存します。未参照のファイルは外部から取得できません。
-`GET /api/export` はJSONデータと添付参照IDの出力です。ファイル本体を含む完全バックアップにはPostgreSQLのバックアップが必要です。
+このサンプルをそのまま商用SaaSの完成品とは扱っていません。料金契約・決済・請求、組織への招待、実IdPとのSCIM運用、大規模データの正規化、負荷試験、保管ポリシー、監視・バックアップ運用は別工程です。SCIM Usersと汎用OIDCの実験的な基盤は `cloudflare/scim.mjs` などに残していますが、このデモのログインはCloudflare Accessを使います。
 
-WebMCPは対応ブラウザーでマップ画面を開いた間に利用できます。通常ブラウザーで利用できない場合も画面操作とREST APIは動作します。
-
-## 検証
-
-`tests/shared_integration.py` は実APIと専用DBで、認証・型・日付・参照・添付・競合・一括操作を検証します。
-`tests/shared_ui.py` は実Chromiumで設備追加、属性追加、点検、複数添付、PDF表示、DXF、スマホ、Swagger UIとネイティブWebMCP呼び出しを検証します。
-`tests/manipulation_and_pdf.py` は付箋の縁・角リサイズ、反対側の辺の固定、Escでの取り消し、設備ドラッグ、実際の2ページPDF描画・ページ送り・拡大と閲覧権限を検証します。PDF描画はローカル配布のMozilla PDF.js 6.5.438を使用します。
-`tests/note_appearance.py` は付箋と図面の実寸比、アニメーション付きズーム、色・サイズの永続化、ドラッグ、異なる画面幅での表示を検証します。検証用パスワードファイルは `FACTORY_MAP_TEST_PASSWORD_FILE` で指定できます。
-Python PlaywrightとChromiumが必要です。現在のテストURLは `FACTORY_MAP_TEST_URL` で変更できます。初期パスワード変更後はテスト用ログイン方法も更新してください。
-旧 `tests/ui_smoke.py` はブラウザー内保存版に対する過去の確認です。
-
-## 制限と運用上の確認事項
-
-- DXFは2D/ASCII形式。寸法・ハッチングなどの完全なCAD再現、DWG直接読み込み、図面改訂管理は未対応
-- 共有パスワード方式。個人アカウント・SSO・ユーザーごとの権限は未実装
-- 小規模デモ向けに、更新時は図面・台帳の整合性をまとめて検証。数千人の同時利用の負荷試験は未実施
-- ブラウザー内保存だった旧版のIndexedDBは削除していません。共有DBへの自動移行は行いません
-- 既存PostgreSQLコンテナーの内部IPで接続中。コンテナー再作成時は専用接続設定の更新が必要になる場合があります
-- 添付を一覧から外してもDBのバイナリは保持。運用時には保管期間と不要ファイルの整理を決めてください
+MIT License。依存ソフトウェアのライセンスは `THIRD_PARTY_NOTICES.md` と `vendor/` を参照してください。

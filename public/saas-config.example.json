@@ -1,7 +1,0 @@
-{
-  "enabled": false,
-  "issuer": "https://REPLACE_WITH_OIDC_ISSUER",
-  "authorizationEndpoint": "https://REPLACE_WITH_OIDC_ISSUER/authorize",
-  "tokenEndpoint": "https://REPLACE_WITH_OIDC_ISSUER/token",
-  "clientId": "REPLACE_WITH_PUBLIC_SPA_CLIENT_ID"
-}

@@ -18,3 +18,5 @@ frontend/node_modules/
 *.dump
 *.sql.gz
 node_modules/
+cloudflare/dist/
+.deploy/
