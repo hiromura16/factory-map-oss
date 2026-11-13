@@ -4,6 +4,13 @@
 
 Cloudflare SaaS integration is in development; the existing PostgreSQL demo is not yet a production multi-tenant SaaS. Billing is mock-only.
 
+## New SaaS console (experimental)
+
+- `saas.html`: OIDC Authorization Code + PKCE login, organization selection/creation, usage and mock billing, JSON import preview/export.
+- `cloudflare/`: tenant-isolated D1 API and scoped SCIM Users provisioning.
+- `docs/saas-console.md` and `docs/cloudflare.md`: setup contracts and limitations.
+- Identity-provider and Cloudflare setup are still required. The existing map is **not yet connected** to this SaaS API. SCIM Groups, binary attachment migration, production hardening and real billing are not complete.
+
 # 構内マップ
 
 約2kmの工場敷地を想定した、React / Leaflet + Rust/Axum + PostgreSQLの共有アプリです。

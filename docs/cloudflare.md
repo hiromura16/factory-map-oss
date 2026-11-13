@@ -30,7 +30,7 @@ Bearer は設定した ID プロバイダーが発行した署名済みトーク
 - `GET .../audit`: owner 向け最近100件
 - `.../scim`: **501 未実装**。成功応答するダミー SCIM ではありません
 
-ブラウザーから登録・ログインする OIDC Authorization Code + PKCE リダイレクト画面、nonce/state 検証と安全なトークン保管は今後の実装です。現段階で「SSO 完成」「ユーザー登録画面完成」とは扱わないでください。ID プロバイダーに紐づく個人アカウント登録 API がある、という状態です。
+saas.html に Authorization Code + PKCE / state / nonce を使う管理コンソールを追加しました。モックによるフロー検証済みですが実 IdP 接続は未検証です。現段階で本番 SSO 完成とは扱わないでください。旧地図 UI と D1 API の統合は未完了です。
 
 ## ローカル検証
 
@@ -59,8 +59,8 @@ node scripts/preview-d1-import.mjs exported-factory-map.json pro
 
 ## 重要な未完了項目
 
-- 本番公開に必要な rate limiting、メール確認/招待、パスワード再設定（パスワード認証自体を採用していません）、管理画面、ログイン/ログアウト UI。
-- SCIM Users/Groups CRUD、PATCH/filter/pagination、プロビジョニングトークン管理と失効、IdP conformance test。SSO と SCIM は別機能です。
+- 本番公開に必要な rate limiting、メール確認/招待、パスワード再設定（パスワード認証自体を採用していません）、管理コンソールの実 IdP 検証。
+- SCIM Groups、PUT/full replacement、bulk、複雑なfilter、IdP conformance test。新しい /scim/v2 の実装範囲は下記参照。SSO と SCIM は別機能です。
 - R2 添付・図面バイナリ、PostgreSQL BYTEA と既存 IndexedDB の移行。現インポーターは JSON のみで、添付参照があれば停止します。
 - 既存 UI / REST 48操作との互換アダプター、WebMCP 統合、重い CAD 処理と写真サムネイル生成。
 - 現基盤は JSON snapshot 1行・最大750 KB。大規模設備の運用は各 entity の正規化とページングが必要。プラン件数上限だけで容量を保証しません。
@@ -68,3 +68,35 @@ node scripts/preview-d1-import.mjs exported-factory-map.json pro
 - JWKS は5分キャッシュ。鍵ローテーション時の即時再取得/失効と運用監視の改善が必要。
 
 OSS 公開前は `.runtime`、パスワード、既存 DB、実施設データ、秘密を含むスクリーンショットやアーカイブを除外してください。
+
+## SCIM 2.0 Users（追加実装・未デプロイ）
+
+cloudflare/scim.mjs と 0002_scim.sql に、組織を固定した User provisioning を実装しました。**設定がない初期状態では503で停止**します。通常の OIDC Bearer と SCIM Bearer は別物で、互いの認証には使えません。旧APIの /api/v1/organizations/:id/scim は501のままですが、下記の独立エンドポイントで実処理を行います。
+
+必要な設定（この作業では設定も実トークン生成も実行していません）：
+
+- SCIM_ORGANIZATION_ID: 既存の対象組織1件だけ。
+- SCIM_TOKEN_HASH: 運用担当者が管理する長いランダムBearerトークンの SHA-256（64桁hex）のみ。平文トークンをGit、wrangler設定、ログへ保存しない。
+- AUTH_ISSUER: その組織に使うOIDC issuer。ユーザーの externalId は **このissuerが発行する sub と完全一致**させる。メールアドレスを代用しない。前後空白は暗黙に削除せず拒否します。
+
+対応：
+
+- GET /scim/v2/ServiceProviderConfig, /Schemas, /ResourceTypes（各User詳細も対応）
+- GET /scim/v2/Users: userName eq filter（名前は大文字小文字非区別）、startIndex 1起点、count 0〜100。複雑なfilterは invalidFilter で拒否。
+- POST /scim/v2/Users: schemas/externalId/userName必須、active/displayName任意。viewerとして登録。同じ内容の再送は同じIDを返す。
+- GET /scim/v2/Users/:id
+- PATCH /scim/v2/Users/:id: add/replaceの active / userName / displayName。externalId、roles、groups、組織は変更不可。
+- DELETE /scim/v2/Users/:id: 内部soft-delete＋membership無効化。その後GET404、一覧/filterから除外。再POSTは同じOIDC主体・同じresource IDとして復帰。PATCH active=false は削除せず停止し、PATCH trueで再有効化。
+- GETのETagとPATCH/DELETEのIf-Match。変更はversion/role確認を含むトランザクション。競合時は409/412で停止。
+- scim_events にサービス主体で監査記録。再送の同一POSTは監査を増やさない。
+- membership active を通常OIDC APIも毎回検証するため、SCIM停止直後から当該組織への既発行Bearerアクセスも拒否。
+
+安全境界：
+
+SCIMが新規作成した **viewer** のみ変更可能です。既存owner/editor/viewerの所属を勝手に取り込めず、管理者がowner/editorへ昇格したユーザーの変更・削除も拒否します。したがって最後のownerをSCIMが停止することはできません。組織固定トークンで別組織のUser IDを指定しても404です。他組織の独立した所属やIdP自体のアカウントは変更しません。
+
+Groupsは501、PUT、bulk、password変更、任意属性、複雑なfilterは未対応です。SCIMベンダーによって必須属性・PATCH方式が異なるため、Entra ID/Okta等との実接続検証完了までは本番利用不可。SCIM rate limiting・トークンローテーション運用・監査閲覧UIは別途必要です。
+
+## 同一オリジンのコンソール配信
+
+Wrangler設定に ASSETS / ../public / run_worker_first:true を準備しました。/ は /saas.html へ遷移、静的ファイルはASSETSで配信。未設定なら503です。/api と /scim 以下は静的fallbackに流しません。/health だけは無認証で稼働段階を確認できます。既存地図UIの旧Rust APIをD1へ接続する互換処理は、この配信設定によって完成するわけではありません。

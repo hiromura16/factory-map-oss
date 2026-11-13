@@ -3,15 +3,24 @@
   "main": "worker.mjs",
   "compatibility_date": "2026-11-01",
   "workers_dev": false,
-  "d1_databases": [{
-    "binding": "DB", "database_name": "factory-map",
-    "database_id": "REPLACE_AFTER_HOME_SETUP", "migrations_dir": "migrations"
-  }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "factory-map",
+      "database_id": "REPLACE_AFTER_HOME_SETUP",
+      "migrations_dir": "migrations"
+    }
+  ],
   "vars": {
     "AUTH_ISSUER": "https://REPLACE_WITH_OIDC_ISSUER",
     "AUTH_AUDIENCE": "REPLACE_WITH_CLIENT_ID",
     "AUTH_JWKS_URL": "https://REPLACE_WITH_OIDC_ISSUER/.well-known/jwks.json",
     "ALLOW_REGISTRATION": "false",
     "MOCK_BILLING": "false"
+  },
+  "assets": {
+    "directory": "../public",
+    "binding": "ASSETS",
+    "run_worker_first": true
   }
 }

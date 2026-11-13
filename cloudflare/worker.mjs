@@ -1,3 +1,4 @@
+import { handleScim } from './scim.mjs';
 import { ApiError, PLANS, MAX_BYTES, KINDS, validateState, importPreview, validateCustomization, requireRole } from './core.mjs';
 import { authenticate } from './auth.mjs';
 const JSON_HEADERS = {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer'};
@@ -41,6 +42,13 @@ export default {
  async fetch(request,env) {
   try {
    const url=new URL(request.url);
+   if(url.pathname === '/scim/v2' || url.pathname.startsWith('/scim/v2/')) return handleScim(request,env);
+   if(!/^\/(api|scim)(\/|$)/.test(url.pathname) && url.pathname!=='/health') {
+     if(!['GET','HEAD'].includes(request.method)) throw new ApiError(405,'Method not allowed');
+     if(!env.ASSETS) throw new ApiError(503,'Static assets are not configured');
+     if(url.pathname==='/') return Response.redirect(url.origin+'/saas.html',302);
+     return env.ASSETS.fetch(request);
+   }
    if(url.pathname==='/health' && request.method==='GET') return json({status:'ok',stage:'development-foundation',billing:'mock-only',legacyUiCompatible:false});
    // No CORS, no cookies, no session fallback: every business request verifies a bearer identity.
    const origin=request.headers.get('origin');

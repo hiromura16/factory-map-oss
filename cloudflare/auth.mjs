@@ -8,6 +8,8 @@ function decode(part) {
 export function validateClaims(claims, issuer, audience, now = Date.now()/1000) {
   if (!claims || claims.iss !== issuer || typeof claims.sub !== 'string' || !claims.sub || claims.sub.length > 255 ||
       !(claims.aud === audience || (Array.isArray(claims.aud) && claims.aud.includes(audience))) ||
+      (Array.isArray(claims.aud) && claims.aud.length > 1 && claims.azp !== audience) ||
+      (claims.azp !== undefined && claims.azp !== audience) ||
       typeof claims.exp !== 'number' || !Number.isFinite(claims.exp) || claims.exp <= now ||
       (claims.nbf !== undefined && (typeof claims.nbf !== 'number' || claims.nbf > now + 30))) {
     throw new ApiError(401, 'Invalid identity token');

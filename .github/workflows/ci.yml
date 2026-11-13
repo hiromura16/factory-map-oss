@@ -16,6 +16,8 @@ jobs:
           npm run check --prefix cloudflare
       - name: Test SaaS foundation
         run: npm test --prefix cloudflare
+      - name: Test UI validation
+        run: node tests/preferences.cjs && node tests/saas.cjs
       - name: Check Python syntax
         run: python -m compileall -q tests
       - name: Build React bundle

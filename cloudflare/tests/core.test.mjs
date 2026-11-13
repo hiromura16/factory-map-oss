@@ -26,3 +26,5 @@ test('actual legacy seed version and history import',async()=>{const fs=await im
 
 test('nonempty workspace blocks disjoint import in preview',()=>{const current=state();current.drawings[0].id='other';current.assets=[];const p=importPreview(state(),current,'pro');assert.equal(p.conflicts.length,0);assert.equal(p.workspaceEmpty,false);assert.equal(p.canApply,false);assert.match(p.warnings[0],/empty/);});
 test('inherited property names are not plan identifiers',()=>{for(const p of ['__proto__','constructor','toString']){assert.throws(()=>validateState(state(),p),/Unknown plan/);assert.throws(()=>validateCustomization({},p),/Pro/);}});
+
+test('multi audience requires authorized party',()=>{const c={iss:'https://id',sub:'one',aud:['client','other'],exp:200};assert.throws(()=>validateClaims(c,'https://id','client',100));assert.equal(validateClaims({...c,azp:'client'},'https://id','client',100).subject,'one');});

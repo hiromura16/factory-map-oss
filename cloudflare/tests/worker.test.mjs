@@ -33,6 +33,7 @@ function execute(input) {
  return JSON.parse(r.stdout);
 }
 execute({schema:readFileSync(new URL('../migrations/0001_tenants.sql',import.meta.url),'utf8')});
+execute({schema:readFileSync(new URL('../migrations/0002_scim.sql',import.meta.url),'utf8')});
 const DB={
  prepare(sql){return {sql,params:[],bind(...params){this.params=params;return this;},async all(){return execute({queries:[this]})[0];},async first(){return (await this.all()).results[0]??null;}};},
  async batch(queries){return execute({queries});}
@@ -97,3 +98,95 @@ test('cross-origin request rejected',async()=>{
  const r=await worker.fetch(new Request('https://app.example/api/v1/organizations',{headers:{origin:'https://evil.example',authorization:'Bearer '+await token('alice')}}),env);assert.equal(r.status,403);
 });
 test.after(()=>{globalThis.fetch=originalFetch;rmSync(temp,{recursive:true,force:true});});
+
+const SCHEMA='urn:ietf:params:scim:schemas:core:2.0:User';
+const PATCH_SCHEMA='urn:ietf:params:scim:api:messages:2.0:PatchOp';
+// Fixed synthetic test token only. No operational token is generated or stored.
+const testToken='test-only-scim-token-not-for-production-0001';
+const hash=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(testToken))).toString('hex');
+async function scim(url,method='GET',value,override={},headers={}) {
+ return worker.fetch(new Request('https://app.example/scim/v2'+url,{method,headers:{authorization:'Bearer '+testToken,'content-type':'application/scim+json',...headers},body:value===undefined?undefined:JSON.stringify(value)}),{...env,SCIM_TOKEN_HASH:hash,SCIM_ORGANIZATION_ID:orgA,...override});
+}
+let scimId;
+test('SCIM default disabled and token auth separate from OIDC',async()=>{
+ assert.equal((await scim('/Users','GET',undefined,{SCIM_TOKEN_HASH:''})).status,503);
+ assert.equal((await scim('/Users','GET',undefined,{}, {authorization:'Bearer wrong'})).status,401);
+ assert.equal((await scim('/Users','GET',undefined,{}, {authorization:'Bearer '+await token('alice')})).status,401);
+ assert.equal((await worker.fetch(new Request('https://app.example/api/v1/organizations',{headers:{authorization:'Bearer '+testToken}}),env)).status,401);
+});
+test('SCIM discovery advertises supported core User subset and rejects Groups',async()=>{
+ for(const endpoint of ['/ServiceProviderConfig','/Schemas','/ResourceTypes','/ResourceTypes/User'])assert.equal((await scim(endpoint)).status,200);
+ const config=await (await scim('/ServiceProviderConfig')).json();assert.equal(config.bulk.supported,false);
+ assert.equal((await scim('/Groups')).status,501);
+});
+test('SCIM provisions only a viewer and maps externalId to exact OIDC subject',async()=>{
+ const input={schemas:[SCHEMA],externalId:'scim-person',userName:'person@example.test',displayName:'Demo User',active:true};
+ const r=await scim('/Users','POST',input);assert.equal(r.status,201);const u=await r.json();scimId=u.id;
+ const repeat=await scim('/Users','POST',input);assert.equal(repeat.status,200);assert.equal((await repeat.json()).id,scimId);
+ const orgs=await (await call('scim-person','/api/v1/organizations')).json();assert.equal(orgs.items[0].role,'viewer');assert.equal(orgs.items[0].id,orgA);
+ assert.equal((await call('scim-person','/api/v1/organizations/'+orgA+'/state')).status,200);
+ assert.equal((await call('scim-person','/api/v1/organizations/'+orgA+'/state','PUT',{revision:3,state:{}})).status,403);
+});
+test('SCIM filter pagination and empty page',async()=>{
+ let r=await (await scim('/Users?filter='+encodeURIComponent('userName eq "PERSON@example.test"'))).json();assert.equal(r.totalResults,1);assert.equal(r.Resources[0].id,scimId);
+ r=await (await scim('/Users?count=0')).json();assert.equal(r.totalResults,1);assert.equal(r.itemsPerPage,0);
+ r=await (await scim('/Users?startIndex=2&count=1')).json();assert.equal(r.totalResults,1);assert.equal(r.Resources.length,0);
+ const bad=await scim('/Users?filter='+encodeURIComponent('active eq true'));assert.equal(bad.status,400);assert.equal((await bad.json()).scimType,'invalidFilter');
+ assert.equal((await scim('/Users?count=-1')).status,400);
+});
+test('SCIM deprovision immediately revokes valid bearer membership and reactivation restores',async()=>{
+ const patch=active=>({schemas:[PATCH_SCHEMA],Operations:[{op:'Replace',path:'active',value:active}]});
+ assert.equal((await scim('/Users/'+scimId,'PATCH',patch(false))).status,200);
+ assert.equal((await call('scim-person','/api/v1/organizations/'+orgA+'/state')).status,404);
+ assert.equal((await scim('/Users/'+scimId,'PATCH',patch(true))).status,200);
+ assert.equal((await call('scim-person','/api/v1/organizations/'+orgA+'/state')).status,200);
+ const edit={schemas:[PATCH_SCHEMA],Operations:[{op:'replace',value:{userName:'renamed@example.test',displayName:'Renamed'}}]};
+ assert.equal((await scim('/Users/'+scimId,'PATCH',edit)).status,200);
+ assert.equal((await (await scim('/Users/'+scimId)).json()).externalId,'scim-person');
+});
+test('SCIM cannot mutate subject, role, existing owner or another organization',async()=>{
+ const make={schemas:[SCHEMA],externalId:'alice',userName:'alice@example.test'};
+ assert.equal((await scim('/Users','POST',make)).status,409);
+ for(const path of ['externalId','roles','groups','organizationId']) {
+ const r=await scim('/Users/'+scimId,'PATCH',{schemas:[PATCH_SCHEMA],Operations:[{op:'replace',path,value:'anything'}]});assert.equal(r.status,400);assert.equal((await r.json()).scimType,'mutability');
+ }
+ assert.equal((await scim('/Users/'+scimId,'GET',undefined,{SCIM_ORGANIZATION_ID:orgB})).status,404);
+});
+test('SCIM duplicate names, optimistic version and atomic patch rollback',async()=>{
+ const duplicate={schemas:[SCHEMA],externalId:'another-person',userName:'RENAMED@example.test'};
+ assert.equal((await scim('/Users','POST',duplicate)).status,409);
+ const members=await (await call('another-person','/api/v1/organizations')).json();assert.equal(members.items.length,0);
+ const before=await (await scim('/Users/'+scimId)).json();
+ const p={schemas:[PATCH_SCHEMA],Operations:[{op:'replace',path:'active',value:false}]};
+ assert.equal((await scim('/Users/'+scimId,'PATCH',p,{}, {'if-match':'W/"0"'})).status,412);
+ const after=await (await scim('/Users/'+scimId)).json();assert.equal(after.active,true);assert.equal(after.meta.version,before.meta.version);
+});
+test('SCIM refuses deactivation after promotion including final owner',async()=>{
+ execute({queries:[{sql:"UPDATE memberships SET role='owner' WHERE organization_id=? AND user_id=(SELECT user_id FROM scim_users WHERE id=?)",params:[orgA,scimId]}]});
+ assert.equal((await scim('/Users/'+scimId,'DELETE')).status,403);
+ execute({queries:[{sql:"UPDATE memberships SET role='viewer' WHERE organization_id=? AND user_id=(SELECT user_id FROM scim_users WHERE id=?)",params:[orgA,scimId]}]});
+ assert.equal((await scim('/Users/'+scimId,'DELETE')).status,204);
+ assert.equal((await scim('/Users/'+scimId,'DELETE')).status,404);
+ assert.equal((await call('scim-person','/api/v1/organizations/'+orgA+'/state')).status,404);
+ const events=execute({queries:[{sql:'SELECT * FROM scim_events WHERE organization_id=? AND resource_id=?',params:[orgA,scimId]}]})[0].results;
+ assert.equal(events.length,5);assert.ok(events.every(e=>e.actor==='scim-service'));
+});
+
+test('SCIM delete hides resource, reprovision restores exact identity',async()=>{
+ assert.equal((await scim('/Users/'+scimId)).status,404);
+ const page=await (await scim('/Users')).json();assert.equal(page.totalResults,0);
+ const r=await scim('/Users','POST',{schemas:[SCHEMA],externalId:'scim-person',userName:'restored@example.test',active:true});
+ assert.equal(r.status,201);assert.equal((await r.json()).id,scimId);
+ assert.equal((await call('scim-person','/api/v1/organizations/'+orgA+'/state')).status,200);
+});
+test('SCIM rejects normalized identity subjects',async()=>{
+ for(const externalId of [' alice','alice '])assert.equal((await scim('/Users','POST',{schemas:[SCHEMA],externalId,userName:'new@example.test'})).status,400);
+});
+test('static serving excludes API and SCIM namespaces',async()=>{
+ assert.equal((await worker.fetch(new Request('https://app.example/saas.html'),{})).status,503);
+ const ASSETS={fetch:async()=>new Response('static')};
+ let r=await worker.fetch(new Request('https://app.example/'),{ASSETS});assert.equal(r.status,302);assert.equal(r.headers.get('location'),'https://app.example/saas.html');
+ r=await worker.fetch(new Request('https://app.example/saas.html'),{ASSETS});assert.equal(await r.text(),'static');
+ assert.notEqual(await (await worker.fetch(new Request('https://app.example/api/nope'),{ASSETS})).text(),'static');
+ assert.notEqual(await (await worker.fetch(new Request('https://app.example/scim/nope'),{ASSETS})).text(),'static');
+});
