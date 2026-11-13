@@ -14,6 +14,7 @@ try:
   # Custom images and built-ins share the compact chooser. Explicit choices win over defaults.
   page.locator('#factory-customize').click()
   png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jvDkAAAAASUVORK5CYII=')
+  page.locator('.factory-settings-tabs').get_by_role('button',name='アイコン',exact=True).click()
   page.get_by_label('アイコン画像を追加').set_input_files({'name':'工場マーク.png','mimeType':'image/png','buffer':png})
   page.wait_for_function('FactoryPreferences.getPreferences().icons.length===1')
   custom=page.evaluate('FactoryPreferences.getPreferences().icons[0].id')

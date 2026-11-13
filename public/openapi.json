@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "構内マップ SaaS Demo API",
-    "version": "1.0.0",
-    "description": "Cloudflare Access SSOで認証する工場敷地GIS。無料・有料管理者デモは別ワークスペースです。決済・請求はありません。"
+    "title": "PlantDesk API",
+    "version": "2.0.0",
+    "description": "施設管理・工事台帳・点検・図面階層・お知らせの共有API。Cloudflare Access SSOで認証し、施設担当モードで更新します。閲覧モードには公開されたお知らせと図面のみ返します。"
   },
   "servers": [
     {
@@ -2759,6 +2759,9 @@
           },
           "409": {
             "description": "競合・利用枠"
+          },
+          "422": {
+            "description": "型・サイズ・色などの設定が不正"
           }
         },
         "requestBody": {
@@ -2768,10 +2771,35 @@
               "schema": {
                 "type": "object",
                 "additionalProperties": true
+              },
+              "example": {
+                "appearance": {
+                  "iconSize": 32,
+                  "iconScale": "gentle",
+                  "workLabelSize": 12,
+                  "workScale": "fixed"
+                },
+                "hiddenLayerIds": [],
+                "tableViews": {
+                  "equipment": {
+                    "columns": [
+                      "code",
+                      "name",
+                      "category",
+                      "prop:manufacturer"
+                    ],
+                    "sort": "name",
+                    "descending": false,
+                    "filters": {
+                      "category": "hvac"
+                    }
+                  }
+                }
               }
             }
           }
-        }
+        },
+        "description": "表示サイズ・ズーム連動・背景・色・パネル・操作・プリセット・任意レイヤーの表示・設備/工事台帳の列順やフィルターを保存。部分更新ではなく現在の設定とマージして送信してください。"
       }
     },
     "/api/dashboard": {
@@ -2989,6 +3017,607 @@
           }
         }
       }
+    },
+    "/api/layers": {
+      "get": {
+        "summary": "レイヤー詳細・一覧",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "drawingId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      },
+      "post": {
+        "summary": "レイヤー登録",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MapLayer"
+              }
+            }
+          }
+        },
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      }
+    },
+    "/api/layers/{id}": {
+      "get": {
+        "summary": "レイヤー詳細・一覧",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      },
+      "patch": {
+        "summary": "レイヤー更新",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MapLayer"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      },
+      "delete": {
+        "summary": "レイヤー削除",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      }
+    },
+    "/api/drawingLinks": {
+      "get": {
+        "summary": "図面リンク詳細・一覧",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "drawingId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      },
+      "post": {
+        "summary": "図面リンク登録",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrawingLink"
+              }
+            }
+          }
+        },
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      }
+    },
+    "/api/drawingLinks/{id}": {
+      "get": {
+        "summary": "図面リンク詳細・一覧",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      },
+      "patch": {
+        "summary": "図面リンク更新",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrawingLink"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      },
+      "delete": {
+        "summary": "図面リンク削除",
+        "tags": [
+          "Map organization"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "施設担当ログインが必要"
+          },
+          "409": {
+            "description": "競合・参照中"
+          },
+          "422": {
+            "description": "入力・型・日付・参照エラー"
+          }
+        },
+        "security": [
+          {
+            "Session": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "施設担当モードで編集できます。閲覧モードでは公開されたレイヤー・図面リンクのみ返します。レイヤー削除は項目を標準へ戻します。ロック中の設備が属するレイヤーの削除は拒否されます。"
+      }
+    },
+    "/api/work-register": {
+      "get": {
+        "summary": "施設担当用の工事一覧・削除済み一覧",
+        "tags": [
+          "Work history"
+        ],
+        "description": "現在の工事と削除済み工事を取得。削除済み一覧はnextOffsetでページングします。",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSO認証が必要"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "404": {
+            "description": "このアカウントに対象が存在しない"
+          }
+        }
+      }
+    },
+    "/api/works/{id}/history": {
+      "get": {
+        "summary": "工事の変更履歴",
+        "tags": [
+          "Work history"
+        ],
+        "description": "登録・変更・削除の前後の内容、実行者、日時、リビジョンを返します。導入前の過去変更は復元できず、導入時点をbaselineとして残します。nextCursorをbeforeに渡すと以前の履歴を取得できます。履歴中の添付資料は削除から保護します。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "SSO認証が必要"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "404": {
+            "description": "このアカウントに対象が存在しない"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3132,6 +3761,10 @@
             "nullable": true,
             "pattern": "^#[0-9A-Fa-f]{6}$",
             "description": "文字色。nullは背景色に合わせた自動調整"
+          },
+          "layerId": {
+            "type": "string",
+            "description": "任意の配置レイヤーID。省略時は標準。"
           }
         }
       },
@@ -3174,6 +3807,87 @@
           "coverPhotoId": {
             "type": "string",
             "description": "添付した写真のfileId。ホバー表示の先頭画像。"
+          },
+          "layerId": {
+            "type": "string",
+            "description": "任意の配置レイヤーID。省略時は標準。"
+          }
+        }
+      },
+      "MapLayer": {
+        "type": "object",
+        "required": [
+          "name",
+          "color",
+          "audience"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "facility",
+              "public"
+            ]
+          }
+        }
+      },
+      "DrawingLink": {
+        "type": "object",
+        "required": [
+          "name",
+          "drawingId",
+          "targetDrawingId",
+          "points",
+          "audience"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "drawingId": {
+            "type": "string"
+          },
+          "targetDrawingId": {
+            "type": "string",
+            "description": "循環しない別図面のID"
+          },
+          "points": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 50,
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "layerId": {
+            "type": "string"
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "facility",
+              "public"
+            ]
           }
         }
       }

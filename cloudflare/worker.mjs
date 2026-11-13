@@ -112,7 +112,7 @@ export default {
    }
    if(operation==='import') {
      const preview=importPreview(input.state,state,org.plan);
-     if(KINDS.some(k=>state[k].length) || !preview.canApply) throw new ApiError(409,'Import requires an empty workspace and no unresolved attachments; inspect import-preview');
+     if(KINDS.some(k=>state[k]?.length) || !preview.canApply) throw new ApiError(409,'Import requires an empty workspace and no unresolved attachments; inspect import-preview');
      return save(env,org,actor,{state:preview.state},'legacy.import');
    }
    if(operation==='customization') {

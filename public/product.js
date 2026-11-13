@@ -8,6 +8,7 @@
   const root=document.createElement('div');root.id='product-map-root';document.querySelector('.app-header').after(root);FactoryProduct.mountMap(root);
   document.getElementById('password-open').hidden=true;document.getElementById('password-open').classList.remove('editor-only');
   document.querySelector('.demo-indicator').textContent=FactoryAPI.session.profile==='pro'?'Pro 管理者デモ':'Free デモ';
+  const workId=new URL(location.href).searchParams.get('work');if(workId)factoryMap.openRecord('works',workId);
   const id=new URL(location.href).searchParams.get('asset');if(id){if(!factoryMap.editor){await FactoryAPI.request('/api/auth/login',{method:'POST',body:{}});await factoryMap.refresh();factoryMap.setEditor(true);}try{factoryMap.openRecord('assets',id);}catch(error){factoryMap.fail(error);}}
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>start().catch(e=>console.error(e)),{once:true});else start().catch(e=>console.error(e));

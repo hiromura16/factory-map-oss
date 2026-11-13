@@ -6,7 +6,7 @@ export const PLANS = Object.freeze({
   pro: { drawings: 30, assets: 2000, customization: true },
   enterprise: { drawings: 100, assets: 10000, customization: true }
 });
-export const KINDS = ['drawings', 'works', 'assets', 'propertyDefinitions', 'notes'];
+export const KINDS = ['drawings', 'works', 'assets', 'propertyDefinitions', 'notes', 'layers', 'drawingLinks'];
 export const MAX_BYTES = 750000; // Below D1's per-row limit. R2 stores binaries, not this JSON.
 const isObject = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 function fail(message) { throw new ApiError(422, message); }
@@ -17,6 +17,7 @@ export function validateState(input, plan = 'free') {
   if (!Object.hasOwn(PLANS, plan)) fail('Unknown plan');
   if (new TextEncoder().encode(JSON.stringify(state)).byteLength > MAX_BYTES) fail('Snapshot exceeds 750 KB; split the workspace before importing');
   for (const kind of KINDS) {
+    if (['layers','drawingLinks'].includes(kind) && state[kind]===undefined) continue;
     if (!Array.isArray(state[kind])) fail(kind + ' must be an array');
     if (state[kind].length > 20000) fail(kind + ' exceeds safety limit');
     const ids = new Set();
@@ -49,7 +50,7 @@ export function validateState(input, plan = 'free') {
 export function importPreview(payload, current, plan) {
   const state = validateState(payload, plan);
   const existing = new Set(KINDS.flatMap(k => (current?.[k] ?? []).map(x => k + ':' + x.id)));
-  const conflicts = KINDS.flatMap(k => state[k].filter(x => existing.has(k + ':' + x.id)).map(x => k + ':' + x.id));
+  const conflicts = KINDS.flatMap(k => (state[k]||[]).filter(x => existing.has(k + ':' + x.id)).map(x => k + ':' + x.id));
   const attachmentIds = new Set();
   function scan(value) {
     if (Array.isArray(value)) { value.forEach(scan); return; }
@@ -63,7 +64,7 @@ export function importPreview(payload, current, plan) {
   }
   scan(state);
   return {
-    state, counts: Object.fromEntries(KINDS.map(k => [k, state[k].length])),
+    state, counts: Object.fromEntries(KINDS.map(k => [k, (state[k]||[]).length])),
     history: state.assets.reduce((n,a) => n + (a.history?.length ?? 0), 0),
     conflicts, attachmentIds: [...attachmentIds],
     canApply: existing.size === 0 && conflicts.length === 0 && attachmentIds.size === 0,

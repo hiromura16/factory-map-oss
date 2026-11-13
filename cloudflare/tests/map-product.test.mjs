@@ -10,7 +10,7 @@ if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto
 const directory=mkdtempSync(path.join(os.tmpdir(),'factory-map-product-')),dbpath=path.join(directory,'test.sqlite');
 const python=`import json,sqlite3,sys\ndb=sqlite3.connect(sys.argv[1]);db.execute('PRAGMA foreign_keys=ON');db.row_factory=sqlite3.Row\nx=json.load(sys.stdin)\nif 'schema' in x:db.executescript(x['schema']);db.commit();print('[]');sys.exit()\nr=[]\nwith db:\n for q in x['queries']:\n  c=db.execute(q['sql'],q['params']);r.append({'results':[dict(row)for row in c.fetchall()]if c.description else [],'meta':{'changes':max(c.rowcount,0)}})\nprint(json.dumps(r))`;
 function execute(input){const r=spawnSync('python3',['-c',python,dbpath],{input:JSON.stringify(input),encoding:'utf8',timeout:10000,maxBuffer:16*1024*1024});if(r.status!==0)throw new Error(r.stderr||String(r.error));return JSON.parse(r.stdout);}
-for(const file of ['0001_tenants.sql','0002_scim.sql','0003_map_product.sql'])execute({schema:readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8')});
+for(const file of ['0001_tenants.sql','0002_scim.sql','0003_map_product.sql','0004_work_events.sql'])execute({schema:readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8')});
 const DB={prepare(sql){return{sql,params:[],bind(...params){this.params=params;return this;},async all(){return execute({queries:[this]})[0];},async first(){return(await this.all()).results[0]??null;},async run(){return this.all();}};},async batch(queries){return execute({queries});}};
 const keys=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']),jwk=await crypto.subtle.exportKey('jwk',keys.publicKey);jwk.kid='map-test';
 const oldFetch=globalThis.fetch;globalThis.fetch=async url=>{assert.equal(String(url),'https://access.example/cdn-cgi/access/certs');return new Response(JSON.stringify({keys:[jwk]}));};
@@ -64,3 +64,35 @@ test('custom categories, icon mappings and equipment reassignment persist atomic
 });
 test('maximum-sized file round trip stays within a single small D1 batch',async()=>{const data=new Uint8Array(5*1024*1024);data[0]=101;data[data.length-1]=99;const form=new FormData();form.append('file',new Blob([data]),'large.bin');const upload=await call('/api/files','POST',form);assert.equal(upload.status,201);const f=(await upload.json()).files[0];const current=await(await call('/api/state')).json();current.state.assets[0].attachments=[f];assert.equal((await call('/api/state','PUT',current)).status,200);const response=await call('/api/files/'+f.fileId);assert.equal(response.status,200);const actual=new Uint8Array(await response.arrayBuffer());assert.equal(actual.length,data.length);assert.equal(actual[0],101);assert.equal(actual[actual.length-1],99);const chunks=execute({queries:[{sql:'SELECT count(*) AS n FROM map_file_chunks WHERE file_id=?',params:[f.fileId]}]})[0].results[0].n;assert.ok(chunks<=27);});
 test.after(()=>{globalThis.fetch=oldFetch;rmSync(directory,{recursive:true,force:true});});
+test('appearance and register preferences persist, invalid sizes are rejected',async()=>{
+ const p={appearance:{iconSize:48,iconScale:'fixed',workLabelSize:16,workScale:'gentle',minimumScale:50,coordinates:true},tableViews:{equipment:{columns:['name','code','prop:maker'],sort:'name',descending:true,pageSize:20,filters:{category:'hvac',query:'空調'}}}};
+ assert.equal((await call('/api/preferences','PUT',p)).status,200);const saved=(await(await call('/api/preferences')).json()).preferences;
+ assert.equal((await call('/api/preferences','PUT',{appearance:{iconSize:40}},'free')).status,200);assert.equal((await call('/api/preferences','PUT',{appearance:{background:'#112233'}},'free')).status,403);
+ assert.equal(saved.appearance.iconSize,48);assert.equal(saved.appearance.iconScale,'fixed');assert.deepEqual(saved.tableViews.equipment.columns,['name','code','prop:maker']);assert.equal(saved.tableViews.equipment.filters.category,'hvac');
+ assert.equal((await call('/api/preferences','PUT',{appearance:{iconSize:-10}})).status,422);assert.equal((await call('/api/preferences','PUT',{appearance:{background:'url(evil)'}})).status,422);
+});
+test('mixed layers protect private announcements and locked equipment assignments',async()=>{
+ const layer={id:'private-utilities',name:'施設用',color:'#224466',audience:'facility'};
+ assert.equal((await call('/api/layers','POST',layer)).status,201);const s=await(await call('/api/state')).json();s.state.assets[0].layerId=layer.id;s.state.works[0].layerId=layer.id;s.state.notes.push({id:'private-note',drawingId:'site',point:[10,10],text:'施設内部メモ',layerId:layer.id});assert.equal((await call('/api/state','PUT',s)).status,200);
+ const viewer=(await(await call('/api/state','GET',undefined,'pro','alice','factory_mode=viewer')).json()).state;assert.ok(!viewer.layers.some(x=>x.id===layer.id));assert.ok(!viewer.works.some(x=>x.id===s.state.works[0].id));assert.ok(!viewer.notes.some(x=>x.id==='private-note'));
+ const id=s.state.assets[0].id;assert.equal((await call('/api/assets/'+id,'PATCH',{locks:{position:true,attributes:true}})).status,200);assert.equal((await call('/api/layers/'+layer.id,'DELETE')).status,423);assert.equal((await call('/api/assets/'+id,'PATCH',{locks:{position:false,attributes:false}})).status,200);assert.equal((await call('/api/layers/'+layer.id,'DELETE')).status,200);assert.equal((await(await call('/api/assets/'+id)).json()).record.layerId,undefined);
+});
+test('drawing hierarchy validates targets and cycles, exposes only public links',async()=>{
+ const link={id:'area-a',drawingId:'site',targetDrawingId:'floor-a1',name:'A棟へ',audience:'facility',points:[[100,100],[200,100],[200,200],[100,200]]};assert.equal((await call('/api/drawingLinks','POST',link)).status,201);
+ assert.equal((await call('/api/drawingLinks','POST',{...link,id:'back-loop',drawingId:'floor-a1',targetDrawingId:'site'})).status,422);
+ let viewer=(await(await call('/api/drawingLinks','GET',undefined,'pro','alice','factory_mode=viewer')).json()).items;assert.equal(viewer.length,0);
+ assert.equal((await call('/api/drawingLinks/area-a','PATCH',{audience:'public'})).status,200);viewer=(await(await call('/api/drawingLinks','GET',undefined,'pro','alice','factory_mode=viewer')).json()).items;assert.equal(viewer.length,1);
+ assert.equal((await call('/api/drawingLinks/area-a','PATCH',{targetDrawingId:'missing'})).status,422);
+});
+test('work history retains snapshots and attachments through edits, stale saves and deletion',async()=>{
+ const f=new FormData();f.append('file',new Blob(['%PDF-1.4\nwork report'],{type:'application/pdf'}),'before.pdf');const uploaded=(await(await call('/api/files','POST',f)).json()).files[0];
+ const source=(await(await call('/api/works')).json()).items[0],id='history-'+crypto.randomUUID(),work={...source,id,code:'HISTORY-001',title:'履歴の対象工事',attachments:[uploaded],layerId:undefined};
+ assert.equal((await call('/api/works','POST',work)).status,201);const stale=await(await call('/api/state')).json();
+ assert.equal((await call('/api/works/'+id,'PATCH',{title:'工事名を更新',attachments:[]})).status,200);assert.equal((await call('/api/state','PUT',stale)).status,409);
+ let history=(await(await call('/api/works/'+id+'/history')).json()).items;assert.deepEqual(history.map(e=>e.action),['updated','created']);assert.equal(history[0].before.title,'履歴の対象工事');assert.equal(history[0].after.title,'工事名を更新');
+ assert.equal((await call('/api/works/'+id,'DELETE')).status,200);history=(await(await call('/api/works/'+id+'/history')).json()).items;assert.deepEqual(history.map(e=>e.action),['deleted','updated','created']);assert.equal(history[0].after,null);
+ const page=await(await call('/api/works/'+id+'/history?limit=1')).json();assert.equal(page.items.length,1);assert.ok(page.nextCursor);const older=await(await call('/api/works/'+id+'/history?limit=1&before='+page.nextCursor)).json();assert.equal(older.items[0].action,'updated');
+ assert.ok((await(await call('/api/work-register')).json()).deleted.some(w=>w.id===id));assert.equal((await call('/api/files/'+uploaded.fileId,'DELETE')).status,409);assert.equal((await call('/api/files/'+uploaded.fileId)).status,200);
+ for(const path of ['/api/work-register','/api/works/'+id+'/history','/api/dashboard'])assert.equal((await call(path,'GET',undefined,'pro','alice','factory_mode=viewer')).status,403);
+ assert.equal((await call('/api/works/'+id+'/history','GET',undefined,'pro','bob')).status,404);
+});

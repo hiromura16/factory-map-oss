@@ -38,7 +38,7 @@
   function current(){return state.drawings.find(x=>x.id===currentDrawing);}
   function getRecord(){return(tab==='works'?state.works:state.assets).find(x=>x.id===selectedId&&x.drawingId===currentDrawing);}
   function workMatches(record){
-    if(record.drawingId!==currentDrawing)return false;
+    if(record.drawingId!==currentDrawing||!FactoryDisplay.allowWork(record)||!FactoryOrganization.visible(record))return false;
     const query=$('search').value.trim().toLocaleLowerCase();
     if(query&&![record.title,record.location,record.contact,record.notes,record.code].join(' ').toLocaleLowerCase().includes(query))return false;
     const status=$('status-filter').value;
@@ -50,7 +50,7 @@
     }
     return true;
   }
-  function records(){if(tab==='works'){const order={active:0,planned:1,done:2};return state.works.filter(workMatches).sort((a,b)=>order[a.status]-order[b.status]||a.start.localeCompare(b.start));}const q=$('search').value.trim().toLocaleLowerCase();return state.assets.filter(a=>a.drawingId===currentDrawing&&(!$('asset-category').value||a.properties?.category===$('asset-category').value)&&(!q||[a.name,a.code,a.location,...state.propertyDefinitions.map(d=>FactoryFeatures.displayValue(d,a.properties?.[d.id]))].join(' ').toLocaleLowerCase().includes(q)));}
+  function records(){if(tab==='works'){const order={active:0,planned:1,done:2};return state.works.filter(workMatches).sort((a,b)=>order[a.status]-order[b.status]||a.start.localeCompare(b.start));}const q=$('search').value.trim().toLocaleLowerCase();return state.assets.filter(a=>a.drawingId===currentDrawing&&FactoryOrganization.visible(a)&&(!$('asset-category').value||a.properties?.category===$('asset-category').value)&&(!q||[a.name,a.code,a.location,...state.propertyDefinitions.map(d=>FactoryFeatures.displayValue(d,a.properties?.[d.id]))].join(' ').toLocaleLowerCase().includes(q)));}
   function updateSummary(){const works=state.works.filter(x=>x.drawingId===currentDrawing);$('total-count').textContent=works.length;$('active-count').textContent=works.filter(x=>x.status==='active').length;$('planned-count').textContent=works.filter(x=>x.status==='planned').length;$('impact-count').textContent=works.filter(x=>x.status!=='done'&&(x.impacts.includes('通行止め')||x.impacts.includes('車両通行'))).length;}
   function renderList(){
     const items=records();$('list-count').textContent=state.works.filter(x=>x.drawingId===currentDrawing).length;
@@ -75,23 +75,23 @@
     $('detail-close').onclick=()=>{selectedId=null;render();};
   }
   function renderMapRecords(){
-    workGroup.clearLayers();assetGroup.clearLayers();
-    const visibleWorks=tab==='works'?records():state.works.filter(x=>x.drawingId===currentDrawing);
+    workGroup.clearLayers();assetGroup.clearLayers();FactoryDisplay.clear();
+    const visibleWorks=tab==='works'?records():state.works.filter(x=>x.drawingId===currentDrawing&&FactoryDisplay.allowWork(x)&&FactoryOrganization.visible(x));
     for(const work of visibleWorks){
       if(work.id===editingWorkId)continue;
       const selected=work.id===selectedId&&tab==='works';
-      const polygon=L.polygon(work.points.map(ll),{color:colours[work.status],weight:selected?3:1.6,fillColor:colours[work.status],fillOpacity:selected ? .25 : .13,dashArray:work.status==='planned'?'6 5':undefined,pmIgnore:true});
-      FactoryMedia.bindHover(polygon,work,work.title,{permanent:true,direction:'top',className:`work-label ${work.status==='active'?'active-label':''}`,opacity:.97});
+      const polygon=L.polygon(work.points.map(ll),{...FactoryDisplay.workStyle(work,selected),workId:work.id,pmIgnore:true});
+      FactoryDisplay.bindWork(polygon,work);
       polygon.on('click',()=>{if(drawingActive)return;switchTab('works',false);selectRecord(work.id,false);});
       workGroup.addLayer(polygon);if(selected)polygon.bringToFront();
     }
-    const visibleAssets=editor?(tab==='assets'?records():state.assets.filter(x=>x.drawingId===currentDrawing)):[];
+    const visibleAssets=editor?(tab==='assets'?records():state.assets.filter(x=>x.drawingId===currentDrawing&&FactoryOrganization.visible(x))):[];
     for(const asset of visibleAssets){
-      const marker=L.marker(ll(asset.point),{draggable:editor&&!asset.locks?.position,autoPan:true,
+      const marker=L.marker(ll(asset.point),{draggable:editor&&!asset.locks?.position&&FactoryDisplay.settings().equipmentDrag,autoPan:true,
         title:asset.name+(asset.locks?.position?'：位置はロック中':'：ドラッグで位置を変更'),
         icon:L.divIcon({className:'asset-marker '+(asset.locks?.position?'position-locked':''),html:FactoryEquipment.markerHTML(asset),iconSize:[32,32],iconAnchor:[16,16]}),pmIgnore:true});
       marker.on('add',()=>{marker.getElement().dataset.assetId=asset.id;marker.getElement().setAttribute('aria-label',asset.name+'：ドラッグで移動');});
-      FactoryMedia.bindHover(marker,asset,asset.name);
+      FactoryDisplay.bindAsset(marker,asset);
       marker.on('click',()=>{if(drawingActive)return;switchTab('assets',false);selectRecord(asset.id,false);});
       marker.on('dragend',async()=>{
         const point=marker.getLatLng();
@@ -111,22 +111,22 @@
     if($('show-works').checked){if(!map.hasLayer(workGroup))workGroup.addTo(map);}else map.removeLayer(workGroup);
     if(editor&&$('show-assets').checked){if(!map.hasLayer(assetGroup))assetGroup.addTo(map);}else map.removeLayer(assetGroup);
   }
-  function render(){FactoryEquipment.refresh();FactoryFeatures.filters();updateSummary();renderList();renderDetail();renderMapRecords();FactoryNotes.render();$('asset-category').hidden=tab!=='assets';}
+  function render(){FactoryEquipment.refresh();FactoryFeatures.filters();updateSummary();renderList();renderDetail();renderMapRecords();FactoryNotes.render();FactoryOrganization.refreshPanel();FactoryOrganization.renderLinks();$('asset-category').hidden=tab!=='assets';}
   function selectRecord(id,zoom){selectedId=id;render();const record=getRecord();if(zoom&&record){if(tab==='works')map.fitBounds(L.latLngBounds(record.points.map(ll)).pad(1.8),{maxZoom:2,animate:true});else map.panTo(ll(record.point));}}
   function fitMap(){const compact=window.matchMedia('(max-width:680px)').matches;if(current())map.fitBounds(current().bounds,{padding:compact?[15,45]:[45,65],animate:false});}
   function setDrawing(id){
     clearPending();currentDrawing=id;selectedId=null;baseGroup.clearLayers();Object.keys(cadGroups).forEach(x=>delete cadGroups[x]);$('drawing-select').value=id;
-    const drawing=current();
+    const drawing=current();FactoryDisplay.setDrawing(drawing);
     if(drawing.type==='sample'){
-      L.imageOverlay(drawing.asset,drawing.bounds,{interactive:false,pmIgnore:true}).addTo(baseGroup);$('cad-layers').innerHTML='';$('map-source').textContent=id==='site'?'サンプル配置図 · 約2km × 1km':'A棟1F · サンプル平面図';
+      L.imageOverlay(drawing.asset,drawing.bounds,{interactive:false,pmIgnore:true,pane:'baseDrawingPane'}).addTo(baseGroup);$('cad-layers').innerHTML='';$('map-source').textContent=id==='site'?'サンプル配置図 · 約2km × 1km':'A棟1F · サンプル平面図';
     }else{
       for(const layer of drawing.cad.layers){cadGroups[layer]=L.layerGroup().addTo(baseGroup);}
       for(const feature of drawing.cad.features){
         const points=feature.points.map(ll);let layer;
-        if(feature.kind==='text')layer=L.marker(points[0],{icon:L.divIcon({className:'cad-text',html:escapeHTML(feature.text),iconSize:null}),interactive:false,pmIgnore:true});
-        else if(feature.kind==='point')layer=L.circleMarker(points[0],{radius:2,color:'#7c9270',weight:1,pmIgnore:true});
-        else if(feature.kind==='polygon')layer=L.polygon(points,{color:'#9aad8b',fillColor:'#dce6d1',fillOpacity:.2,weight:1.2,interactive:false,pmIgnore:true});
-        else layer=L.polyline(points,{color:'#9aad8b',weight:1.15,interactive:false,pmIgnore:true});
+        if(feature.kind==='text')layer=L.marker(points[0],{icon:L.divIcon({className:'cad-text',html:escapeHTML(feature.text),iconSize:null}),interactive:false,pmIgnore:true,pane:'baseDrawingPane'});
+        else if(feature.kind==='point')layer=L.circleMarker(points[0],{radius:2,color:'#7c9270',weight:1,pmIgnore:true,pane:'baseDrawingPane'});
+        else if(feature.kind==='polygon')layer=L.polygon(points,{color:'#9aad8b',fillColor:'#dce6d1',fillOpacity:.2,weight:1.2,interactive:false,pmIgnore:true,pane:'baseDrawingPane'});
+        else layer=L.polyline(points,{color:'#9aad8b',weight:1.15,interactive:false,pmIgnore:true,pane:'baseDrawingPane'});
         layer.addTo(cadGroups[feature.layer]);
       }
       $('cad-layers').innerHTML='<h4>CADレイヤー</h4>'+drawing.cad.layers.map((name,i)=>`<label class="cad-layer"><input type="checkbox" checked data-layer-index="${i}">${escapeHTML(name)}</label>`).join('');
@@ -135,7 +135,7 @@
     }
     if(scaleControl){scaleControl.remove();scaleControl=null;}
     if(drawing.metres)scaleControl=L.control.scale({position:'bottomleft',imperial:false,maxWidth:90}).addTo(map);
-    updateDrawingSelect();render();fitMap();
+    updateDrawingSelect();FactoryOrganization.drawingChanged();render();fitMap();
   }
   function updateDrawingSelect(){$('drawing-select').innerHTML=state.drawings.map(d=>`<option value="${escapeHTML(d.id)}">${escapeHTML(d.name)}</option>`).join('');$('drawing-select').value=currentDrawing;}
   function switchTab(next,doRender=true){if(next==='assets'&&!editor)next='works';tab=next;$('show-assets').checked=next==='assets';selectedId=null;$('works-tab').classList.toggle('selected',next==='works');$('assets-tab').classList.toggle('selected',next==='assets');$('works-tab').setAttribute('aria-selected',String(next==='works'));$('assets-tab').setAttribute('aria-selected',String(next==='assets'));$('search').placeholder=next==='works'?'工事名・場所で検索':'設備名・設備IDで検索';$('search').setAttribute('aria-label',$('search').placeholder);$('status-filter').disabled=next!=='works';$('date-toggle').disabled=next!=='works';if(doRender)render();}
@@ -144,7 +144,7 @@
   function clearPending(){
     const wasEditing=editingWorkId!==null;editingWorkId=null;document.body.classList.remove('work-form-open');$('drawing-select').disabled=false;
     if($('work-dialog').open)$('work-dialog').close();$('work-dialog').classList.remove('work-edit-panel');
-    window.FactoryFeatures?.cancelPlacement();window.FactoryNotes?.cancel();
+    window.FactoryFeatures?.cancelPlacement();window.FactoryNotes?.cancel();window.FactoryOrganization?.cancel();
     if(map?.pm){map.pm.disableDraw();}
     if(pendingLayer){const layer=pendingLayer;pendingLayer=null;layer.pm?.disable();map.removeLayer(layer);}
     pendingPoints=null;drawingActive=false;workPanes(false);map?._container.classList.remove('drawing-now');$('draw-instruction').hidden=true;if(wasEditing&&map&&state)renderMapRecords();
@@ -179,7 +179,7 @@
     const submit=$('work-form').querySelector('[type=submit]');submit.disabled=true;
     try{
       const media=await FactoryFeatures.workFiles();const attachments=media.attachments;
-      const record={id:existing?.id||uid(),code:existing?.code||`WK-${String(state.works.length+1).padStart(3,'0')}`,drawingId:currentDrawing,title,location:$('field-location').value.trim(),start,end,status:$('field-status').value,notes:$('field-notes').value.trim(),contact:$('field-contact').value.trim(),phone:$('field-phone').value.trim(),impacts:[...document.querySelectorAll('[name=impact]:checked')].map(x=>x.value),points:pendingPoints||existing.points,updatedAt:new Date().toISOString(),attachments,coverPhotoId:media.coverPhotoId,assetIds:FactoryFeatures.workAssetIds()};
+      const record={id:existing?.id||uid(),code:existing?.code||`WK-${String(state.works.length+1).padStart(3,'0')}`,drawingId:currentDrawing,title,location:$('field-location').value.trim(),start,end,status:$('field-status').value,notes:$('field-notes').value.trim(),contact:$('field-contact').value.trim(),phone:$('field-phone').value.trim(),impacts:[...document.querySelectorAll('[name=impact]:checked')].map(x=>x.value),points:pendingPoints||existing.points,updatedAt:new Date().toISOString(),attachments,coverPhotoId:media.coverPhotoId,layerId:$('work-layer').value||undefined,assetIds:FactoryFeatures.workAssetIds()};
       await changeState(()=>{if(existing)state.works[state.works.findIndex(w=>w.id===existing.id)]=record;else state.works.push(record);});
       $('work-dialog').close();clearPending();switchTab('works',false);$('status-filter').value='all';$('search').value='';$('date-toggle').setAttribute('aria-pressed','false');$('date-filter-wrap').hidden=true;impactOnly=false;document.querySelectorAll('[data-summary]').forEach(x=>x.classList.toggle('active',x.dataset.summary==='all'));selectedId=record.id;render();toast(existing?'工事情報を更新しました。':'工事を登録しました。');
     }catch(error){$('form-error').textContent=`保存できませんでした。${error.message||'サーバーとの接続を確認してください。'}`;}finally{submit.disabled=false;}
@@ -250,7 +250,7 @@
         openRecord(kind,id){if(kind==='assets'&&!editor)throw new Error('施設グループのパスワードでログインしてください。');const r=state[kind]?.find(r=>r.id===id);if(!r)throw new Error('対象が見つかりません。');if(r.drawingId!==currentDrawing)setDrawing(r.drawingId);if(kind==='notes'){$('show-notes').checked=true;FactoryNotes.render();map.panTo(ll(r.point));return;}switchTab(kind,false);selectRecord(id,true);},
         setDrawing(id){if(!state.drawings.some(d=>d.id===id))throw new Error('図面が見つかりません。');setDrawing(id);}
       };
-      bindEvents();FactoryFeatures.setup();FactoryEquipment.setup();FactoryNotes.setup();setDrawing(state.drawings.some(d=>d.id==='site')?'site':state.drawings[0].id);selectedId=window.matchMedia('(max-width:950px)').matches?null:state.works.find(w=>w.drawingId==='site'&&w.status==='active')?.id||null;render();
+      FactoryDisplay.setup(window.factoryMap);bindEvents();FactoryFeatures.setup();FactoryEquipment.setup();FactoryNotes.setup();FactoryOrganization.setup();setDrawing(state.drawings.some(d=>d.id==='site')?'site':state.drawings[0].id);selectedId=window.matchMedia('(max-width:950px)').matches?null:state.works.find(w=>w.drawingId==='site'&&w.status==='active')?.id||null;render();
       let resizeTimer;
       new ResizeObserver(()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{map.invalidateSize({pan:false});if(!drawingActive&&!editingWorkId)fitMap();},80);}).observe($('map'));
       if(window.FactoryWebMCP)await FactoryWebMCP.register();

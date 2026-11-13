@@ -7,10 +7,10 @@ window.FactoryMedia = (() => {
   function gallery(record){const list=photos(record);return list.length?'<h3>写真</h3><div class="photo-gallery">'+list.map(file=>`<button type="button" data-preview="${esc(file.fileId)}" data-name="${esc(file.name)}" data-mime="${esc(file.mime)}"><img loading="lazy" src="${photoURL(file)}" alt="${esc(file.name)}"><span>${esc(file.name)}</span></button>`).join('')+'</div>':'';}
   function tooltip(record,title){const node=document.createElement('div');node.className='record-photo-tooltip';const heading=document.createElement('strong');heading.textContent=title;node.append(heading);const list=photos(record);if(list.length){const strip=document.createElement('div');strip.className='photo-hover-strip';for(const file of list.slice(0,3)){const img=document.createElement('img');img.src=photoURL(file);img.alt=file.name;img.dataset.photoFileId=file.fileId;img.onerror=()=>{img.classList.add('photo-unavailable');img.alt='写真を表示できません';};strip.append(img);}node.append(strip);if(list.length>3){const text=document.createElement('small');text.textContent=`ほか${list.length-3}枚`;node.append(text);}}return node;}
   function bindHover(layer,record,title,options={}){
-    if(options.permanent){
+    if(options.permanent||options.kind==='work'){
       layer.bindTooltip(esc(title),options);
       if(photos(record).length){layer.on('mouseover',()=>{layer.setTooltipContent(tooltip(record,title));layer.getTooltip()?.getElement()?.classList.add('has-photo-preview');});layer.on('mouseout',()=>{layer.setTooltipContent(esc(title));layer.getTooltip()?.getElement()?.classList.remove('has-photo-preview');});}
-    }else layer.bindTooltip(()=>tooltip(record,title),{direction:'top',className:'equipment-photo-tooltip',opacity:1});
+    }else layer.bindTooltip(()=>tooltip(record,title),{direction:'top',className:'equipment-photo-tooltip',opacity:1,...options});
   }
   function editor(container,record={},dialog){
     if(window.FactoryReactPhotos)return FactoryReactPhotos.mount(container,record,dialog);

@@ -18,6 +18,7 @@ try:
   page.wait_for_function('document.body.dataset.factoryTheme==="dark"')
   assert page.locator('#factory-custom-dialog').get_by_text('プランシミュレーター',exact=False).count()==0
   png=page.evaluate("()=>{const c=document.createElement('canvas');c.width=c.height=16;c.getContext('2d').fillRect(0,0,16,16);return c.toDataURL('image/png').split(',')[1]}")
+  page.locator('.factory-settings-tabs').get_by_role('button',name='アイコン',exact=True).click()
   page.get_by_label('アイコン画像を追加').set_input_files({'name':'追加アイコン.png','mimeType':'image/png','buffer':base64.b64decode(png)})
   page.wait_for_function('FactoryPreferences.getPreferences().icons.length===1 && FactoryPreferences.getPreferences().icons[0].fileId')
   icon=page.evaluate('FactoryPreferences.getPreferences().icons[0].id');page.get_by_label('空調・換気',exact=True).select_option(icon)
@@ -35,7 +36,7 @@ try:
   page.get_by_role('button',name='変更を保存',exact=True).click();page.wait_for_function('!document.querySelector("#categories-dialog").open')
   page.reload();page.wait_for_function('window.FactoryPreferences?.getPreferences')
   assert page.evaluate('factoryMap.state.propertyDefinitions.find(d=>d.id==="category").options.length')==14
-  page.locator('#factory-customize').click();page.get_by_label('生産設備',exact=True).select_option(icon);page.evaluate('()=>FactoryPreferences.flush()');page.keyboard.press('Escape')
+  page.locator('#factory-customize').click();page.locator('.factory-settings-tabs').get_by_role('button',name='アイコン',exact=True).click();page.get_by_label('生産設備',exact=True).select_option(icon);page.evaluate('()=>FactoryPreferences.flush()');page.keyboard.press('Escape')
   asset_id=page.evaluate('factoryMap.state.assets[0].id')
   page.evaluate('(id)=>factoryMap.openRecord("assets",id)',asset_id);page.get_by_role('button',name='設備を編集',exact=True).click()
   page.locator('#asset-dialog').get_by_label('設備分類',exact=True).select_option(label='生産設備')
@@ -80,6 +81,7 @@ try:
   page.locator('#factory-customize').click();assert page.get_by_label('テーマ',exact=True).is_disabled();assert page.get_by_label('アイコン画像を追加').is_disabled()
   page.keyboard.press('Escape');page.set_viewport_size({'width':390,'height':844})
   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+  assert page.locator('.work-label').first.is_visible()
   page.locator('#plans-open').click();page.get_by_role('heading',name='Enterprise',exact=True).wait_for();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
   page.keyboard.press('Escape');page.locator('.plans-dialog').wait_for(state='detached')
   page.goto(url+'/console.html#plans');page.get_by_role('heading',name='Enterprise',exact=True).wait_for();assert '/index.html?plans=1' in page.url
