@@ -204,8 +204,8 @@
     editor=value;document.body.classList.toggle('read-only',!value);
     $('view-mode').setAttribute('aria-pressed',String(value));
     $('view-mode').textContent=value?'施設担当モード':'閲覧モード';
-    $('page-heading').textContent=value?'工事と施設を、ひとつの図面で。':'構内の工事とお知らせ。';
-    $('page-subtitle').textContent=value?'構内の作業予定や設備の情報を、場所から確認できます。':'工事範囲や作業予定、お知らせを確認できます。';
+    $('page-heading').textContent=value?'工事・設備マップ':'工事のお知らせ';
+
     clearPending();
     if(!value){
       state.assets=[];state.propertyDefinitions=[];
@@ -240,7 +240,7 @@
   }
   async function init(){
     try{
-      state=await FactoryAPI.load();const auth=await FactoryAPI.request('/api/auth/status');editor=auth.editor;document.body.classList.toggle('read-only',!editor);$('view-mode').textContent=editor?'施設担当モード':'閲覧モード';$('view-mode').setAttribute('aria-pressed',String(editor));$('page-heading').textContent=editor?'工事と施設を、ひとつの図面で。':'構内の工事とお知らせ。';$('page-subtitle').textContent=editor?'構内の作業予定や設備の情報を、場所から確認できます。':'工事範囲や作業予定、お知らせを確認できます。';
+      state=await FactoryAPI.load();const auth=await FactoryAPI.request('/api/auth/status');editor=auth.editor;document.body.classList.toggle('read-only',!editor);$('view-mode').textContent=editor?'施設担当モード':'閲覧モード';$('view-mode').setAttribute('aria-pressed',String(editor));$('page-heading').textContent=editor?'工事・設備マップ':'工事のお知らせ';
       map=L.map('map',{crs:L.CRS.Simple,minZoom:-12,maxZoom:8,zoomSnap:.25,attributionControl:true,preferCanvas:true});
       map.createPane('workEditingPane').style.zIndex=685;map.createPane('workEditVerticesPane').style.zIndex=695;workPanes(false);map.pm.setGlobalOptions({panes:{vertexPane:'workEditVerticesPane',layerPane:'workEditingPane',markerPane:'workEditVerticesPane'}});
       map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer">Leaflet</a>');
