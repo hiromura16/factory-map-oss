@@ -8,11 +8,6 @@ const latest=a=>[...(a.history||[])].sort((x,y)=>y.date.localeCompare(x.date))[0
 const nextDate=a=>a.properties?.nextInspection||latest(a)?.nextDate||'';
 const normalize=s=>String(s??'').normalize('NFKC').toLocaleLowerCase();
 const propertyValue=(d,value)=>value==null||value===''?'':d.type==='checkbox'?(value?'はい':'いいえ'):['select','multiselect'].includes(d.type)?(Array.isArray(value)?value:[value]).map(v=>d.options?.find(o=>o.id===v)?.label||v).join('、'):String(value)+(d.unit?' '+d.unit:'');
-export function TodayBoard({state,onEquipment,onWorks}){
- const now=today(),deadline=new Date(now+'T00:00:00Z');deadline.setUTCDate(deadline.getUTCDate()+7);const week=deadline.toISOString().slice(0,10);
- const overdue=state.assets.filter(a=>nextDate(a)&&nextDate(a)<now),attention=state.assets.filter(a=>latest(a)?.result==='attention'),soon=state.works.filter(w=>w.status==='planned'&&w.start<=week),late=state.works.filter(w=>w.status!=='done'&&w.end<now);
- return <section className="today-board"><div className="section-heading"><div><h2>要確認事項</h2></div><span>{now}</span></div><div className="priority-grid">{[['点検期限を過ぎた設備',overdue.length,()=>onEquipment('due')],['点検で要対応',attention.length,()=>onEquipment('attention')],['7日以内の工事予定',soon.length,()=>onWorks('upcoming')],['終了予定を過ぎた工事',late.length,()=>onWorks('late')]].map(([label,count,action])=><button key={label} onClick={action}><small>{label}</small><strong>{count}<span>件</span></strong></button>)}</div>{!overdue.length&&!attention.length&&!late.length&&<p className="priority-clear">期限超過・要対応の項目はありません。</p>}</section>;
-}
 export function Register({kind,state,session,onRefresh,exportRows,initialCondition}){
  const equipment=kind==='equipment',defs=state.propertyDefinitions||[],categoryDef=defs.find(d=>d.id==='category'),drawingName=id=>state.drawings.find(d=>d.id===id)?.name||'',layerName=id=>state.layers?.find(l=>l.id===id)?.name||'標準（未分類）';
  const related=w=>(w.assetIds||[]).map(id=>state.assets.find(a=>a.id===id)).filter(Boolean),aggregate=(w,fn)=>[...new Set(related(w).map(fn).filter(v=>v!==''&&v!==undefined&&v!==null))].join(' / ');

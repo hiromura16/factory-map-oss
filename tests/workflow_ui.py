@@ -39,6 +39,7 @@ try:
   create_task('前工程の確認', criteria='隔離と安全確認が済んでいる')
   create_task('次の工程を進める', predecessor='前工程の確認')
   card.get_by_role('button', name='案件の作業を見る', exact=True).click()
+  page.get_by_role('button', name='ボード', exact=True).click()
   next_card = page.locator('[data-task-card]').filter(has_text='次の工程を進める')
   next_card.get_by_role('button', name='次の工程を進めるを開始', exact=True).click()
   page.get_by_role('status').filter(has_text='先行作業').wait_for()
