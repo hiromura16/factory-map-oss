@@ -1,3 +1,7 @@
+/**
+ * 担当者、タスク、点検計画、点検完了とフォロー作業の業務ルール。
+ * 台帳の下書きを更新する関数群であり、DBへの確定は呼び出し元の commit が担当します。
+ */
 import { ApiError } from './core.mjs';
 import { validateWorkflow, taskBlockers } from './workflow.mjs';
 export const TEAM_COLLECTIONS = ['tasks', 'teamMembers', 'inspectionPlans', 'projects'];
@@ -263,6 +267,10 @@ export function planPreview(state, plan, today = teamToday()) {
     skipped: items.filter((x) => x.exists).length,
   };
 }
+/**
+ * 計画・設備・点検周期に対応する既存タスクを確認してから生成します。
+ * 同じ周期の生成を再実行しても作業が重ならないように、生成元の情報を台帳に残します。
+ */
 export function generatePlan(state, plan, cycleDate) {
   const preview = planPreview(state, plan);
   if (cycleDate !== preview.cycleDate) {
@@ -296,6 +304,11 @@ export function generatePlan(state, plan, cycleDate) {
   plan.updatedAt = new Date().toISOString();
   return preview;
 }
+/**
+ * 先行作業・子作業・完了条件・チェック項目を確認し、台帳の下書きを完了状態へ進めます。
+ * 点検では設備の履歴と必要なフォロー作業も同じ下書きに追加し、呼び出し元で一括保存します。
+ * 途中で検証に失敗した下書きは、呼び出し元が破棄してください。
+ */
 export function completeTask(state, id, input, actor) {
   const t = state.tasks.find((t) => t.id === id);
   if (!t) {

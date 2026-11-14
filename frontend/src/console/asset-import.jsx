@@ -1,3 +1,7 @@
+/**
+ * 設備JSONのプレビュー、エラー確認、追加・更新の確定を担当する画面。
+ * プレビュー時のリビジョンを確定要求へ引き継ぎ、途中の別更新はAPIで検出します。
+ */
 import React, { useEffect, useRef, useState } from 'react';
 const api = (...args) => window.FactoryAPI.request(...args);
 export const downloadJSON = (name, data) => {

@@ -1,4 +1,7 @@
-// ローカル開発・検証専用。署名済みの開発用IDと一時SQLiteを使います。外部公開には使いません。
+/**
+ * ローカル開発とブラウザーテストのための、ループバック限定サーバー。
+ * 一時SQLiteと検証専用の署名済みIDを使います。認証の差し替えを含むため本番用には使いません。
+ */
 import http from 'node:http';
 import { webcrypto } from 'node:crypto';
 import { spawnSync } from 'node:child_process';

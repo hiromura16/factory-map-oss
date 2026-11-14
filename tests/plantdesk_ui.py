@@ -1,4 +1,4 @@
-"""PlantDesk presentation, layers, drawing navigation and private registers in a real browser."""
+"""表示設定、レイヤー、図面移動、設備ごとのロックと非公開台帳を画面で検証します。"""
 
 import os
 import subprocess
@@ -99,7 +99,7 @@ try:
         assert page.get_by_label("設備アイコンのサイズ", exact=True).is_visible()
         page.screenshot(path="/tmp/plantdesk-settings.png", full_page=True)
         page.keyboard.press("Escape")
-        # A private equipment layer and a public mixed-content layer.
+        # 設備専用の非公開レイヤーと、複数種類の項目を含む公開レイヤーを用意します。
         page.locator("#layers-toggle").click()
         page.locator("#layers-manage").click()
 
@@ -151,13 +151,13 @@ try:
         page.evaluate("()=>FactoryPreferences.flush()")
         page.wait_for_selector('[data-note-id="' + note_id + '"]')
         page.locator("#layers-toggle").click()
-        # Per-equipment locks remain individually controllable.
+        # 設備ごとのロックを、別々に設定・解除できることを確認します。
         page.evaluate('(id)=>factoryMap.openRecord("assets",id)', asset["id"])
         page.locator("#equipment-item-lock").click()
         page.wait_for_function("factoryMap.state.assets[0].locks?.attributes===true")
         page.locator("#equipment-item-lock").click()
         page.wait_for_function("factoryMap.state.assets[0].locks?.attributes===false")
-        # Mark an area, double-click to a child drawing, then use the breadcrumb back.
+        # エリアを登録し、ダブルクリックで子図面へ移動してから、階層表示で元へ戻ります。
         page.locator("#fit-map").click()
         page.locator("#drawing-hierarchy-open").click()
         page.locator("#drawing-link-add").click()
@@ -198,7 +198,7 @@ try:
         page.wait_for_function("window.FactoryPreferences?.getPreferences")
         assert page.evaluate("factoryMap.state.drawingLinks.length") == 1
         assert page.evaluate("factoryMap.state.layers.length") == 2
-        # The register saves user-selected columns, order, filters and per-row locks.
+        # 台帳の選択列・順序・絞り込みと、設備ごとのロックを保存できることを確認します。
         page.goto(url + "/console.html#equipment")
         page.locator(".console-header h1").wait_for()
         assert page.locator(".console-header h1").inner_text() == "設備一覧"
@@ -243,7 +243,7 @@ try:
         page.get_by_role("heading", name="工事の変更履歴", exact=True).wait_for()
         page.locator(".work-history-meta b").filter(has_text="削除").wait_for()
         page.get_by_role("button", name="履歴を閉じる").click()
-        # Viewer sees announcements and approved drawing links, never the registers/history API.
+        # 閲覧モードには工事のお知らせと公開図面リンクだけを返し、台帳・履歴APIは許可しません。
         page.goto(url)
         page.wait_for_function("window.FactoryPreferences?.getPreferences")
         page.locator("#view-mode").click()

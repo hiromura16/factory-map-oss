@@ -1,4 +1,7 @@
-/* Explicit OIDC authorization-code + PKCE UI. API remains the signature/authorization boundary. */
+/**
+ * 汎用OIDCの認可コードとPKCEを試す旧コンソール。現行のAccess認証とは別です。
+ * ブラウザーでのクレーム確認は入力補助で、署名と利用権限はAPI側が最終判定します。
+ */
 (() => {
   'use strict';
 
@@ -292,7 +295,7 @@
       () => signOut('ログインの有効期限が切れました。'),
       Math.min(expires - Date.now(), 2147483647),
     );
-    // Do not trust decoded claims alone. This request must pass API-side RS256 verification.
+    // デコードした値だけではログインを確定しません。この要求でAPI側のRS256署名検証も通します。
     await listOrganizations(ticket);
     if (ticket !== generation) {
       return false;

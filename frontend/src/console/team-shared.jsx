@@ -1,3 +1,7 @@
+/**
+ * タスク画面で共用する日付・送信項目・選択部品・編集ペイン。
+ * 業務日付は日本時間にそろえ、送信項目は明示した編集可能な項目に絞ります。
+ */
 import React, { useEffect, useRef } from 'react';
 export const api = (...args) => window.FactoryAPI.request(...args);
 export const today = () =>

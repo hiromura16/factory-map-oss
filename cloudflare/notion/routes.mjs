@@ -1,3 +1,7 @@
+/**
+ * Notionの接続保存、同期要求、停止、競合解決と状態取得のAPI。
+ * トークンは暗号化保存し、画面へ返す要約から平文と暗号文を除外します。
+ */
 import { ApiError } from '../core.mjs';
 import { NotionConnector, NotionError, notionId } from '../../connectors/notion/index.mjs';
 import { credentialsReady, encryptToken, decryptToken } from './credentials.mjs';
@@ -17,6 +21,10 @@ const get = (env, c) =>
     .bind(c.org.id)
     .first();
 const active = (r) => r?.lease_until && r.lease_until > now();
+/**
+ * 画面表示に必要な状態だけを返し、保存済みの接続トークンは応答に含めません。
+ * 入力欄を空に戻しても、サーバー側の保存済みトークンは維持されます。
+ */
 async function summary(env, c, row) {
   const counts = await env.DB.prepare(
     'SELECT state,count(*) AS count FROM map_notion_links WHERE organization_id=? GROUP BY state',

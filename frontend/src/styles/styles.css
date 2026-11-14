@@ -1,3 +1,4 @@
+/* マップと共通フォームの基本スタイル。Leafletの位置計算はライブラリーに委ねます。 */
 @font-face {
   font-family: system-ui;
   src: local('Noto Sans CJK JP');

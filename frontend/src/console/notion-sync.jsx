@@ -1,3 +1,7 @@
+/**
+ * Notion接続の設定、実行状況、競合の解決を扱う画面。
+ * ポーリングは状態表示用です。実際の定期同期とトークン保存はサーバーが担当します。
+ */
 import React, { useEffect, useRef, useState } from 'react';
 const api = (...args) => window.FactoryAPI.request(...args);
 const stamp = (value) =>

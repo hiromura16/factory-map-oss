@@ -1,3 +1,7 @@
+/**
+ * 標準Fetch APIだけで動作するNotionクライアント。PlantDeskやD1には依存しません。
+ * 通信先・応答サイズ・実行予算を制限し、上限や一時障害は呼び出し元が再開できる例外にします。
+ */
 export const NOTION_VERSION = '2026-03-11';
 export class NotionError extends Error {
   constructor(code, message, { status = 502, retryAfter = 0 } = {}) {

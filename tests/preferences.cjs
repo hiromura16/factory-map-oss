@@ -1,3 +1,7 @@
+/**
+ * 表示設定の正規化と画像入力の制約を、DOMを使わず検証します。
+ * ブラウザーとAPIが共用する表示項目の境界値を確認します。
+ */
 const assert = require('node:assert/strict');
 const { normalize, validImage } = require('../frontend/src/shared/preferences.js');
 assert.equal(normalize(null).theme, 'system');

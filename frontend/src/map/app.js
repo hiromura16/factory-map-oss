@@ -1,4 +1,7 @@
-/* 共有の設備マップ。保存と権限の検証は接続先のAPIに委ねます。 */
+/**
+ * 敷地マップの状態、図面切り替え、工事描画、一覧・詳細の更新をまとめる入口。
+ * 各機能は Factory... の公開APIで接続し、保存・権限・同時更新の判定は接続先APIに委ねます。
+ */
 (() => {
   'use strict';
 
@@ -54,6 +57,10 @@
   async function writeState() {
     await FactoryAPI.save(state);
   }
+  /**
+   * 保存前の画面状態を複製し、APIでの検証・保存が失敗したときは元へ戻します。
+   * 画面表示だけが成功したように残るのを避けるため、機能ごとの編集もこの経路を使います。
+   */
   async function changeState(fn) {
     const previous = structuredClone(state);
     try {

@@ -1,4 +1,4 @@
-"""Layer set composition, parent navigation, equipment JSON import and property columns."""
+"""レイヤーセットの合成、親図面への移動、設備JSON取り込み、独自属性の表示列を検証します。"""
 
 import os
 import subprocess
@@ -66,12 +66,12 @@ try:
         page.reload()
         page.wait_for_function("FactoryPreferences.getPreferences")
         assert page.evaluate("factoryMap.state.layerSets.length") == 2
-        # A directly selected detail drawing must still offer an up button.
+        # 詳細図面を直接選んだ場合も、親図面へ戻る操作があることを確認します。
         page.get_by_label("表示する図面").select_option("floor-a1")
         page.get_by_role("button", name="上の図面へ戻る", exact=True).click()
         page.wait_for_function('factoryMap.currentDrawing==="site"')
         assert page.get_by_role("button", name="上の図面へ戻る", exact=True).is_disabled()
-        # New properties appear as selectable equipment and related-equipment work columns.
+        # 新しい独自属性が、設備台帳と工事の関連設備の列候補へ反映されることを確認します。
         page.evaluate(
             """async()=>{await factoryMap.changeState(()=>{factoryMap.state.propertyDefinitions.push({id:'vendor',name:'メーカー',type:'text'},{id:'capacity',name:'定格容量',type:'number',unit:'kW'});factoryMap.state.assets[0].properties.vendor='テストメーカー';factoryMap.state.assets[0].properties.capacity=15;factoryMap.state.works[0].assetIds=[factoryMap.state.assets[0].id];});}"""
         )

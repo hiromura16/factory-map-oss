@@ -1,3 +1,5 @@
+"""一時WorkerとSQLiteで、設備分類・アイコン・アカウント・台帳・入出力の画面を検証します。"""
+
 import base64
 import os
 import subprocess
@@ -61,7 +63,7 @@ try:
         assert page.locator(".list-pane").is_hidden()
         page.locator("#factory-left-toggle").click()
         page.locator("#factory-right-toggle").click()
-        # Classification edits are persisted with equipment references in the same DB revision.
+        # 分類定義と設備の参照値が、同じDBリビジョンで保存されることを確認します。
         page.locator("#categories-open").click()
         page.get_by_label("分類名 1", exact=True).fill("空調・換気・冷房")
         page.get_by_role("button", name="＋ 分類を追加", exact=True).click()

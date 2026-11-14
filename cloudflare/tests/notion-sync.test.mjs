@@ -1,3 +1,7 @@
+/**
+ * 模擬Notionと一時SQLiteで、双方向同期・競合・再開・再試行・ロックを検証します。
+ * 実行が途中で終わっても、同じページや点検履歴を重複作成しないことを確認します。
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';

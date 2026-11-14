@@ -28,6 +28,8 @@ Workersの環境を調べる場合は `npm run dev:worker` を使います。D1�
 - 表示、API呼び出し、業務ルールを分けます。一覧・ボード・週間表示は `frontend/src/console/task-views.jsx`、保存や絞り込みはワークスペースが担当します。
 - 既存の共有スクリプトはIIFEと `window.Factory...` の公開インターフェースを維持します。グローバル依存はESLint設定に明記します。
 - 権限・テナント・型・参照・ロック・同時更新の検証を、画面の都合で省略しません。
+- 自作コードのコメントは日本語で書き、モジュールの役割と、複雑な処理の理由・制約・失敗時の扱いを説明します。APIや共通関数には必要に応じてJSDocを付けます。
+- コメントと実装を一緒に更新します。適用済みDBマイグレーションの説明は `cloudflare/migrations/README.md` に追記し、過去のSQLを説明目的で変更しません。
 - `public/` と `frontend/.build/vendor/factory-ui.js` は生成物です。第三者ライブラリーの `frontend/static/vendor/` は個別のライセンスを保持します。
 
 ```sh
@@ -42,6 +44,8 @@ npm run test:runtime
 ```
 
 ESLintは未定義参照・未使用変数・const・波括弧・比較・React Hooksを検査します。制御文字を意図的に拒否する正規表現は、理由付きの行単位例外を置いています。
+
+これらのチェックが保証する範囲と残る課題は、[コード品質と基準](code-quality.md)に明記しています。
 
 ## 実ブラウザーでの確認
 

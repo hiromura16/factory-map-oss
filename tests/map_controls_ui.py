@@ -1,4 +1,4 @@
-"""Browser/SQLite regressions for equipment selection, work filters and tiny notes."""
+"""設備アイコンの選択、関連設備の絞り込み、小さな付箋の編集を画面で検証します。"""
 
 import base64
 import os
@@ -25,7 +25,7 @@ try:
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.goto(url)
         page.wait_for_function("window.FactoryPreferences?.getPreferences")
-        # Custom images and built-ins share the compact chooser. Explicit choices win over defaults.
+        # 追加画像と標準アイコンを同じ選択画面で扱い、個別指定が初期設定より優先されることを確認します。
         page.locator("#factory-customize").click()
         png = base64.b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jvDkAAAAASUVORK5CYII="
@@ -96,7 +96,7 @@ try:
         picker.wait_for(state="hidden")
         page.locator("#asset-dialog .icon-close").click()
         page.set_viewport_size({"width": 1440, "height": 1100})
-        # Select devices across filters; hidden selections and their saved IDs survive.
+        # 検索条件を変えても、表示されなくなった選択済み設備と保存IDが維持されることを確認します。
         work_id = page.evaluate("factoryMap.state.works[0].id")
         page.evaluate(
             'async id=>{await FactoryAPI.request("/api/works/"+id,{method:"PATCH",body:{assetIds:[]}});await factoryMap.refresh();}',
@@ -147,7 +147,7 @@ try:
         assert page.evaluate('!factoryMap.map.getPane("workEditingPane").hidden')
         page.locator("#draw-cancel").click()
         assert page.evaluate('factoryMap.map.getPane("workEditingPane").hidden')
-        # Small paper is covered by resize grips: a click must edit, a drag must resize.
+        # 小さな付箋を覆うつまみでも、クリックは編集、ドラッグは伸縮として動くことを確認します。
         page.locator("#note-add").click()
         page.locator("#map").click(position={"x": 360, "y": 300})
         page.locator("#note-dialog textarea").fill("小さな付箋の編集テスト")

@@ -1,4 +1,7 @@
-/** ソースの配置と配信URLを分離します。キーは既存のブラウザー向けパスです。 */
+/**
+ * ソースの配置と配信URLの対応表。キーがブラウザーへ公開する既存のパスです。
+ * ソースを移動したときは値を更新し、HTMLの読み込み順と配信URLの互換性を保ちます。
+ */
 export const publicEntries = {
   'index.html': 'frontend/pages/index.html',
   'console.html': 'frontend/pages/console.html',

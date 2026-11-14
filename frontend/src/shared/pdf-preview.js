@@ -1,4 +1,7 @@
-/* Render PDFs in the app rather than depending on an installed browser PDF plug-in. */
+/**
+ * PDF.jsでマニュアル・点検用紙を描画する共通プレビュー。
+ * 表示先やページを切り替えるときは古い描画処理を中断し、別資料の結果が混ざるのを防ぎます。
+ */
 window.FactoryPDF = (() => {
   let library;
   let active = null;
@@ -24,6 +27,10 @@ window.FactoryPDF = (() => {
     }
     return library;
   }
+  /**
+   * 閉じた資料の描画・読み込みと、一時URLを解放します。
+   * 前の資料の非同期処理が、新しく開いたプレビューを書き換えないようにします。
+   */
   function dispose(state) {
     if (!state || state.disposed) {
       return;

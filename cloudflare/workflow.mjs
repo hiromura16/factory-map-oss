@@ -1,3 +1,7 @@
+/**
+ * 案件、親子作業、先行作業、完了条件の検証と進捗の算出。
+ * 循環参照や未完了作業を残した完了をAPI側で拒否し、画面・取り込み・同期で共用します。
+ */
 import { ApiError } from './core.mjs';
 export const PROJECT_STATUS = {
   planning: '計画中',
@@ -73,6 +77,10 @@ export function projectStats(
     minutes: pending.reduce((n, t) => n + t.estimatedMinutes, 0),
   };
 }
+/**
+ * 案件や関連作業の存在と、親子・先行作業の循環を検証します。
+ * 画面の候補制限を通らない取り込みや同期にも、同じ完了条件を適用します。
+ */
 export function validateWorkflow(state) {
   const projects = state.projects || [];
   const tasks = state.tasks;

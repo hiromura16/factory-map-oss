@@ -1,4 +1,7 @@
-/* Trusted SVG symbols and persisted equipment locks. */
+/**
+ * 標準SVGアイコン・追加画像の選択と、設備ごとの位置・属性ロックの操作。
+ * ロック表示は入力補助です。APIから直接更新した場合もサーバーでロックを検証します。
+ */
 window.FactoryEquipment = (() => {
   const symbols = {
     generic: ['標準', '<circle cx="12" cy="12" r="7"/><path d="M9 12h6m-3-3v6"/>'],

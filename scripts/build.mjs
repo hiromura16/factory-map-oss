@@ -1,3 +1,7 @@
+/**
+ * Workerと配信ファイルを生成し、配置用の一覧・ハッシュを作るビルド処理。
+ * 自作ファイルは明示した対応表からコピーし、設定や開発用ファイルが配信物へ混ざるのを防ぎます。
+ */
 import { cp, copyFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

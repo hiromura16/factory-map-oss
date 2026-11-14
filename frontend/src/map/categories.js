@@ -1,4 +1,7 @@
-/* Equipment categories share the register's typed property and atomic revision. */
+/**
+ * 設備分類の追加・変更・削除と、使用中の設備の分類変更をまとめる画面。
+ * 分類定義と参照する設備を同じ台帳更新に含め、片方だけが変わる状態を避けます。
+ */
 window.FactoryCategories = (() => {
   const app = () => window.factoryMap;
   const esc = (value) =>

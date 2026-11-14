@@ -1,8 +1,7 @@
-"""Serve only the reviewed browser UI assets, never the project directory.
+"""ビルド一覧で許可されたブラウザー用ファイルだけを配信する静的プレビュー。
 
-Usage: python3 scripts/serve-static.py --bind 192.168.16.16 --port 8017
-This is a prototype viewer, not a shared application backend.
-"""
+使用例: python3 scripts/serve-static.py --bind 127.0.0.1 --port 8017
+台帳の保存や認証は備えていないため、APIを含む検証には npm run dev を使います。"""
 
 import argparse
 import json

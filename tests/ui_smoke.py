@@ -1,4 +1,4 @@
-"""Browser checks for the user-facing prototype; run against localhost:8017."""
+"""localhost:8017の試作マップに対して、基本表示・DXF読み込み・画面操作を検証します。"""
 
 import os
 

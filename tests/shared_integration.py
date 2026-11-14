@@ -1,4 +1,6 @@
-"""Integration checks against the real Rust API and PostgreSQL; no mocked storage."""
+"""旧Rust APIとPostgreSQLに対して、権限・共有台帳・参照整合性を検証します。
+
+既存サンプルへの変更は後で復元します。検証用の接続先だけで実行してください。"""
 
 import asyncio
 import os
@@ -96,7 +98,7 @@ async def main():
             binary = await client.get("/api/files/" + file_id + "?inline=1")
             assert binary.headers["content-type"] == "application/pdf"
             assert (await binary.body()).startswith(b"%PDF-")
-            # Another signed-in facility session sees the same records; visitors cannot.
+            # 別の施設担当セッションは共有台帳を参照でき、閲覧者は設備情報を参照できないことを確認します。
             visitor = await p.request.new_context(base_url=URL)
             r = await visitor.get("/api/assets/" + asset)
             assert r.status == 401
@@ -176,7 +178,7 @@ async def main():
         finally:
             await req("DELETE", "/api/assets/" + asset)
             await req("DELETE", "/api/properties/" + prop)
-            # The failed schema migration left the original values intact.
+            # 失敗したプロパティ変更で、元の値が途中まで書き換わらないことを確認します。
             assert (await req("GET", "/api/assets/a1")) == asset0
             await req("POST", "/api/auth/logout")
             await client.dispose()

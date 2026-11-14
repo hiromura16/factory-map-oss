@@ -1,4 +1,7 @@
-/* Shared browser/API layer visibility operations. Public projection happens before this runs. */
+/**
+ * ブラウザーとAPIで共用するレイヤーセットの表示状態の合成。
+ * 閲覧者へ返してよいデータの抽出は、この処理を呼び出すAPI側で先に行います。
+ */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     module.exports = factory();

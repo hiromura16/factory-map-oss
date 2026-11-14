@@ -1,3 +1,7 @@
+/**
+ * SCIMの利用者連携を扱う、設定で有効化する独立したAPI。
+ * SCIM用トークンと通常のOIDC認証を分け、所属・役割・バージョンを更新時にも検証します。
+ */
 // eslint-disable-next-line no-control-regex -- SCIM識別子に含められない制御文字を明示する。
 const CONTROL_CHARACTERS = /[\u0000-\u001f]/;
 const USER = 'urn:ietf:params:scim:schemas:core:2.0:User';
@@ -515,8 +519,8 @@ export async function handleScim(request, env) {
         }
       }
     }
-    // Update uses a transactional version guard. A conflict causes the entire batch to rollback.
-    // The guard is an INSERT with a NOT NULL violation if state/role changed concurrently.
+    // 所属・役割・バージョンが更新途中に変わった場合は、バッチ全体を取り消します。
+    // 検出用INSERTをNOT NULL制約違反にすることで、後続の書き込みだけが残るのを防ぎます。
     const when = new Date().toISOString();
     try {
       await env.DB.batch([

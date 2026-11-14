@@ -1,4 +1,7 @@
-/* Native WebMCP. Authentication is always enforced again by the Rust server. */
+/**
+ * ブラウザー上のWebMCP操作を、マップの公開APIと共有の保存処理へ接続します。
+ * AIからの操作も通常の画面と同じ認証・権限・ロック検証を接続先APIで受けます。
+ */
 window.FactoryWebMCP = (() => {
   const lifecycle = new AbortController();
   let registered = false;

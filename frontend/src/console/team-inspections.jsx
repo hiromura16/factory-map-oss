@@ -1,3 +1,7 @@
+/**
+ * タスク画面内で、点検待ち設備と実施済みの点検履歴を確認する表示。
+ * 点検の実施は対応するタスクで行い、履歴を一覧だけの別作業として重複登録しません。
+ */
 import React, { useState } from 'react';
 import { today, addDays, openTask, writeFile, Modal } from './team-shared.jsx';
 import { latestInspection, nextInspection } from './team-dashboard.jsx';

@@ -1,3 +1,7 @@
+/**
+ * ダッシュボード、タスク、台帳、設定を切り替える管理画面の入口。
+ * デモアカウントの切り替え後はサーバーのセッションと台帳を再取得します。
+ */
 import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NotionSync, NotionStatus } from './notion-sync.jsx';

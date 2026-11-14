@@ -1,3 +1,7 @@
+/**
+ * 台帳の表示列を、検索・分野・表示順から選択する部品。
+ * 列名ではなく固定IDを保存することで、同名の独自プロパティも区別します。
+ */
 import React, { useState } from 'react';
 export function ColumnPicker({ columns, chosen, defaults, onChange }) {
   const [query, setQuery] = useState('');

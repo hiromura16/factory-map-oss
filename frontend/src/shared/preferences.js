@@ -1,4 +1,7 @@
-/* Workspace presentation preferences; API permissions are the authority. */
+/**
+ * マップの表示設定、追加アイコン、パネル状態と設定ダイアログ。
+ * ローカルの表示キャッシュとAPIに保存する個人設定を扱い、プラン制限はAPIでも検証します。
+ */
 (() => {
   'use strict';
 

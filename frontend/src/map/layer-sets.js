@@ -1,4 +1,7 @@
-/* Many-to-many layer collections with saved visibility patterns. */
+/**
+ * 複数レイヤーを重複して含められるレイヤーセットと、保存した表示状態の操作。
+ * 表示条件の合成と公開範囲は別です。非公開データの除外はAPI側が担当します。
+ */
 window.FactoryLayerSets = (() => {
   const app = () => factoryMap;
   const $ = (id) => document.getElementById(id);

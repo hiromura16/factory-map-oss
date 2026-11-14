@@ -1,4 +1,7 @@
-/* Shared photo editing and previews for equipment and construction notices. */
+/**
+ * 設備と工事の写真編集、代表画像、ホバー時のプレビューを共用します。
+ * 表示用の一時URLと保存済みファイルIDを区別し、添付の所有権はAPIで確認します。
+ */
 window.FactoryMedia = (() => {
   const esc = (value) =>
     String(value ?? '').replace(

@@ -1,4 +1,7 @@
-// Notion接続をworkerdで検証する。Nodeの模擬Fetchでは検出できない実行環境差を確認。
+/**
+ * Notionクライアントをworkerd内で実行し、実際のWorkers環境での通信を検証します。
+ * Fetchの呼び出し方と転送拒否を、Nodeの模擬通信だけでは見つからない差異も含めて確認します。
+ */
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';

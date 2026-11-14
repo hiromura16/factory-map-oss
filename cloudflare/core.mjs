@@ -1,3 +1,7 @@
+/**
+ * API共通例外、プラン上限、汎用台帳の検証と取り込みプレビュー。
+ * 現行マップ固有の参照・ロック検証は map-validation.mjs に分けています。
+ */
 export class ApiError extends Error {
   constructor(status, message) {
     super(message);
@@ -35,7 +39,7 @@ export const KINDS = [
   'inspectionPlans',
   'projects',
 ];
-export const MAX_BYTES = 750000; // Below D1's per-row limit. R2 stores binaries, not this JSON.
+export const MAX_BYTES = 750000; // 台帳JSONの上限。添付本体は埋め込まず、API側の資料保存処理で扱います。
 const isObject = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 function fail(message) {
   throw new ApiError(422, message);

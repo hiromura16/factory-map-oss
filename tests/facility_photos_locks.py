@@ -1,4 +1,4 @@
-"""Real database/API and browser checks for icons, photos, locks, type and work geometry."""
+"""設備アイコン・写真・個別ロック・付箋の文字・工事範囲の操作と保存を検証します。"""
 
 import os
 
@@ -225,7 +225,7 @@ async def main():
             await page.locator("#login-dialog input").fill(PASSWORD)
             await page.locator("#login-dialog [type=submit]").click()
             await page.wait_for_function("factoryMap.editor")
-            # Place a new equipment item and choose its symbol and representative photo.
+            # 設備を追加し、アイコンと代表写真を画面から選びます。
             await page.evaluate("factoryMap.map.setView([1030,1930],0,{animate:false})")
             await page.locator("#asset-add").click()
             pos = await page.evaluate(
@@ -286,7 +286,7 @@ async def main():
             await page.wait_for_function(
                 "factoryMap.state.assets.every(a=>!a.locks?.position&&!a.locks?.attributes)"
             )
-            # Font appearance is independent of the paper's percentage and aspect ratio.
+            # 文字の設定を変更しても、付箋の縮小率や縦横比を勝手に変えないことを確認します。
             await page.locator("#note-add").click()
             await page.mouse.click(pos["x"] - 100, pos["y"] + 80)
             await page.locator("#note-dialog textarea").fill(PREFIX + "文字")
@@ -308,7 +308,7 @@ async def main():
             paper = page.locator('[data-note-id="' + note["id"] + '"] .sticky-note-paper')
             assert await paper.evaluate("el=>getComputedStyle(el).fontSize") == "26px"
             assert await paper.evaluate("el=>getComputedStyle(el).color") == "rgb(170, 18, 52)"
-            # Construction information and geometry can be edited at the same time.
+            # 工事の情報編集と範囲編集を同じ編集状態で行い、両方が保存されることを確認します。
             await page.evaluate('id=>factoryMap.openRecord("works",id)', wid)
             await page.wait_for_timeout(350)
             await page.locator("#work-edit").click()
@@ -359,7 +359,7 @@ async def main():
             if browser:
                 await browser.close()
             state = (await req(staff, "GET", "/api/state"))["state"]
-            # Clear test/bulk locks before removing fixtures; do not alter any other record content.
+            # 検証で設定したロックを解除してからデータを片付け、ほかのレコードの内容は変更しません。
             for asset in state["assets"]:
                 if any(asset.get("locks", {}).values()):
                     await req(

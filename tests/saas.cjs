@@ -1,3 +1,7 @@
+/**
+ * 旧OIDCコンソールのURL、nonce、issuer、audience、有効期限の入力検証。
+ * 署名検証はAPI側のテストで扱い、ここでは画面側の設定とクレームの検証を確認します。
+ */
 const assert = require('node:assert/strict');
 const {
   secureURL,

@@ -1,4 +1,4 @@
-"""Notion connection UI, with mocked provider settings and a real signed-in PlantDesk shell."""
+"""Notion側の設定応答を模擬し、認証済みの画面で接続・同期・競合解決の操作を検証します。"""
 
 import os
 import subprocess

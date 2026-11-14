@@ -1,3 +1,7 @@
+/**
+ * WorkerのAPI、OIDC署名、権限分離、リビジョン、SCIMの境界を検証します。
+ * 署名鍵とトークンはテスト専用のデータを使い、運用の認証情報から独立させています。
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
@@ -383,7 +387,7 @@ test.after(() => {
 });
 const SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User';
 const PATCH_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:PatchOp';
-// Fixed synthetic test token only. No operational token is generated or stored.
+// この固定値はテスト専用の合成トークンです。運用トークンは生成・保存しません。
 const testToken = 'test-only-scim-token-not-for-production-0001';
 const hash = Buffer.from(
   await crypto.subtle.digest('SHA-256', new TextEncoder().encode(testToken)),

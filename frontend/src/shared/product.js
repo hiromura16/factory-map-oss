@@ -1,4 +1,7 @@
-/* Connect the SaaS identity and workspace controls to the map. */
+/**
+ * セッションを取得し、マップまたは管理画面のReact UIを起動する橋渡し。
+ * 画面操作で利用するアカウント情報はサーバーから取得し、認証切れを共通処理します。
+ */
 (() => {
   async function start() {
     if (document.getElementById('console-root')) {

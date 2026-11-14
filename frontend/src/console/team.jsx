@@ -1,3 +1,7 @@
+/**
+ * タスクの条件・選択・編集対象・保存を管理するワークスペース。
+ * 一覧・ボード・週間予定は task-views.jsx、詳細編集は team-task.jsx に分けます。
+ */
 import { TaskBoard, TaskList, TaskWeek } from './task-views.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { Projects } from './team-projects.jsx';

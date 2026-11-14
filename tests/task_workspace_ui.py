@@ -1,4 +1,4 @@
-"""2つの業務画面、一覧の直接編集、非モーダル詳細と点検履歴を実APIで検証。"""
+"""実APIで、2つの業務画面、一覧の直接編集、詳細ペイン、未保存保護と点検履歴を検証します。"""
 
 import os
 import subprocess
@@ -73,7 +73,7 @@ try:
         assert pane.get_by_label("作業の期限", exact=True).input_value() == "2026-11-22"
         assert pane.get_by_label("作業の担当者", exact=True).input_value() == "team-demo-2"
         page.screenshot(path="/tmp/plantdesk-task-detail-redesign.png", full_page=True)
-        # A different row opens in the same pane without closing the list.
+        # 一覧を残したまま別の行を選び、同じ詳細ペインが選択先へ切り替わることを確認します。
         other = page.locator("[data-task-row]").filter(has_not_text="一覧から追加した仕事").first
         other_title = other.locator(".task-title-button").inner_text()
         other.locator(".task-title-button").click()
@@ -134,7 +134,7 @@ try:
         page.get_by_role("button", name="ダッシュボード", exact=True).click()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
         page.screenshot(path="/tmp/plantdesk-dashboard-mobile-redesign.png", full_page=True)
-        # Legacy inspection bookmark goes to the consolidated task view.
+        # 旧点検画面のブックマークが、統合後のタスク内の点検表示へ移動することを確認します。
         page.goto(url + "/console.html#inspections")
         expect(page.get_by_role("heading", name="タスク", exact=True)).to_be_visible()
         expect(page.get_by_role("button", name="点検待ち設備", exact=True)).to_be_visible()

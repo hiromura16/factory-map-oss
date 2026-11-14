@@ -1,4 +1,7 @@
-/* Map presentation without changing stored geometry or Leaflet's position transforms. */
+/**
+ * 設備アイコン・工事吹き出しなどの表示設定とズーム連動。
+ * 見た目の倍率だけを変更し、保存座標やLeafletが管理する位置変換を上書きしません。
+ */
 window.FactoryDisplay = (() => {
   let values = FactoryAppearance.normalize();
   let referenceZoom = 0;
@@ -7,6 +10,10 @@ window.FactoryDisplay = (() => {
   let map;
   let app;
   const settings = () => values;
+  /**
+   * 図面に合わせた基準ズームとの差から表示倍率を求めます。
+   * 緩やかな連動は倍率の変化を抑え、最小倍率で縮小時の判読性を確保します。
+   */
   function factor(mode, zoom = map?.getZoom() ?? referenceZoom) {
     return mode === 'fixed'
       ? 1

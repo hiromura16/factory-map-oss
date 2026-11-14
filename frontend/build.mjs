@@ -1,3 +1,7 @@
+/**
+ * Reactの管理画面とマップ用部品を、ブラウザー向けの単一バンドルに変換します。
+ * 生成物とライセンスは .build/ に集め、配布ライブラリーの原本と分けます。
+ */
 import { copyFile, rm } from 'node:fs/promises';
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';

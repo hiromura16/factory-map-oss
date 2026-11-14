@@ -1,5 +1,8 @@
 #!/usr/bin/env node
-// Offline only. Reads an exported JSON file, never connects to either database.
+/**
+ * エクスポートしたJSONを読み、取り込み時の件数・エラーをオフラインで確認します。
+ * DBへの接続や保存は行わず、適用前の確認用に使います。
+ */
 import fs from 'node:fs';
 import { importPreview } from '../cloudflare/core.mjs';
 const [path, plan = 'free'] = process.argv.slice(2);

@@ -1,3 +1,7 @@
+/**
+ * 現行APIを一時SQLiteで実行し、利用者分離・権限・保存・同時更新・業務ルールを検証します。
+ * 外部の本番DBや実在の工場データは利用しません。
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';

@@ -1,3 +1,7 @@
+/**
+ * 台帳の編集可能項目とNotionプロパティを相互変換する同期モデル。
+ * システム項目・関係ID・独自属性を分け、読み込んだ値も業務ルールで再検証します。
+ */
 import { ApiError } from '../core.mjs';
 import { makeTask, completeTask, ensureTeam } from '../team.mjs';
 import { PROJECT_STATUS, makeProject, projectStats } from '../workflow.mjs';
@@ -246,6 +250,10 @@ export function records(collection, state) {
       )
     : state[collection];
 }
+/**
+ * アプリのレコードを、同期対象にした編集可能項目だけの比較用データへ変換します。
+ * 添付本体や管理外のNotion列は、この比較と上書きの対象に含めません。
+ */
 export function project(collection, r, state) {
   const p = {};
   for (const f of fields(collection, state)) {
@@ -302,6 +310,10 @@ export const merge = (base, local, remote, direction = 'both', resolution = null
     direction,
     prefer: resolution,
   });
+/**
+ * 同期対象の値を台帳へ反映します。タスク完了は通常と同じ点検・完了処理を通します。
+ * この関数の反映だけではDBに保存されないため、呼び出し元で台帳検証とcommitを行います。
+ */
 export function applyProjection(state, collection, id, p, _previous) {
   const list = records(collection, state);
   const old = list.find((r) => r.id === id);

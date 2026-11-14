@@ -1,3 +1,7 @@
+/**
+ * 汎用台帳の取り込み、プラン上限、表示設定、OIDCクレームの境界値を検証します。
+ * 旧データの履歴保持と、不正な入力を途中まで適用しないことを確認します。
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateState, importPreview, validateCustomization, requireRole } from '../core.mjs';

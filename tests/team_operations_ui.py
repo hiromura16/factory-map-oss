@@ -1,4 +1,4 @@
-"""Real-browser team workflow: assignment, blockers, checklists, recurring inspection and follow-up."""
+"""担当・手配待ち・チェック項目・定期点検・履歴とフォロー作業を、実APIと画面で検証します。"""
 
 import os
 import subprocess
@@ -147,7 +147,7 @@ try:
         page.get_by_role("button", name="作業一覧", exact=True).click()
         assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
         page.screenshot(path="/tmp/plantdesk-team-mobile.png", full_page=True)
-        # Contextual work creation from an equipment detail is prefilled.
+        # 設備の詳細からタスクを作ると、対象設備や図面が引き継がれることを確認します。
         page.goto(url + "/?asset=a1")
         page.wait_for_function("window.FactoryPreferences?.getPreferences")
         page.get_by_role("link", name="仕事を依頼", exact=True).click()

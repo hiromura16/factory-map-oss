@@ -1,4 +1,7 @@
-/** 配置に依存せず、自作のJavaScriptを検査します。配布ライブラリーと生成物は対象外です。 */
+/**
+ * 自作JavaScriptの構文を、配置に依存せず再帰的に検査します。
+ * JSXの規則はESLintで確認し、第三者ライブラリーと生成物はこの検査の対象から除外します。
+ */
 import { readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';

@@ -1,3 +1,7 @@
+/**
+ * 案件とタスクの流れを試すための、架空のシナリオデータ生成。
+ * 既存の設備参照を利用するため、追加後も通常の台帳検証を通して保存します。
+ */
 import { ApiError } from './core.mjs';
 import { addDemoTeam, makeTask, teamToday, addDays, ensureTeam } from './team.mjs';
 import { makeProject } from './workflow.mjs';

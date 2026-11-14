@@ -1,3 +1,7 @@
+/**
+ * Notionと台帳を段階的に照合する、再開可能なポーリング同期。
+ * 実行権の期限・接続世代・カーソルを保存し、並行実行、停止後の古い保存、重複作成を防ぎます。
+ */
 import { ApiError } from '../core.mjs';
 import { validateMap } from '../map-validation.mjs';
 import {
@@ -96,6 +100,10 @@ async function syncContext(env, config) {
     editor: true,
   };
 }
+/**
+ * 実行権と接続世代が一致する場合だけ再開位置を保存します。
+ * 停止や再接続の後に、古い実行が新しい設定を上書きするのを防ぎます。
+ */
 async function saveJob(env, config, lease, job, sources) {
   await env.DB.prepare(
     'UPDATE map_notion_connections SET job_json=?,sources_json=?,updated_at=? WHERE organization_id=? AND lease_token=? AND generation=?',
@@ -435,6 +443,10 @@ async function issue(env, config, links, kind, id, page, local, remote, error, c
     }),
   });
 }
+/**
+ * Notionから得た値を台帳の複製へ適用し、通常の型・ロック・業務検証を通して保存します。
+ * 外部の更新を取り込む経路でも、点検の完了条件や同時更新の検証を省略しません。
+ */
 async function commitProjection(env, c, kind, id, p, commit) {
   const candidate = structuredClone(c.state);
   applyProjection(candidate, kind, id, p, c.state);
@@ -776,6 +788,14 @@ async function syncLocal(ctx, kind, id, probe) {
   });
   counters.pushed++;
 }
+/**
+ * 組織ごとに期限付きの実行権を取り、保存済みカーソルから同期を再開します。
+ * 通信予算が尽きた場合は処理途中の状態を残し、次回Cronが続けられるようにします。
+ * @param {object} env DBと暗号鍵などのWorker環境。
+ * @param {string} organizationId 同期対象の組織ID。
+ * @param {object} options 台帳を確定するcommitと、Notionに設定するアプリのorigin。
+ * @returns {Promise<object>} 完了・継続・失敗・実行権取得済みなどの結果。
+ */
 export async function runNotionConnection(
   env,
   organizationId,

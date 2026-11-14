@@ -1,4 +1,7 @@
-/* DXF geometry adapter. Coordinates stay in the drawing's local XY space. */
+/**
+ * ASCII DXFの図形をマップ用データへ変換するアダプター。
+ * 図面のローカルXY座標を扱い、単位とブロック変換を適用します。DWGの直接解析は対象外です。
+ */
 (() => {
   'use strict';
 
@@ -38,6 +41,10 @@
   ];
   const point = (p, t) => [t[0] * p.x + t[2] * p.y + t[4], t[1] * p.x + t[3] * p.y + t[5]];
   const finitePoint = (p) => p && Number.isFinite(p.x) && Number.isFinite(p.y);
+  /**
+   * DXFのbulgeで表す円弧を表示用の点列へ近似します。
+   * 分割数を制限して過剰な頂点生成を避け、元の始終点と曲がる方向を保ちます。
+   */
   function bulgePoints(vertices, closed) {
     const result = [];
     vertices.forEach((a, i) => {
@@ -84,8 +91,8 @@
     const scale = unitScale[dxf.header?.$INSUNITS] || 1;
     const features = [];
     const skipped = {};
-    const layers = new Set(); // dxf-parser skips some unsupported entities before exposing them. Inspect
-    // entity headers too, so those omissions are visible in the import result.
+    const layers = new Set();
+    // パーサーが返さない未対応図形もあるため、元のエンティティ見出しから省略件数を数えます。
     const rows = text.replace(/^\uFEFF/, '').split(/\r\n|\n|\r/);
     let section = '';
     let wantSection = false;

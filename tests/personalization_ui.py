@@ -1,3 +1,5 @@
+"""模擬APIとサンプル台帳を使い、表示設定・追加アイコン・プラン比較の画面を検証します。"""
+
 import base64
 import functools
 import http.server

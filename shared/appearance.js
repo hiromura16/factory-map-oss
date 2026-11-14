@@ -1,4 +1,7 @@
-/* Shared presentation schema: browser controls and server validation use the same limits. */
+/**
+ * ブラウザーとAPIで共用する表示項目の定義・初期値・許容範囲。
+ * 画面入力とサーバー検証がずれないよう同じ正規化処理を使い、DOMには依存しません。
+ */
 (() => {
   const fields = [
     ['equipment', 'iconSize', '設備アイコンのサイズ', 'number', 32, 12, 72, 'px'],
@@ -186,6 +189,10 @@
         : {}),
   }));
   const defaults = Object.fromEntries(fields.map((f) => [f.key, f.value]));
+  /**
+   * 定義した項目だけを初期値へ重ね、型・範囲・選択肢を共通の規則で確認します。
+   * 画面での復元は不正値を初期値に戻し、APIのstrict検証では不正値を例外にします。
+   */
   function normalize(input = {}, strict = false) {
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
       if (strict) {

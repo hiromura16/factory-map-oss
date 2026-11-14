@@ -1,4 +1,4 @@
-"""Real border/corner resizing, equipment dragging and rendered inspection PDFs."""
+"""付箋の縁・角での伸縮、設備のドラッグ、マニュアルと点検用PDFの描画を検証します。"""
 
 import os
 
@@ -144,7 +144,7 @@ async def main():
             await page.goto(URL)
             await page.wait_for_function("window.factoryMap")
             assert await page.locator("[data-note-resize]").count() == 0
-            # The public construction document also uses the actual canvas renderer.
+            # 閲覧モードの工事資料も、実際のPDF描画処理を通して確認します。
             await page.locator("#detail-pane [data-preview]").first.click()
             await page.wait_for_function(
                 'document.getElementById("file-preview").dataset.pdfReady==="true"'
@@ -213,7 +213,7 @@ async def main():
             assert abs((after["x"] + after["width"]) - (before["x"] + before["width"])) < 2
             assert abs((after["y"] + after["height"]) - (before["y"] + before["height"])) < 2
             await resized("se", 50, 40, cancel=True)
-            # Width and height remain in proportion to the drawing on zoom, not to each other.
+            # ズーム後も縦と横がそれぞれ図面に対する比率を保ち、固定の縦横比へ戻らないことを確認します。
             note = await req(staff, "GET", "/api/notes/" + nid)
             before = await bounds()
             await page.evaluate(
@@ -240,11 +240,11 @@ async def main():
                 await page.evaluate("id=>factoryMap.state.notes.find(n=>n.id===id).width", nid)
                 == note["width"]
             )
-            # Hide the deliberately enlarged note so it does not cover the equipment under test.
+            # 伸縮検証で拡大した付箋を隠し、次に操作する設備を覆わないようにします。
             await page.locator("#layers-toggle").click()
             await page.locator("#show-notes").uncheck()
             await page.locator("#layers-toggle").click()
-            # An equipment's icon is now its direct manipulation control.
+            # 設備アイコンそのものをドラッグし、移動用の別操作なしで位置を変えられることを確認します。
             await page.locator("#assets-tab").click()
             await page.evaluate("factoryMap.map.setView([400,1250],-1.5,{animate:false})")
             asset = page.locator('[data-asset-id="' + aid + '"]')
@@ -271,7 +271,7 @@ async def main():
                 == moved["point"]
             )
             await page.evaluate('id=>factoryMap.openRecord("assets",id)', aid)
-            # Both the equipment manual and the inspection's attachment render all pages.
+            # 設備マニュアルと点検の添付の両方で、全ページを描画できることを確認します。
             pdf_buttons = page.locator("#detail-pane [data-preview]")
             assert await pdf_buttons.count() == 2
             for index in [0, 1]:

@@ -1,3 +1,7 @@
+/**
+ * HTTPとCronの入口。現行マップ、汎用v1 API、SCIM、静的配信を振り分けます。
+ * 認証方式は各APIの経路で明示し、Notionの定期実行は scheduled の実行寿命に結び付けます。
+ */
 import { handleScim } from './scim.mjs';
 import {
   ApiError,
@@ -75,7 +79,7 @@ function revision(input, current) {
   }
 }
 async function save(env, org, actor, data, action) {
-  // The plan is included in CAS so a simultaneous downgrade cannot bypass quotas.
+  // 同時にプラン変更された場合も上限を検証できるよう、更新条件にリビジョンとプランを含めます。
   const when = new Date().toISOString();
   const result = await env.DB.batch([
     env.DB.prepare(
@@ -159,7 +163,7 @@ export default {
           legacyUiCompatible: false,
         });
       }
-      // No CORS, no cookies, no session fallback: every business request verifies a bearer identity.
+      // ここからは汎用v1 APIの経路です。各要求でBearerを検証し、現行マップのAccess認証とは分けます。
       const origin = request.headers.get('origin');
       if (origin && origin !== url.origin) {
         throw new ApiError(403, 'Cross-origin requests are not allowed');
@@ -335,7 +339,7 @@ export default {
         if (!Object.hasOwn(PLANS, input.plan)) {
           throw new ApiError(422, 'Unknown plan');
         }
-        validateState(state, input.plan); // Never delete data on downgrade.
+        validateState(state, input.plan); // 下位プランへの変更だけで既存データを削除しません。
         if (
           !PLANS[input.plan].customization &&
           Object.keys(JSON.parse(org.customization_json)).length

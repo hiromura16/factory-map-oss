@@ -1,4 +1,7 @@
-/** MarkdownとHTML画像のローカル参照先を検証します。外部サイトへは通信しません。 */
+/**
+ * MarkdownとHTML画像に含まれるローカル参照先を検証します。
+ * 生成物・依存ライブラリーを除外し、外部サイトへの通信は行いません。
+ */
 import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

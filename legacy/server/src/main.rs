@@ -1,3 +1,5 @@
+// 旧Rust / PostgreSQL版のAPI。現行SaaSは cloudflare/ を使います。
+// 設定・配信物・デモ資料はリポジトリのルート基準で読み込みます。
 use axum::{body::Body,extract::{State,Path,Query,Multipart,DefaultBodyLimit,ConnectInfo,Request},http::{StatusCode,HeaderMap,HeaderValue,Method},response::{Response,IntoResponse},routing::{get,post,put,delete},middleware::{self,Next},Json,Router};
 use serde::Deserialize;
 use serde_json::{Value,json};

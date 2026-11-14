@@ -1,3 +1,7 @@
+/**
+ * 組織ごとのNotion接続トークンをAES-GCMで暗号化して保存します。
+ * 暗号鍵は環境のSecretから取得し、組織IDを追加認証データに含めて組織間の流用を防ぎます。
+ */
 import { ApiError } from '../core.mjs';
 const enc = new TextEncoder();
 const b64 = (bytes) => {
@@ -21,6 +25,10 @@ async function key(env) {
 }
 export const credentialsReady = (env) =>
   typeof env.NOTION_TOKEN_KEY === 'string' && env.NOTION_TOKEN_KEY.length >= 43;
+/**
+ * 暗号化ごとに新しいIVを使い、組織IDも認証対象に含めます。
+ * 別組織の保存行へ暗号文だけを移しても、同じトークンとして復号できない形にします。
+ */
 export async function encryptToken(env, organizationId, token) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const cipher = await crypto.subtle.encrypt(

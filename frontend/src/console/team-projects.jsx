@@ -1,3 +1,7 @@
+/**
+ * 案件の編集、進捗表示、親作業・先行作業との関連付けを担当します。
+ * 選択候補の制限は入力補助です。参照の有効性と循環・完了条件はAPIでも検証します。
+ */
 import React, { useState, useRef } from 'react';
 import { api, Modal, Person, projectStatusNames, today, openTask } from './team-shared.jsx';
 export function Projects({ state, onRefresh, onShowTasks, onNewTask }) {

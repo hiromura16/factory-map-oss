@@ -1,3 +1,5 @@
+"""旧OIDCコンソールで、PKCE・nonce・再送拒否・認証途中の取消しとログアウトを検証します。"""
+
 import base64
 import functools
 import http.server
@@ -237,12 +239,12 @@ try:
         page.screenshot(path="/tmp/factory-map-saas-desktop.png", full_page=True)
         page.locator("#logout").click()
         assert page.locator("#console").is_hidden()
-        # Replaying an already-consumed callback must not exchange a token.
+        # 使用済みの認証コールバックを再送しても、トークン交換が行われないことを確認します。
         before = requests.count("/mock-token")
         page.goto(origin + "/saas.html?code=mock-code&state=replayed")
         page.wait_for_function("document.getElementById('message').textContent.includes('一致')")
         assert requests.count("/mock-token") == before
-        # Reject nonce mismatch before any authenticated API call.
+        # nonce不一致を、認証後のAPIへ要求を送る前に拒否することを確認します。
         bad_nonce = True
         before = requests.count("/api/v1/organizations")
         page.locator("#login").click()
@@ -250,7 +252,7 @@ try:
         page.wait_for_function("document.getElementById('message').textContent.includes('nonce')")
         assert requests.count("/api/v1/organizations") == before
         bad_nonce = False
-        # Duplicate callback parameters are rejected before code exchange.
+        # 認証コールバックの重複パラメーターを、コード交換の前に拒否することを確認します。
         page.locator("#login").click()
         page.locator("#approve").wait_for()
         target = page.locator("#approve").get_attribute("href")
@@ -260,7 +262,7 @@ try:
             "document.getElementById('message').textContent.includes('認証コードが不正')"
         )
         assert requests.count("/mock-token") == before
-        # Cancel while token exchange is in flight; late response must not sign in.
+        # トークン交換中に取り消し、遅れて返った応答でログイン状態にならないことを確認します。
         cancel_token = True
         page.locator("#login").click()
         page.locator("#approve").click()
@@ -273,7 +275,7 @@ try:
         page.locator("#login").click()
         page.locator("#approve").click()
         page.wait_for_function("!document.getElementById('console').hidden")
-        # Logout during a delayed refresh response must not reveal old organizations.
+        # 再取得の応答待ちにログアウトしても、古い組織一覧が後から表示されないことを確認します。
         logout_late = True
         page.locator("#refresh").click()
         page.wait_for_function(
@@ -288,7 +290,7 @@ try:
         page.set_viewport_size({"width": 390, "height": 844})
         page.screenshot(path="/tmp/factory-map-saas-mobile.png", full_page=True)
         assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
-        # Missing configuration gives actionable setup, never an automatic redirect.
+        # 接続設定がない場合は設定方法を表示し、自動的な認証画面への移動を始めないことを確認します。
         config["enabled"] = False
         page.goto(origin + "/saas.html")
         page.wait_for_function("!document.getElementById('setup').hidden")

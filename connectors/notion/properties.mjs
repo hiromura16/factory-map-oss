@@ -1,3 +1,7 @@
+/**
+ * 独自属性とNotionの列定義・プロパティ値の変換。
+ * 選択肢と関係の識別子を保ち、表示名の変更だけで保存値が失われないようにします。
+ */
 import { NotionError, richText, plainText } from './client.mjs';
 export function propertySchema(f, resolveSourceId) {
   if (f.type === 'relation') {

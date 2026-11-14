@@ -1,4 +1,4 @@
-"""Verify paper geometry against the drawing, persisted appearance and real editing."""
+"""付箋の寸法・文字・色・ズーム倍率と、保存後に同じ表示へ復元されることを検証します。"""
 
 import os
 
@@ -115,7 +115,7 @@ async def main():
                 abs(first["x"] - (first["px"] - 14 * 1.7)) < 1
                 and abs(first["y"] - (first["py"] - 14 * 1.7)) < 1
             )
-            # One map zoom step doubles both the drawing and the entire paper, including text.
+            # ズームを1段階上げると図面と付箋全体がともに2倍になり、文字も同じ倍率になることを確認します。
             await page.evaluate(
                 "factoryMap.map.setZoom(factoryMap.map.getZoom()+1,{animate:false})"
             )
@@ -127,7 +127,7 @@ async def main():
                 abs(second["x"] - (second["px"] - 14 * 3.4)) < 1
                 and abs(second["y"] - (second["py"] - 14 * 3.4)) < 1
             )
-            # Animated zoom follows the same final geometry.
+            # アニメーション付きズームの終了後も、同じ寸法へ落ち着くことを確認します。
             await page.evaluate("factoryMap.map.setZoom(factoryMap.map.getZoom()-1,{animate:true})")
             await page.wait_for_function("!factoryMap.map._animatingZoom")
             await page.wait_for_timeout(300)
@@ -135,7 +135,7 @@ async def main():
             await marker.click()
             assert await page.locator("#note-size").input_value() == "170"
             await page.locator("#note-size").fill("85")
-            # This is the input event emitted when the native color chooser returns a custom color.
+            # ブラウザーの色選択から独自の色が返されたときと同じinputイベントを発生させます。
             await page.locator("#note-color").evaluate(
                 "el=>{el.value='#102345';el.dispatchEvent(new Event('input',{bubbles:true}));}"
             )
@@ -150,7 +150,7 @@ async def main():
             small = await measure()
             assert abs(small["width"] / first["width"] - 0.5) < 0.01
             assert small["ink"] == "rgb(255, 255, 255)"
-            # The minimum is genuinely 1% on paper while retaining an operable click target.
+            # 紙面を1%まで縮めても、編集できるクリック領域が残ることを確認します。
             await marker.click()
             await page.locator("#note-size").fill("1")
             assert await page.locator("#note-size-slider").input_value() == "1"
@@ -160,13 +160,13 @@ async def main():
             assert abs(minimum["width"] - 2.04) < 0.2, minimum
             assert minimum["outerWidth"] >= 24 and minimum["outerHeight"] >= 24
             assert (await req(public, "GET", "/api/notes/" + nid))["size"] == 1
-            # Clicking the small note must still open its editor.
+            # 縮小した付箋をクリックしても、編集画面が開くことを確認します。
             await marker.click(position={"x": 10, "y": 10})
             assert await page.locator("#note-size").input_value() == "1"
             await page.locator("#note-size").fill("85")
             await page.locator("#note-dialog [type=submit]").click()
             await page.locator("#note-dialog").wait_for(state="hidden")
-            # A stale frontend changing text must retain appearance fields it does not understand.
+            # 古い画面が本文だけを変更しても、未対応の文字設定を失わないことを確認します。
             snapshot = await req(staff, "GET", "/api/state")
             old = next(n for n in snapshot["state"]["notes"] if n["id"] == nid)
             for key in ["size", "color", "referenceZoom"]:
@@ -182,7 +182,7 @@ async def main():
             )
             desktop = await measure()
             assert abs(desktop["width"] - 204 * 0.85) < 0.5
-            # Screen size and fit-to-drawing may change zoom, but the drawing/paper ratio must not change.
+            # 画面幅や全体表示でズームが変わっても、図面と付箋の表示比率を保つことを確認します。
             mobile = await browser.new_page(viewport={"width": 390, "height": 844})
             await mobile.goto(URL)
             await mobile.wait_for_function("window.factoryMap")
@@ -194,7 +194,7 @@ async def main():
             assert abs(ratio - desktop["ratio"]) < 0.001, (ratio, desktop["ratio"])
             assert await mobile.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
             await mobile.close()
-            # Moving a scaled note preserves its appearance and uses the correct map coordinates.
+            # 縮小中の付箋を移動し、見た目を保ったまま正しい図面座標で保存されることを確認します。
             previous = stored["point"]
             box = await marker.bounding_box()
             await page.mouse.move(box["x"] + 20, box["y"] + 10)

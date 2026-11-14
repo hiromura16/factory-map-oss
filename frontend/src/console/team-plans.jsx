@@ -1,3 +1,7 @@
+/**
+ * 設備条件に基づく定期点検計画と、周期ごとのタスク生成を操作する画面。
+ * 対象のプレビューを確認してからAPIへ生成を依頼し、重複生成の防止はサーバーで保証します。
+ */
 import React, { useRef, useState } from 'react';
 import { api, today, priorityNames, Modal, Person } from './team-shared.jsx';
 export function Plans({ state, onRefresh, onOpenTask }) {

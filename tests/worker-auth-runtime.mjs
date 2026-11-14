@@ -1,4 +1,7 @@
-// Exercise JWT verification in workerd, where fetch redirect modes differ from Node.
+/**
+ * workerdでJWTの署名検証と公開鍵の取得を実行する回帰テスト。
+ * 認証プロバイダーの転送応答を追跡せず、検証失敗として扱うことを確認します。
+ */
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import { createRequire } from 'node:module';

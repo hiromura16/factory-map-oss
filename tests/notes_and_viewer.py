@@ -1,4 +1,4 @@
-"""Real DB/API and browser checks for sticky notes and announcement-only viewing."""
+"""付箋の保存・編集と、閲覧モードに工事のお知らせだけを返す境界を検証します。"""
 
 import os
 
@@ -115,7 +115,7 @@ async def main():
             await req(staff, "POST", "/api/notes", note, 201)
             await req(staff, "PATCH", "/api/notes/" + note["id"], {"point": [130, 160]})
             assert (await req(visitor, "GET", "/api/notes/" + note["id"]))["point"] == [130, 160]
-            # Old clients saving a snapshot without notes must preserve new annotations.
+            # 付箋項目を持たない旧クライアントの保存でも、新しい付箋を消さないことを確認します。
             old = await req(staff, "GET", "/api/state")
             del old["state"]["notes"]
             await req(staff, "PUT", "/api/state", old)
@@ -124,7 +124,7 @@ async def main():
             revision = (await req(staff, "GET", "/api/state"))["revision"]
             await req(staff, "PUT", "/api/state", {"revision": revision, "state": None}, 422)
             await req(visitor, "GET", "/api/health")
-            # A drawing referenced by a note cannot be removed.
+            # 付箋が参照している図面は、そのまま削除できないことを確認します。
             await req(
                 staff,
                 "POST",
@@ -160,7 +160,7 @@ async def main():
             await page.locator("#login-dialog [type=submit]").click()
             await page.wait_for_function("factoryMap.editor")
             assert await page.locator("#assets-tab").is_visible()
-            # Switching between placement actions cancels the previous action.
+            # 配置する項目の種類を変えたら、前の配置操作が取り消されることを確認します。
             await page.locator("#asset-add").click()
             await page.locator("#note-add").click()
             await page.locator("#map").click(position={"x": 350, "y": 320})
@@ -185,7 +185,7 @@ async def main():
             await page.wait_for_timeout(200)
             moved = (await req(visitor, "GET", "/api/notes/" + nid))["point"]
             assert moved != original
-            # Stored markup is displayed literally, including line breaks.
+            # 入力したマークアップをHTMLとして実行せず、改行を含めて文字列として表示します。
             await marker.click()
             dangerous = text + '\n<img src=x onerror="window.noteXSS=1">'
             await page.locator("#note-dialog textarea").fill(dangerous)
@@ -200,7 +200,7 @@ async def main():
             assert (
                 await page.evaluate("id=>factoryMap.state.notes.find(n=>n.id===id).point", nid)
             ) == moved
-            # Verify native WebMCP notes, not a compatibility shim.
+            # 付箋の操作が、ネイティブWebMCPの登録ツールとして利用できることを確認します。
             for _ in range(100):
                 tools = await page.webmcp.tools()
                 if len(tools) == 29:
@@ -247,7 +247,7 @@ async def main():
                 assert not isinstance(e, AssertionError)
             assert (await req(visitor, "GET", "/api/notes/" + nid))["text"] == text
             await page.screenshot(path=str(ROOT / "preview-notes.png"), full_page=True)
-            # Delete the note from its visible editing dialog.
+            # 実際に開いた付箋の編集画面から削除し、表示と保存の両方を確認します。
             await page.locator("#view-mode").click()
             await page.locator("#login-dialog input").fill(PASSWORD)
             await page.locator("#login-dialog [type=submit]").click()

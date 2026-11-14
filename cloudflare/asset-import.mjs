@@ -1,3 +1,7 @@
+/**
+ * 設備JSONの追加・更新を検証し、確定前の差分とエラーを返す処理。
+ * 列挙した設備だけを対象にし、省略した項目や履歴を保った更新案を作ります。
+ */
 import { ApiError } from './core.mjs';
 import { validateMap } from './map-validation.mjs';
 const object = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
@@ -16,7 +20,7 @@ const allowed = new Set([
   'attachments',
   'history',
 ]);
-// This import only changes listed equipment. Omitted history, files and fields survive.
+// 取り込み対象だけを更新し、省略された履歴・添付・属性は既存の値を保ちます。
 export function previewAssets(input, current, plan) {
   const rows = Array.isArray(input) ? input : input?.assets;
   const mode = input?.mode || 'add';

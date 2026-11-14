@@ -1,4 +1,4 @@
-"""Real browser flows and native WebMCP calls, including authorization failures."""
+"""画面とWebMCPから、設備・工事・資料を登録し、認証失敗時も含めて結果を確認します。"""
 
 import os
 
@@ -55,7 +55,7 @@ async def main():
         pid = None
         aid = None
         try:
-            # Create a field using the same visible controls used by facility staff.
+            # 施設担当者が使う画面操作から、独自プロパティを追加します。
             await page.locator("#properties-open").click()
             await page.locator("#property-add").click()
             await page.locator("#property-dialog [name=name]").fill(prefix + "温度")
@@ -70,7 +70,7 @@ async def main():
                 "p=>window.factoryMap.state.propertyDefinitions.find(d=>d.name===p+'温度').id",
                 prefix,
             )
-            # Add an equipment marker by clicking the map, fill a typed custom value, attach PDF.
+            # 図面のクリックで設備を追加し、型付きの独自属性とPDFを登録します。
             await page.locator("#asset-add").click()
             await page.locator("#map").click(position={"x": 300, "y": 300})
             await page.locator("#asset-dialog [name=name]").fill(prefix + "テスト設備")
@@ -93,7 +93,7 @@ async def main():
             await page.wait_for_function(
                 "id=>window.factoryMap.state.assets.find(a=>a.id===id).history.length===1", arg=aid
             )
-            # A real WebMCP write must commit and update both visible and server state.
+            # WebMCPの書き込みが保存まで完了し、画面とサーバーの状態をともに更新することを確認します。
             await page.webmcp.call_tool(
                 "update_assets", {"id": aid, "record": {"location": "WebMCPによる更新"}}
             )
@@ -118,7 +118,7 @@ async def main():
             await page.screenshot(path=str(ROOT / "preview-equipment.png"), full_page=True)
             await page.locator("#asset-edit").click()
             await page.locator("#asset-dialog .icon-close").click()
-            # Existing work: multiple attachments, link equipment, reopen and remove one.
+            # 既存工事へ複数の資料と関連設備を登録し、再表示後に資料を1つ外します。
             await page.evaluate('window.factoryMap.openRecord("works","w1")')
             await page.locator("#work-edit").click()
             await page.locator("#field-attachment").set_input_files(
@@ -143,7 +143,7 @@ async def main():
             await page.wait_for_function(
                 'window.factoryMap.state.works.find(w=>w.id==="w1").attachments.length===2'
             )
-            # Revert only test changes to seeded sample work.
+            # サンプル工事に対して、この検証で加えた変更だけを戻します。
             await page.evaluate(
                 "async()=>{await FactoryAPI.request('/api/works/w1',{method:'PATCH',body:{attachments:window.factoryMap.state.works.find(w=>w.id==='w1').attachments.slice(0,1)}});await factoryMap.refresh();}"
             )

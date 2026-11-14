@@ -1,3 +1,7 @@
+/**
+ * 現行マップAPIの認証、アカウント分離、台帳・資料・履歴・設定の保存。
+ * 台帳を変更する入口は commit に集め、検証済み台帳と変更履歴を同じD1バッチで保存します。
+ */
 import { ApiError, KINDS, importPreview } from './core.mjs';
 import { authenticate } from './auth.mjs';
 import { LIMITS, validateMap, visibleState, fileIds, preferences } from './map-validation.mjs';
@@ -52,6 +56,10 @@ const b64 = (a) => {
   return btoa(s);
 };
 const un64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+/**
+ * JSONの受信量をヘッダー値だけでなく実際に読んだバイト数でも制限します。
+ * 上限を超えたストリームは中断し、台帳の検証へ渡す前に拒否します。
+ */
 export async function readJSON(request, max = 900000) {
   const bytes = await readBytes(request, max);
   try {
@@ -168,12 +176,16 @@ async function bootstrap(env, user) {
     ]);
   }
 }
+/**
+ * Accessの検証結果から利用者を確定し、選択中のデモアカウントの所属と台帳を読み込みます。
+ * クライアントから送られた組織IDを、そのままアクセス権として扱いません。
+ */
 async function context(request, env) {
   if (!env.DB) {
     throw new ApiError(503, 'データベースが未設定です。');
   }
   const user = await actor(request, env);
-  // Idempotent first login; workspaces are private to the authenticated SSO subject.
+  // 初回作成は再実行しても同じ所属を使い、SSOの利用者ごとにデモ用データを分離します。
   const found = await env.DB.prepare('SELECT count(*) AS n FROM demo_profiles WHERE user_id=?')
     .bind(user.id)
     .first();
@@ -216,6 +228,10 @@ function owner(c) {
     throw new ApiError(403, '管理者アカウントの機能です。');
   }
 }
+/**
+ * 参照する資料が同じ組織に属するかを確認します。
+ * 画面にファイルが見えていても、別アカウントのIDをAPIに直接渡す操作は許可しません。
+ */
 async function validateFiles(env, c, state) {
   for (const id of fileIds(state)) {
     const f = await env.DB.prepare('SELECT id FROM map_files WHERE id=? AND organization_id=?')
@@ -286,6 +302,17 @@ async function historyFileIds(env, c) {
     .all();
   return r.results.map((x) => x.id);
 }
+/**
+ * 検証・資料の所有権確認を通した台帳と、工事・タスク・監査の履歴をまとめて確定します。
+ * D1のbatch内で同じリビジョンとプランを条件にし、競合した保存は409として呼び出し元へ返します。
+ * @param {object} env DBなどのWorkerバインディング。
+ * @param {object} c 認証済み利用者、所属、保存前の台帳を持つコンテキスト。
+ * @param {object} next 保存候補の台帳。ここを通す前の変更をDBの確定値として扱わないこと。
+ * @param {string} action 監査履歴へ残す操作の理由・種別。
+ * @param {number} expected 呼び出し元が編集の基準にしたリビジョン。
+ * @param {object[]} extraTaskEvents コメントなど、台帳の差分以外に追記するタスク履歴。
+ * @returns {Promise<number>} 保存後のリビジョン。
+ */
 export async function commit(
   env,
   c,
@@ -517,9 +544,8 @@ async function upload(request, env, c) {
       }
     }
     const id = crypto.randomUUID();
-    const // 制御文字を除き、安全な添付ファイル名に正規化します。
-      // eslint-disable-next-line no-control-regex
-      name = f.name.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 180) || 'file';
+    // eslint-disable-next-line no-control-regex -- 添付名から制御文字を除くため、対象文字を正規表現で明示します。
+    const name = f.name.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 180) || 'file';
     const queries = [
       env.DB.prepare(
         'INSERT INTO map_files(id,organization_id,name,mime,size,thumbnail,created_at) SELECT ?,?,?,?,?,?,? WHERE (SELECT COALESCE(SUM(size),0) FROM map_files WHERE organization_id=?) + ? <= ?',

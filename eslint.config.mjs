@@ -1,3 +1,7 @@
+/**
+ * 実行環境とReactの規則をまとめるESLint設定。
+ * ブラウザーの既存公開APIは明示的に列挙します。型検査や環境間の依存制限は別途必要です。
+ */
 import js from '@eslint/js';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';

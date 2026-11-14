@@ -1,4 +1,6 @@
-"""検証専用の一時DBから、README用の実画面を撮影します。"""
+"""検証専用の一時DBからREADME用の画面を撮影し、docs/images/ へ保存します。
+
+実際の利用者の台帳やログイン情報を含む公開画面を撮影元にしないでください。"""
 
 import os
 from pathlib import Path

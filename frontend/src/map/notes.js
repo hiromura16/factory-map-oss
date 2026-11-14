@@ -1,4 +1,7 @@
-/* Plain text sticky notes, stored with the shared map and scoped to one drawing. */
+/**
+ * 図面ごとのテキスト付箋と、その移動・伸縮・文字設定を担当します。
+ * 紙面は基準ズームに対する大きさで保存し、縮小時も編集用の操作領域を確保します。
+ */
 window.FactoryNotes = (() => {
   const $ = (id) => document.getElementById(id);
   const app = () => window.factoryMap;
@@ -91,6 +94,10 @@ window.FactoryNotes = (() => {
       element.style.setProperty('--note-ink', note.fontColor);
     }
   }
+  /**
+   * 付箋の基準寸法をズーム倍率で表示し、文字も紙と同じ倍率で描画します。
+   * 見た目が小さい場合でも操作領域は残し、保存する図面座標とは切り離します。
+   */
   function scaleMarker(marker, note, zoom = app().map.getZoom()) {
     note =
       activeResize?.marker === marker ? activeResize.preview : (markers.get(note.id)?.note ?? note);
@@ -241,6 +248,10 @@ window.FactoryNotes = (() => {
     marker.setLatLng([point.lat, point.lng]);
     scaleMarker(marker, context.preview);
   }
+  /**
+   * 伸縮操作中に止めていた地図・マーカー操作を復元し、確定した寸法だけを保存します。
+   * 取り消しや保存失敗のときは、操作開始時の位置・寸法へ戻します。
+   */
   async function finishResize(save) {
     const context = activeResize;
     if (!context) {
@@ -312,8 +323,8 @@ window.FactoryNotes = (() => {
           event.stopPropagation();
           interaction = beginResize(marker, note, handle, event);
         });
-        // At small zoom levels a grip can cover the entire paper. A click still edits;
-        // a drag resizes, without also opening the editor on pointer release.
+        // 縮小時は伸縮つまみが付箋全体を覆うため、クリックなら編集、ドラッグなら伸縮に分けます。
+        // 伸縮後のpointer解放で、編集画面まで意図せず開くのを防ぎます。
         handle.addEventListener('click', (event) => {
           event.preventDefault();
           event.stopPropagation();

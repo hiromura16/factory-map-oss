@@ -1,4 +1,7 @@
-/* Same-origin shared API; the server is the authority for permissions and data. */
+/**
+ * 同じホストのAPI呼び出し、台帳のリビジョン、添付アップロードを共用します。
+ * 権限とデータの正否はサーバーが判定し、認証切れは共通イベントで画面へ通知します。
+ */
 window.FactoryAPI = (() => {
   let revision = 0;
   let session = null;
@@ -92,6 +95,7 @@ window.FactoryAPI = (() => {
             form.append('thumbnail-' + i, thumbnail, 'thumbnail.png');
           }
         } catch (error) {
+          // サムネイル生成だけの失敗なら原本を送ります。寸法の上限超過はそのまま拒否します。
           if (error.message.includes('12000')) {
             throw error;
           }

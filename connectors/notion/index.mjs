@@ -1,3 +1,7 @@
+/**
+ * 他のアプリから利用するNotionコネクターの公開窓口。
+ * HTTP通信、プロパティ変換、3方向マージを、呼び出し側のDB実装から分離して公開します。
+ */
 export {
   NotionConnector,
   NotionError,

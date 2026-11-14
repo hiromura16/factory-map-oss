@@ -1,3 +1,7 @@
+/**
+ * 台帳全体の型・参照先・図面階層・レイヤー・プラン上限・設備ロックを検証します。
+ * 閲覧者向けの公開情報の抽出も担当し、画面側の非表示だけで権限を代替しません。
+ */
 import { ApiError, validateState } from './core.mjs';
 import { validateTeam } from './team.mjs';
 import appearance from '../shared/appearance.js';
@@ -66,6 +70,10 @@ export const fileIds = (value) => {
   scan(value);
   return [...result];
 };
+/**
+ * 保存前のロックを基準に、削除・移動・属性変更を検証します。
+ * 解除と変更を同じ要求にまとめても、先に解除が確定するまでは変更を認めません。
+ */
 export function protectLocks(previous, next) {
   for (const a of previous.assets) {
     const b = next.assets.find((x) => x.id === a.id);
@@ -94,6 +102,10 @@ export function protectLocks(previous, next) {
     }
   }
 }
+/**
+ * 型に加えて台帳内の参照関係、件数上限、図面の循環、既存設備のロックを検証します。
+ * 通常の画面保存だけでなく、JSON取り込みとNotion同期からの保存も同じ入口を使います。
+ */
 export function validateMap(input, plan, previous = null) {
   const s = validateState(input, plan);
   s.layers ??= [];
@@ -336,6 +348,10 @@ export function validateMap(input, plan, previous = null) {
   }
   return s;
 }
+/**
+ * 閲覧モードへ返す台帳を作ります。設備・タスク・非公開レイヤーは応答から取り除きます。
+ * 公開図面への移動に必要なリンクをたどり、非公開データの参照IDも残さないようにします。
+ */
 export function visibleState(s, editor) {
   if (editor) {
     return s;

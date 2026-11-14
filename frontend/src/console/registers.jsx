@@ -1,3 +1,7 @@
+/**
+ * 設備・工事の一覧、独自プロパティ列、絞り込み、履歴表示を担当します。
+ * 表示列と順序は個人設定、台帳の更新と権限・ロックの検証はAPI側で扱います。
+ */
 import { ColumnPicker } from './column-picker.jsx';
 import { AssetImport, downloadJSON } from './asset-import.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -32,6 +36,10 @@ const propertyValue = (d, value) =>
             .map((v) => d.options?.find((o) => o.id === v)?.label || v)
             .join('、')
         : String(value) + (d.unit ? ' ' + d.unit : '');
+/**
+ * 基本列と独自プロパティを同じ列定義として扱い、値の取り出し・表示・検索に使います。
+ * 保存する表示設定は列IDを持つため、名前が変わっても同じ項目を参照できます。
+ */
 export function Register({ kind, state, session, onRefresh, exportRows, initialCondition }) {
   const equipment = kind === 'equipment';
   const defs = state.propertyDefinitions || [];

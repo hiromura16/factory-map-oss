@@ -1,3 +1,7 @@
+/**
+ * 設定済みOIDCプロバイダーの公開鍵でJWTの署名とクレームを検証します。
+ * 共有キャッシュに保持するのは公開鍵だけです。リクエストの利用者情報は戻り値で渡します。
+ */
 import { ApiError } from './core.mjs';
 const decoder = new TextDecoder();
 const jwksCache = new Map();
@@ -7,6 +11,10 @@ function decode(part) {
   }
   return Uint8Array.from(atob(part.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 }
+/**
+ * 署名検証後のJWTについて、発行者・宛先・利用者ID・有効期限を確認します。
+ * 複数の宛先を持つトークンはazpも照合し、別クライアント向けの値を受け入れません。
+ */
 export function validateClaims(claims, issuer, audience, now = Date.now() / 1000) {
   if (
     !claims ||
@@ -47,7 +55,7 @@ export async function authenticate(request, env) {
     if (jwksUrl.protocol !== 'https:') {
       throw new Error('JWKS must use HTTPS');
     }
-    // Only the configured provider URL is used; token-supplied jku/x5u never initiate requests.
+    // 公開鍵は設定済みURLから取得します。JWT内のjku/x5uを通信先に使わないことで取得先を固定します。
     const parts = token.split('.');
     if (parts.length !== 3) {
       throw new Error('invalid token');
@@ -58,7 +66,7 @@ export async function authenticate(request, env) {
     }
     let cached = jwksCache.get(jwksUrl.href);
     if (!cached || cached.until < Date.now()) {
-      // Workers supports only follow/manual. Reject redirects without following them.
+      // このWorkers環境に合わせてmanualを使い、転送先へ進まず後続のHTTP判定で拒否します。
       const response = await fetch(jwksUrl.href, {
         redirect: 'manual',
         signal: AbortSignal.timeout(5000),

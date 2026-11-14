@@ -1,4 +1,7 @@
-/* Equipment register, typed fields, documents and inspection editing. */
+/**
+ * 設備・独自プロパティ・工事の関連設備・添付・点検を扱うマップ用フォーム。
+ * 保存はマップの共有状態更新を通し、型と参照先の最終検証をAPIに集約します。
+ */
 window.FactoryFeatures = (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (s) =>

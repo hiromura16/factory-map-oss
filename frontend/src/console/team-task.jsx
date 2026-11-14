@@ -1,3 +1,7 @@
+/**
+ * タスク詳細の編集、点検結果の記録、完了処理、履歴を担当します。
+ * 一覧と詳細で編集先を共有し、未保存の変更があるときは切り替え・離脱を確認します。
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import { TaskRelations } from './team-projects.jsx';
 import {
@@ -13,6 +17,10 @@ import {
   RecordSelect,
   ChecklistEditor,
 } from './team-shared.jsx';
+/**
+ * 同じ詳細ペインで別のタスクを開くときも、現在の未保存確認を通す編集窓口。
+ * editorKeyを更新して、切り替え前のフォーム状態が別タスクに持ち越されるのを防ぎます。
+ */
 export function useTaskEditor() {
   const [edit, _setEdit] = useState(null);
   const guard = useRef(() => true);

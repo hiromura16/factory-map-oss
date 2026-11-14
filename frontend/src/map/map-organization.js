@@ -1,4 +1,7 @@
-/* Mixed content layers and navigable drawing areas, persisted in the shared state. */
+/**
+ * 設備・工事・付箋を混在させるレイヤーと、図面を結ぶエリア・階層の操作。
+ * 戻る履歴と図面の親子関係を区別し、履歴がない場合も親図面へ戻れるようにします。
+ */
 window.FactoryOrganization = (() => {
   const app = () => window.factoryMap;
   const $ = (id) => document.getElementById(id);
@@ -576,8 +579,8 @@ window.FactoryOrganization = (() => {
       cancel();
       linkForm(points, existing);
     });
-    // Selecting equipment rebuilds its DOM marker after the first click. Track
-    // paired clicks at the map container so this cannot swallow area navigation.
+    // 設備の選択でマーカーDOMが作り直されるため、二連続クリックはマップのコンテナーで判定します。
+    // これにより、設備が重なる図面リンクでもダブルクリックによる移動を保ちます。
     let previousClick = null;
     let suppressDoubleUntil = 0;
     let pointerStart = null;

@@ -1,8 +1,7 @@
-"""Upload a prepared static manifest with a short-lived API upload session.
+"""短時間だけ有効なアップロードセッションで、準備済みの静的ファイルを送信します。
 
-The deployment client passes the API-returned session on hidden stdin. This
-helper never reads local credentials and never writes tokens to disk.
-"""
+配置クライアントがAPI応答のセッションを非表示の標準入力から渡します。
+この補助処理はローカルの認証ファイルを読まず、トークンをディスクへ保存しません。"""
 
 import base64
 import json
@@ -69,5 +68,5 @@ for bucket in config["buckets"]:
     if result.get("result", {}).get("jwt"):
         completion = result["result"]["jwt"]
     uploaded += len(bucket)
-# The calling client consumes this JSON in memory; never print its raw output.
+# 呼び出し元はこのJSONをメモリー内で受け取ります。セッションを含むため、そのままログへ出さないでください。
 print(json.dumps({"uploaded": uploaded, "completion_jwt": completion}), flush=True)
