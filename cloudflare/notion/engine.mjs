@@ -6,7 +6,7 @@ import {KINDS,LABELS,fields,systemFields,schema,records,project,merge,applyProje
 const systemValue=record=>canonical(record?.locks||{});
 const now=()=>new Date().toISOString(),equal=(a,b)=>canonical(a)===canonical(b);
 class Cancelled extends Error {}
-// Bound storage and provider requests together, reserving final checkpoint writes.
+// DBとNotionへのリクエスト数を合算して制限し、最後の再開位置の保存分を確保します。
 function withQueryBudget(env,limit=32){
  let remaining=limit;const charge=n=>{if(remaining<n)throw new PollBudgetExceeded();remaining-=n;};
  return{outbound:()=>charge(1),env:{...env,DB:{prepare(sql){let statement=env.DB.prepare(sql);return{get raw(){return statement;},bind(...values){statement=statement.bind(...values);return this;},first(...args){charge(1);return statement.first(...args);},all(...args){charge(1);return statement.all(...args);},run(...args){charge(1);return statement.run(...args);}};},batch(statements){charge(statements.length);return env.DB.batch(statements.map(s=>s.raw));}}}};
@@ -87,7 +87,7 @@ async function syncLocal(ctx,kind,id,probe){
  const local=project(kind,record,c.state);
  if(link){if(link.state==='active'&&link.base_json===canonical(local)&&link.system_json===systemValue(record)&&(!probe||link.updated_at>=ctx.startedAt)&&!link.resolution)return;if(link.state!=='active'&&!link.resolution&&(!probe||link.updated_at>=ctx.startedAt))return;try{return await syncPair(ctx,await client.getPage(link.page_id),kind,link);}catch(e){if(e instanceof NotionError&&e.code==='http_404'){await saveLink(env,config,links,{...link,state:'error',issue_json:JSON.stringify({message:e.message,local,notion:null})});counters.errors++;return;}throw e;}}
  if(config.direction==='pull')return;
- // Lookup by stable ID before creation makes retries after an uncertain POST safe.
+ // 再作成の前に固定IDで検索し、作成の成否が不明な場合も重複を防ぎます。
  const matches=await client.queryPage(source.id,{filter:{property:source.properties._id,rich_text:{equals:id}},pageSize:2});
  if(matches.results.length>1){await issue(env,config,links,kind,id,matches.results[0],local,null,'同じPlantDesk IDのNotionページが複数あります。');counters.errors++;return;}
  if(matches.results.length)return syncPair(ctx,matches.results[0],kind);

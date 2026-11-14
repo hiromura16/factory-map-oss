@@ -1,7 +1,7 @@
-# Contributing
+# 開発への参加
 バグ報告と改善案を歓迎します。再現手順、期待結果、ブラウザー、匿名化した最小データを添えてください。実際の工場図面、認証情報、個人情報は投稿しないでください。
 
-## Development
+## 開発手順
 既存UI: `cd frontend && npm ci && npm run build`。
 既存Rust API: `cargo test --manifest-path server/Cargo.toml`。
 既存統合テストは専用の隔離DB・サンプルデータだけで実行してください。本番DBでは実行しないでください。
