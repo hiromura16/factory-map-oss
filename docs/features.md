@@ -76,7 +76,7 @@
 - SaaS：Cloudflare Workers、Static Assets、D1、Cloudflare AccessのメールSSO。
 - 台帳はリビジョンによる同時更新検出、資料は所有アカウントと参照状態を確認して配信。
 - R2や有料のCloudflare Imagesは初期デモでは不要です。画像サムネイルをブラウザで生成し、資料本体とともにD1へ保存します。
-- `server/` は以前のRust / Axum / PostgreSQL版です。Cloudflare版はこのPCを経由せず動作します。
+- `legacy/server/` は以前のRust / Axum / PostgreSQL版です。Cloudflare版はこのPCを経由せず動作します。
 
 ## ビルドと検証
 
@@ -86,7 +86,7 @@ Node.js 22以降、Python 3が必要です。
 npm ci --prefix frontend
 npm ci --prefix cloudflare
 node frontend/build.mjs
-node scripts/build-saas.mjs
+node scripts/build.mjs
 npm run check --prefix cloudflare
 npm test --prefix cloudflare
 node tests/preferences.cjs
@@ -106,13 +106,13 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chrome python3 tests/workflow_ui.py
 
 ## セルフホスト版
 
-旧Rust版は `cargo build --manifest-path server/Cargo.toml` でビルドします。専用PostgreSQLの接続文字列を `.runtime/config.json` の `database_url` に設定し、`server/target/debug/factory-map-server` を起動します。初期管理パスワードは `.runtime/initial-admin-password.txt` に生成されます。このディレクトリはGitHubに含めません。新しいSaaS用管理画面とプラン機能はCloudflare版向けです。
+旧Rust版は `cargo build --manifest-path legacy/server/Cargo.toml` でビルドします。専用PostgreSQLの接続文字列を `.runtime/config.json` の `database_url` に設定し、`legacy/server/target/debug/factory-map-server` を起動します。初期管理パスワードは `.runtime/initial-admin-password.txt` に生成されます。このディレクトリはGitHubに含めません。新しいSaaS用管理画面とプラン機能はCloudflare版向けです。
 
 ## 本番化の残作業
 
 このサンプルをそのまま商用SaaSの完成品とは扱っていません。料金契約・決済・請求、組織への招待、実IdPとのSCIM運用、大規模データの正規化、負荷試験、保管ポリシー、監視・バックアップ運用は別工程です。SCIM Usersと汎用OIDCの実験的な基盤は `cloudflare/scim.mjs` などに残していますが、このデモのログインはCloudflare Accessを使います。
 
-MIT License。依存ソフトウェアのライセンスは `THIRD_PARTY_NOTICES.md` と `vendor/` を参照してください。
+MIT License。依存ソフトウェアのライセンスは `THIRD_PARTY_NOTICES.md` と `frontend/static/vendor/` を参照してください。
 
 ### レイヤーセット・図面階層・設備一括登録
 

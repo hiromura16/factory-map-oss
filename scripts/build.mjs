@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
+import { publicEntries } from '../frontend/entries.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(new URL('../frontend/package.json', import.meta.url));
 const { build } = require('esbuild');
@@ -27,13 +28,11 @@ await mkdir(destination, {
   recursive: true,
 });
 // 実行時のファイルだけを配信し、設定・ロックファイル・ドキュメントを混ぜません。
-const files = (await readdir(root)).filter((name) => /\.(js|css|html)$/.test(name));
-files.push('openapi.json');
-for (const f of files) {
-  await copyFile(path.join(root, f), path.join(destination, f));
+for (const [url, source] of Object.entries(publicEntries)) {
+  await copyFile(path.join(root, source), path.join(destination, url));
 }
-for (const dir of ['assets', 'samples', 'vendor']) {
-  await cp(path.join(root, dir), path.join(destination, dir), {
+for (const directory of ['frontend/static', 'frontend/.build']) {
+  await cp(path.join(root, directory), destination, {
     recursive: true,
   });
 }

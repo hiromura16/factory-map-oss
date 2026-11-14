@@ -16,10 +16,10 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 
 
 server = http.server.ThreadingHTTPServer(
-    ("127.0.0.1", 0), functools.partial(Quiet, directory=str(ROOT))
+    ("127.0.0.1", 0), functools.partial(Quiet, directory=str(ROOT / "public"))
 )
 threading.Thread(target=server.serve_forever, daemon=True).start()
-seed = json.loads((ROOT / "server/seed.json").read_text())
+seed = json.loads((ROOT / "shared/demo/seed.json").read_text())
 try:
     with sync_playwright() as p:
         browser = p.chromium.launch(

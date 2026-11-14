@@ -2,11 +2,11 @@
 
 ブラウザーで使用するファイルはローカルに同梱しているため、セルフホスト時にCDNへアクセスせず利用できます。
 
-| ライブラリ          | バージョン | ライセンス   | 同梱ライセンスファイル        |
-| ------------------- | ---------- | ------------ | ----------------------------- |
-| Leaflet             | 1.9.4      | BSD-2-Clause | vendor/LICENSE-leaflet.txt    |
-| Leaflet-Geoman Free | 2.18.3     | MIT          | vendor/LICENSE-geoman.txt     |
-| dxf-parser          | 1.1.2      | MIT          | vendor/LICENSE-dxf-parser.txt |
+| ライブラリ          | バージョン | ライセンス   | 同梱ライセンスファイル                        |
+| ------------------- | ---------- | ------------ | --------------------------------------------- |
+| Leaflet             | 1.9.4      | BSD-2-Clause | frontend/static/vendor/LICENSE-leaflet.txt    |
+| Leaflet-Geoman Free | 2.18.3     | MIT          | frontend/static/vendor/LICENSE-geoman.txt     |
+| dxf-parser          | 1.1.2      | MIT          | frontend/static/vendor/LICENSE-dxf-parser.txt |
 
 配布元のソース：
 
@@ -18,8 +18,8 @@ GeomanはFree版のみを同梱しています。このプロジェクトはGeom
 
 その他の同梱コンポーネント：
 
-- React / React DOM / Scheduler: MIT; vendor/LICENSE-react.txt, LICENSE-react-dom.txt, LICENSE-scheduler.txt.
-- Mozilla PDF.js 6.5.438: Apache-2.0; vendor/pdfjs/LICENSE.
-- Swagger UI: Apache-2.0; vendor/LICENSE-swagger-ui.txt.
+- React / React DOM / Scheduler: MIT; frontend/static/vendor/LICENSE-react.txt, LICENSE-react-dom.txt, LICENSE-scheduler.txt.
+- Mozilla PDF.js 6.5.438: Apache-2.0; frontend/static/vendor/pdfjs/LICENSE.
+- Swagger UI: Apache-2.0; frontend/static/vendor/LICENSE-swagger-ui.txt.
 
-このプロジェクトのMITライセンスは、各配布元のライセンス表記を置き換えるものではありません。Rustの依存関係は `server/Cargo.lock` に記載しています。バイナリを再配布する場合は、各依存関係のライセンスを確認してください。
+このプロジェクトのMITライセンスは、各配布元のライセンス表記を置き換えるものではありません。Rustの依存関係は `legacy/server/Cargo.lock` に記載しています。バイナリを再配布する場合は、各依存関係のライセンスを確認してください。

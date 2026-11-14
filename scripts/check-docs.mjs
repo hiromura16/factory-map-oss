@@ -12,6 +12,7 @@ const excluded = new Set([
   '.runtime',
   '.deploy',
   '.wrangler',
+  '.build',
   'target',
 ]);
 const failures = [];

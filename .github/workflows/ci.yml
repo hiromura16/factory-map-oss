@@ -20,10 +20,6 @@ jobs:
         run: npm ci
       - name: Check formatting and lint
         run: npm run check
-      - name: Check JavaScript
-        run: |
-          for file in *.js; do node --check "$file"; done
-          npm run check --prefix cloudflare
       - name: Test SaaS foundation
         run: npm test --prefix cloudflare
       - name: Test UI validation

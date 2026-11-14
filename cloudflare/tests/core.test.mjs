@@ -201,7 +201,7 @@ test('oversized snapshot rejected', () => {
 test('actual legacy seed version and history import', async () => {
   const fs = await import('node:fs');
   const legacy = JSON.parse(
-    fs.readFileSync(new URL('../../server/seed.json', import.meta.url), 'utf8'),
+    fs.readFileSync(new URL('../../shared/demo/seed.json', import.meta.url), 'utf8'),
   );
   assert.equal(legacy.version, 2);
   const result = importPreview(

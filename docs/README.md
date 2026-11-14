@@ -12,6 +12,7 @@
 ## 開発・運用する
 
 - [開発ガイド](development.md)：環境構築、整形、静的解析、テスト、画面撮影
+- [ソース配置](source-layout.md)：機能ごとの編集先、共通処理、生成物と配信パス
 - [アーキテクチャ](architecture.md)：コードの責務、保存、認証、同期
 - [Cloudflareへの配置](cloudflare.md)：SSO、D1、独自ドメイン、旧URLの停止
 - [開発への参加](../CONTRIBUTING.md)：命名・分割・生成物の方針

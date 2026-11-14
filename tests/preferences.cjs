@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { normalize, validImage } = require('../preferences.js');
+const { normalize, validImage } = require('../frontend/src/shared/preferences.js');
 assert.equal(normalize(null).theme, 'system');
 assert.equal(
   normalize({

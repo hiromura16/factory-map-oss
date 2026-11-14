@@ -1,6 +1,6 @@
 import { ApiError, validateState } from './core.mjs';
 import { validateTeam } from './team.mjs';
-import appearance from '../appearance.js';
+import appearance from '../shared/appearance.js';
 export const LIMITS = {
   free: {
     name: 'Free',

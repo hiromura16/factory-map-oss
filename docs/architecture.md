@@ -2,7 +2,7 @@
 
 ## 実行経路
 
-現行SaaSはReact / LeafletとCloudflare Workers / D1で構成します。旧Rust / PostgreSQL版は `server/` に残していますが、SaaS版とは別の実行経路です。
+現行SaaSはReact / LeafletとCloudflare Workers / D1で構成します。旧Rust / PostgreSQL版は `legacy/server/` に残していますが、SaaS版とは別の実行経路です。
 
 ```mermaid
 flowchart TB
@@ -22,13 +22,13 @@ flowchart TB
 
 | モジュール                                | 役割                                           |
 | ----------------------------------------- | ---------------------------------------------- |
-| `frontend/product.jsx`                    | アカウント、業務メニュー、台帳・設定の切り替え |
+| `frontend/src/console/product.jsx`        | アカウント、業務メニュー、台帳・設定の切り替え |
 | `team-dashboard.jsx`                      | 遅れ・担当未定・負荷・点検・工事の集計と導線   |
 | `team.jsx`                                | タスクの絞り込み・保存・選択・詳細の制御       |
 | `task-views.jsx`                          | 一覧・ボード・週間予定とタスクカード           |
 | `team-task.jsx`                           | 詳細の編集、未保存保護、完了、コメント、資料   |
 | `team-plans.jsx` / `team-inspections.jsx` | 点検計画、次回点検、実施結果                   |
-| `app.js` とマップ用スクリプト             | 地図、描画、設備、付箋、レイヤー、図面         |
+| `frontend/src/map/`                       | 地図、描画、設備、付箋、レイヤー、図面         |
 
 ## データと保存
 

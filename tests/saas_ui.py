@@ -18,7 +18,7 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 
 
 server = http.server.ThreadingHTTPServer(
-    ("127.0.0.1", 0), functools.partial(Quiet, directory=str(ROOT))
+    ("127.0.0.1", 0), functools.partial(Quiet, directory=str(ROOT / "public"))
 )
 threading.Thread(target=server.serve_forever, daemon=True).start()
 origin = "http://127.0.0.1:" + str(server.server_port)

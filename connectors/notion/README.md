@@ -45,6 +45,6 @@ if (merge.conflicts.length) {
 
 このパッケージはAPIクライアント、プロパティの変換関数、マージ関数を提供します。トークンの保存、Webhookの登録、定期実行の設定は含みません。
 
-PlantDeskでは、[`cloudflare/notion/`](../../cloudflare/notion/) と [`frontend/notion-sync.jsx`](../../frontend/notion-sync.jsx) が、認証情報の暗号化保存、組織ごとのデータ分離、同期処理の排他制御、再開位置の保存、レコードの対応付け、競合の確認、設定画面を担当します。
+PlantDeskでは、[`cloudflare/notion/`](../../cloudflare/notion/) と [`frontend/src/console/notion-sync.jsx`](../../frontend/src/console/notion-sync.jsx) が、認証情報の暗号化保存、組織ごとのデータ分離、同期処理の排他制御、再開位置の保存、レコードの対応付け、競合の確認、設定画面を担当します。
 
 ソースはGitHubで公開しています。npmには公開していません。

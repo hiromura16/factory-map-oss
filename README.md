@@ -74,17 +74,25 @@ flowchart LR
   Sync <--> Notion[Notion API]
 ```
 
-| 場所                                 | 役割                                                  |
-| ------------------------------------ | ----------------------------------------------------- |
-| `frontend/`                          | Reactの管理画面・フォーム・タスク表示                 |
-| ルートの `*.js` / `*.css` / `*.html` | 敷地マップとブラウザー共通機能                        |
-| `cloudflare/`                        | API、認証、入力検証、D1、Notion同期、マイグレーション |
-| `connectors/notion/`                 | アプリから独立したNotionコネクター                    |
-| `scripts/` / `tests/`                | ビルド・開発・画面撮影・テスト                        |
-| `docs/`                              | 利用・開発・運用ドキュメントと画像                    |
-| `server/`                            | 旧Rust / PostgreSQL版。現行SaaSとは別です             |
+```text
+frontend/
+  src/console/   # Reactの管理画面・タスク・台帳
+  src/map/       # 敷地マップ・設備・付箋・図面
+  src/shared/    # ブラウザー共通機能・APIクライアント
+  src/styles/    # 自作CSS
+  pages/         # HTMLの入口
+  static/        # 図面サンプル・画像・第三者ライブラリー
+cloudflare/      # Workers API・認証・D1・Notion同期
+shared/          # ブラウザーとAPIの共通処理・デモデータ
+api/             # OpenAPI仕様
+connectors/      # アプリから独立した連携部品
+scripts/         # ビルド・開発・品質チェック・撮影
+tests/           # API実行環境・画面のテスト
+docs/           # 日本語ドキュメント・画像
+legacy/          # 旧Rust版・汎用OIDCコンソール
+```
 
-`public/` とReactバンドルは生成物です。直接編集せず `npm run build` で生成します。
+`public/` と `frontend/.build/` は生成物です。直接編集せず `npm run build` で生成します。ソースを動かしても配信URLを保つ対応表は `frontend/entries.mjs` にあります。[ソース配置のガイド](docs/source-layout.md)で編集先を確認できます。
 
 ## 品質チェック
 

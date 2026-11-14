@@ -20,13 +20,15 @@ Workersの環境を調べる場合は `npm run dev:worker` を使います。D1�
 
 ## コードの書き方
 
+[ソース配置](source-layout.md)に用途ごとの編集先と、ビルド時の配信パスをまとめています。
+
 - PythonはRuffで整形・静的解析します。
 - JavaScript / JSX / CSS / HTML / MarkdownはPrettierで整形します。インデントは2スペース、JavaScriptの文字列はシングルクォートです。
 - 状態は `draft` / `setDraft` のように役割を表します。状態更新関数を1文字に省略しません。
-- 表示、API呼び出し、業務ルールを分けます。一覧・ボード・週間表示は `frontend/task-views.jsx`、保存や絞り込みはワークスペースが担当します。
+- 表示、API呼び出し、業務ルールを分けます。一覧・ボード・週間表示は `frontend/src/console/task-views.jsx`、保存や絞り込みはワークスペースが担当します。
 - 既存の共有スクリプトはIIFEと `window.Factory...` の公開インターフェースを維持します。グローバル依存はESLint設定に明記します。
 - 権限・テナント・型・参照・ロック・同時更新の検証を、画面の都合で省略しません。
-- `public/` と `vendor/factory-ui.js` は生成物です。第三者ライブラリーの `vendor/` は個別のライセンスを保持します。
+- `public/` と `frontend/.build/vendor/factory-ui.js` は生成物です。第三者ライブラリーの `frontend/static/vendor/` は個別のライセンスを保持します。
 
 ```sh
 npm run format

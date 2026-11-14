@@ -13,12 +13,12 @@ import {
   validDate,
   addDemoTeam,
 } from './team.mjs';
-import layerSets from '../layer-set-state.js';
+import layerSets from '../shared/layer-set-state.js';
 import { previewAssets } from './asset-import.mjs';
 import { addWorkflowDemo } from './workflow-demo.mjs';
 import { makeProject, projectStats, taskBlockers } from './workflow.mjs';
 import { notionRoutes } from './notion/routes.mjs';
-import seed from '../server/seed.json' with { type: 'json' };
+import seed from '../shared/demo/seed.json' with { type: 'json' };
 const now = () => new Date().toISOString();
 const enc = new TextEncoder();
 const json = (x, status = 200, extra = {}) =>

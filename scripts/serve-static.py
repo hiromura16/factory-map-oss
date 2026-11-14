@@ -1,40 +1,22 @@
 """Serve only the reviewed browser UI assets, never the project directory.
 
-Usage: python3 serve_ui.py --bind 192.168.16.16 --port 8017
+Usage: python3 scripts/serve-static.py --bind 192.168.16.16 --port 8017
 This is a prototype viewer, not a shared application backend.
 """
 
 import argparse
+import json
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-ROOT = Path(__file__).resolve().parent / "public"
-ALLOWED = frozenset(
-    {
-        "index.html",
-        "styles.css",
-        "app.js",
-        "cad.js",
-        "assets/site-plan.svg",
-        "assets/floor-plan.svg",
-        "samples/factory-layout.dxf",
-        "vendor/leaflet.js",
-        "vendor/leaflet.css",
-        "vendor/geoman.js",
-        "vendor/geoman.css",
-        "vendor/dxf-parser.js",
-        "vendor/LICENSE-leaflet.txt",
-        "vendor/LICENSE-geoman.txt",
-        "vendor/LICENSE-dxf-parser.txt",
-        "vendor/images/marker-icon.png",
-        "vendor/images/marker-icon-2x.png",
-        "vendor/images/marker-shadow.png",
-        "vendor/images/layers.png",
-        "vendor/images/layers-2x.png",
-    }
-)
+ROOT = Path(__file__).resolve().parents[1] / "public"
+# ビルド一覧にないファイルは public/ に置かれていても配信しません。
+MANIFEST = ROOT.parent / ".deploy/manifest.json"
+if not MANIFEST.is_file():
+    raise SystemExit("先に npm run build を実行してください。")
+ALLOWED = frozenset(path.removeprefix("/") for path in json.loads(MANIFEST.read_text()))
 
 
 class UIHandler(SimpleHTTPRequestHandler):

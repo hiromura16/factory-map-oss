@@ -11,14 +11,15 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
-    "check": "npm run format:check && npm run lint && node scripts/check-docs.mjs",
-    "build": "npm run build --prefix frontend && node scripts/build-saas.mjs",
+    "check": "npm run format:check && npm run lint && node scripts/check-docs.mjs && npm run check:syntax",
+    "build": "npm run build --prefix frontend && node scripts/build.mjs",
     "test": "npm test --prefix cloudflare && node tests/preferences.cjs && node tests/saas.cjs",
     "test:runtime": "node tests/worker-auth-runtime.mjs && node tests/notion-connector-runtime.mjs",
     "test:ui": "python3 tests/task_workspace_ui.py && python3 tests/team_operations_ui.py && python3 tests/workflow_ui.py",
     "screenshots": "python3 scripts/capture-screenshots.py",
     "dev": "node scripts/dev-server.mjs",
-    "dev:worker": "npm run dev --prefix cloudflare"
+    "dev:worker": "npm run dev --prefix cloudflare",
+    "check:syntax": "node scripts/check-syntax.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

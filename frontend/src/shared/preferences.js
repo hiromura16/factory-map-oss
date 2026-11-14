@@ -4,7 +4,8 @@
 
   const KEY = 'factory-map.preferences.v1';
   const MAX_ICONS = 50;
-  const appearance = typeof window === 'undefined' ? require('./appearance.js') : FactoryAppearance;
+  const appearance =
+    typeof window === 'undefined' ? require('../../../shared/appearance.js') : FactoryAppearance;
   const DEFAULTS = {
     theme: 'system',
     accent: '#167566',

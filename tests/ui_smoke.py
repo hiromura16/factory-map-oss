@@ -42,7 +42,9 @@ def run():
         page.locator("#plan-dialog [data-close]").last.click()
 
         page.locator("#import-open").click()
-        page.locator("#cad-file").set_input_files(str(ROOT / "samples/factory-layout.dxf"))
+        page.locator("#cad-file").set_input_files(
+            str(ROOT / "frontend/static/samples/factory-layout.dxf")
+        )
         page.wait_for_function('window.factoryMap.currentDrawing !== "site"')
         drawing_id = page.evaluate("window.factoryMap.currentDrawing")
         cad = page.evaluate(
@@ -50,7 +52,7 @@ def run():
         )
         assert len(cad["features"]) >= 20, cad
         assert "BUILDINGS" in cad["layers"] and "EQUIPMENT" in cad["layers"]
-        source = (ROOT / "samples/factory-layout.dxf").read_text()
+        source = (ROOT / "frontend/static/samples/factory-layout.dxf").read_text()
         mm_source = source.replace("9\n$INSUNITS\n70\n6", "9\n$INSUNITS\n70\n4")
         mm_cad = page.evaluate("(source)=>FactoryCAD.parse(source)", mm_source)
         assert abs(mm_cad["bounds"][1][1] - cad["bounds"][1][1] / 1000) < 1e-8, (

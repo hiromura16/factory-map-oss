@@ -1,5 +1,10 @@
 const assert = require('node:assert/strict');
-const { secureURL, validateConfig, claims, verifyClaims } = require('../saas.js');
+const {
+  secureURL,
+  validateConfig,
+  claims,
+  verifyClaims,
+} = require('../legacy/oidc-console/saas.js');
 assert.equal(secureURL('https://example.org/auth').protocol, 'https:');
 assert.equal(secureURL('http://localhost:8080/auth').protocol, 'http:');
 for (const url of [

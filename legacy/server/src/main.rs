@@ -291,7 +291,7 @@ async fn static_get(State(a):State<App>,req:Request)->Result<Response>{
  let bytes=tokio::fs::read(file).await.map_err(|_|missing())?;let mime=mime_guess::from_path(&path).first_or_octet_stream().to_string();let mut response=Body::from(bytes).into_response();response.headers_mut().insert("content-type",HeaderValue::from_str(&if mime.starts_with("text/")||["application/javascript","application/json","image/svg+xml"].contains(&mime.as_str()){format!("{mime}; charset=utf-8")}else{mime}).unwrap());Ok(response)
 }
 #[tokio::main]async fn main()->std::result::Result<(),Box<dyn std::error::Error>>{
- let root=std::env::var("FACTORY_MAP_ROOT").map(PathBuf::from).unwrap_or_else(|_|PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf());
+ let root=std::env::var("FACTORY_MAP_ROOT").map(PathBuf::from).unwrap_or_else(|_|PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().to_path_buf());
  let config:Value=serde_json::from_slice(&std::fs::read(root.join(".runtime/config.json"))?)?;
  let pool=PgPoolOptions::new().max_connections(10).connect(config["database_url"].as_str().ok_or("missing database_url")?).await?;
  sqlx::raw_sql(include_str!("../schema.sql")).execute(&pool).await?;
@@ -301,9 +301,9 @@ async fn static_get(State(a):State<App>,req:Request)->Result<Response>{
   let path=root.join(".runtime/initial-admin-password.txt");let mut f=std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&path)?;f.write_all(password.as_bytes())?;println!("Initial password is stored privately at {}",path.display());
  }
  if sqlx::query_scalar::<_,i64>("SELECT count(*) FROM drawings").fetch_one(&pool).await?==0{
-  let bytes=std::fs::read(root.join("server/demo.pdf"))?;
+  let bytes=std::fs::read(root.join("shared/demo/demo.pdf"))?;
   sqlx::query("INSERT INTO attachments(id,name,mime,size,content) VALUES('demo-document','設備・点検サンプル.pdf','application/pdf',$1,$2) ON CONFLICT DO NOTHING").bind(bytes.len() as i64).bind(bytes).execute(&pool).await?;
-  let seed:Value=serde_json::from_slice(&std::fs::read(root.join("server/seed.json"))?)?;let mut tx=pool.begin().await?;persist(&mut tx,&seed,"seed.initialize",json!({"sample":true})).await?;tx.commit().await?;
+  let seed:Value=serde_json::from_slice(&std::fs::read(root.join("shared/demo/seed.json"))?)?;let mut tx=pool.begin().await?;persist(&mut tx,&seed,"seed.initialize",json!({"sample":true})).await?;tx.commit().await?;
  }
  let a=App{pool,root,attempts:Arc::new(Mutex::new(HashMap::new())),thumbnail_slots:Arc::new(tokio::sync::Semaphore::new(2))};
  let router=Router::new().route("/api/health",get(health)).route("/api/capabilities",get(capabilities))

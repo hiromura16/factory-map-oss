@@ -5,14 +5,15 @@ export default [
   {
     ignores: [
       'public/**',
-      'vendor/**',
+      'frontend/static/vendor/**',
+      'frontend/.build/**',
       'node_modules/**',
       '**/node_modules/**',
       '.runtime/**',
       '.deploy/**',
       '.wrangler/**',
       'cloudflare/dist/**',
-      'server/target/**',
+      'legacy/server/target/**',
     ],
   },
   js.configs.recommended,
@@ -55,7 +56,7 @@ export default [
     },
   },
   {
-    files: ['*.js', 'frontend/**/*.jsx'],
+    files: ['frontend/src/**/*.{js,jsx}', 'shared/*.js', 'legacy/oidc-console/*.js'],
     languageOptions: {
       sourceType: 'script',
       globals: Object.fromEntries(

@@ -77,7 +77,7 @@ async def main():
             await page.locator("#asset-dialog [name=code]").fill(prefix)
             await page.locator('#asset-dialog [name="prop-' + pid + '"]').fill("23.5")
             await page.locator("#asset-files input[type=file]").set_input_files(
-                str(ROOT / "server/demo.pdf")
+                str(ROOT / "shared/demo/demo.pdf")
             )
             await page.locator("#asset-dialog [type=submit]").click()
             await page.wait_for_function(
@@ -122,7 +122,10 @@ async def main():
             await page.evaluate('window.factoryMap.openRecord("works","w1")')
             await page.locator("#work-edit").click()
             await page.locator("#field-attachment").set_input_files(
-                [str(ROOT / "server/demo.pdf"), str(ROOT / "samples/factory-layout.dxf")]
+                [
+                    str(ROOT / "shared/demo/demo.pdf"),
+                    str(ROOT / "frontend/static/samples/factory-layout.dxf"),
+                ]
             )
             await page.locator("#work-form [type=submit]").click()
             await page.wait_for_function(

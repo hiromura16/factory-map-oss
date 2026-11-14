@@ -86,7 +86,7 @@ async def main():
                     "file": {
                         "name": "点検サンプル.pdf",
                         "mimeType": "application/pdf",
-                        "buffer": (ROOT / "server/demo.pdf").read_bytes(),
+                        "buffer": (ROOT / "shared/demo/demo.pdf").read_bytes(),
                     }
                 },
             )
