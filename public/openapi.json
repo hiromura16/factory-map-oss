@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "PlantDesk API",
-    "version": "2.3.0",
+    "version": "2.4.0",
     "description": "施設管理・工事台帳・点検・図面階層・お知らせの共有API。Cloudflare Access SSOで認証し、施設担当モードで更新します。閲覧モードには公開されたお知らせと図面のみ返します。"
   },
   "servers": [
@@ -4084,7 +4084,7 @@
       },
       "post": {
         "summary": "作業を登録",
-        "description": "",
+        "description": "案件・親作業・先行作業・依頼元・完了条件を指定できます。循環参照、先行作業が未完了の状態での開始、未完了の子作業がある親の完了を拒否します。",
         "tags": [
           "Team operations"
         ],
@@ -5454,6 +5454,287 @@
           }
         }
       }
+    },
+    "/api/projects": {
+      "get": {
+        "summary": "案件一覧",
+        "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        }
+      },
+      "post": {
+        "summary": "案件を登録",
+        "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "record"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/TeamProject"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}": {
+      "get": {
+        "summary": "案件詳細",
+        "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "案件を更新",
+        "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision",
+                  "record"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "record": {
+                    "$ref": "#/components/schemas/TeamProject"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "案件を削除",
+        "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/team/projects": {
+      "get": {
+        "summary": "案件の進捗と先行作業待ち",
+        "description": "施設担当モード専用。中止を除く作業の完了率・期限超過・見積時間を返します。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "案件ごとのstatsと、先行作業待ちの作業IDを返します。"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          }
+        }
+      }
+    },
+    "/api/team/workflow-demo": {
+      "post": {
+        "summary": "案件と工程のサンプルを追加",
+        "description": "案件・作業・担当者・点検計画がすべて空の場合だけ、案件3件・作業16件・担当者4名・計画1件を追加します。設備・工事は保持します。",
+        "tags": [
+          "Team operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同時更新・使用中の参照"
+          },
+          "422": {
+            "description": "入力・チェック・参照エラー"
+          },
+          "423": {
+            "description": "設備がロック中"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "revision"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5944,6 +6225,35 @@
               "type": "object",
               "additionalProperties": true
             }
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "requestor": {
+            "type": "string"
+          },
+          "acceptanceCriteria": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "着手予定。空文字またはYYYY-MM-DD。"
+          },
+          "dependsOnIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "uniqueItems": true,
+            "description": "先行作業のID。すべて完了すると開始・完了できる。"
+          },
+          "acceptanceConfirmed": {
+            "type": "boolean",
+            "description": "完了条件を確認したか。完了条件がある作業の完了時に必須。"
           }
         }
       },
@@ -6039,6 +6349,43 @@
                 }
               }
             }
+          }
+        }
+      },
+      "TeamProject": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planning",
+              "active",
+              "on_hold",
+              "done",
+              "cancelled"
+            ]
           }
         }
       }

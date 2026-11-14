@@ -1,12 +1,13 @@
 import {ApiError} from './core.mjs';
-export const TEAM_COLLECTIONS=['tasks','teamMembers','inspectionPlans'];
+import {validateWorkflow,taskBlockers} from './workflow.mjs';
+export const TEAM_COLLECTIONS=['tasks','teamMembers','inspectionPlans','projects'];
 export const STATUS={open:'未着手',in_progress:'進行中',waiting:'確認・手配待ち',done:'完了',cancelled:'中止'};
 export const PRIORITY={urgent:'最優先',high:'高',normal:'通常',low:'低'};
 export const teamToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 export const validDate=x=>typeof x==='string'&&/^\d{4}-\d\d-\d\d$/.test(x)&&Number.isFinite(Date.parse(x+'T00:00:00Z'))&&new Date(x+'T00:00:00Z').toISOString().slice(0,10)===x;
 export const addDays=(value,days)=>{const d=new Date(value+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);};
 export const isOpen=t=>!['done','cancelled'].includes(t.status);
-export function ensureTeam(s){for(const k of TEAM_COLLECTIONS)s[k]??=[];return s;}
+export function ensureTeam(s){for(const k of TEAM_COLLECTIONS)s[k]??=[];for(const t of s.tasks)for(const [k,v]of Object.entries({projectId:'',parentId:'',dependsOnIds:[],startDate:'',requestor:'',acceptanceCriteria:'',acceptanceConfirmed:false}))if(t[k]===undefined)t[k]=structuredClone(v);return s;}
 const fail=m=>{throw new ApiError(422,m);};
 const text=(x,n,required=false)=>typeof x==='string'&&x.length<=n&&(!required||!!x.trim());
 export function validateTeam(s,previous){
@@ -25,10 +26,10 @@ export function validateTeam(s,previous){
   if(t.origin){if(!text(t.origin.planId,100,true)||!validDate(t.origin.cycleDate))fail('点検計画の起票情報が不正です。');const key=JSON.stringify([t.origin.planId,t.origin.cycleDate,t.assetId]);if(origins.has(key))fail('同じ点検計画・予定日・設備の作業が重複しています。');origins.add(key);}
  }
  for(const p of s.inspectionPlans){if(!text(p.name,150,true)||!Array.isArray(p.assetIds)||!p.assetIds.length||p.assetIds.length>500||new Set(p.assetIds).size!==p.assetIds.length||p.assetIds.some(id=>!assets.has(id))||!validDate(p.nextDue)||!Number.isInteger(p.intervalDays)||p.intervalDays<1||p.intervalDays>730||!text(p.assigneeId,100)||p.assigneeId&&!members.has(p.assigneeId)||!checklist(p.checklist,false)||typeof p.active!=='boolean'||!Object.hasOwn(PRIORITY,p.priority)||!Number.isInteger(p.estimatedMinutes)||p.estimatedMinutes<0||p.estimatedMinutes>10080||!text(p.description,5000))fail('点検計画の対象設備・周期・次回日・担当・チェックリストを確認してください。');}
- return s;
+ validateWorkflow(s);return s;
 }
 export function makeTask(input,previous=null){
- const defaults={title:'',description:'',kind:'task',status:'open',priority:'normal',dueDate:'',assigneeId:'',assetId:'',workId:'',drawingId:'',estimatedMinutes:30,blocker:'',checklist:[],attachments:[]};
+ const defaults={title:'',description:'',kind:'task',status:'open',priority:'normal',dueDate:'',assigneeId:'',assetId:'',workId:'',drawingId:'',estimatedMinutes:30,blocker:'',checklist:[],attachments:[],projectId:'',parentId:'',dependsOnIds:[],startDate:'',requestor:'',acceptanceCriteria:'',acceptanceConfirmed:false};
  const allowed=Object.keys(defaults);if(Object.keys(input).some(k=>!allowed.includes(k)&&k!=='id'))throw new ApiError(422,'作業の未定義項目、またはサーバー管理項目は変更できません。');
  const record={...defaults,...previous,...input,id:previous?.id||input.id||crypto.randomUUID(),updatedAt:new Date().toISOString()};if(!previous)record.createdAt=record.updatedAt;
  if(record.status==='done'&&!previous?.completedAt)record.completedAt=record.updatedAt;else if(record.status!=='done')delete record.completedAt;
@@ -47,6 +48,7 @@ export function generatePlan(state,plan,cycleDate){
 }
 export function completeTask(state,id,input,actor){
  const t=state.tasks.find(t=>t.id===id);if(!t)throw new ApiError(404,'作業がありません。');if(!isOpen(t))throw new ApiError(409,'この作業はすでに完了・中止しています。');
+ const blockers=taskBlockers(state,t);if(blockers.dependencies.length||blockers.children.length)throw new ApiError(422,'先行作業・子作業が完了していません。');if(t.acceptanceCriteria?.trim()&&!t.acceptanceConfirmed)throw new ApiError(422,'完了条件を確認してください。');
  if(input.checklist!==undefined){if(!Array.isArray(input.checklist)||input.checklist.length!==t.checklist.length||new Set(input.checklist.map(c=>c.id)).size!==t.checklist.length||input.checklist.some(c=>!t.checklist.some(x=>x.id===c.id)||typeof c.done!=='boolean'))fail('チェック項目が更新されています。再読み込みしてください。');t.checklist=t.checklist.map(c=>({...c,done:input.checklist.find(x=>x.id===c.id).done}));}
  if(t.checklist.some(c=>!c.done))throw new ApiError(422,'チェックリストをすべて確認してから完了してください。');
  if(t.kind==='inspection'){

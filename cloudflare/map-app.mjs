@@ -4,6 +4,8 @@ import {LIMITS, validateMap, visibleState, fileIds, preferences} from './map-val
 import {TEAM_COLLECTIONS,ensureTeam,makeTask,planPreview,generatePlan,completeTask,teamReport,teamToday,validDate,addDemoTeam} from './team.mjs';
 import layerSets from '../layer-set-state.js';
 import {previewAssets} from './asset-import.mjs';
+import {addWorkflowDemo} from './workflow-demo.mjs';
+import {makeProject,projectStats,taskBlockers} from './workflow.mjs';
 import {notionRoutes} from './notion/routes.mjs';
 import seed from '../server/seed.json' with {type:'json'};
 
@@ -69,10 +71,10 @@ async function settings(env,c){const p=await env.DB.prepare('SELECT value_json F
 function mutate(state,kind,id,method,input){
  const key=kind==='properties'?'propertyDefinitions':kind,list=state[key];if(!list)throw new ApiError(404,'対象がありません。');let record;
  const index=list.findIndex(x=>x.id===id);
- if(method==='POST'&&key==='tasks'){record=makeTask(input);if(list.some(x=>x.id===record.id))throw new ApiError(409,'IDが重複しています。');list.push(record);}
+ if(method==='POST'&&['tasks','projects'].includes(key)){record=(key==='tasks'?makeTask:makeProject)(input);if(list.some(x=>x.id===record.id))throw new ApiError(409,'IDが重複しています。');list.push(record);}
  else if(method==='POST'){record={...input,id:input.id||crypto.randomUUID(),updatedAt:now()};if(list.some(x=>x.id===record.id))throw new ApiError(409,'IDが重複しています。');if(key==='assets'){record.history??=[];record.attachments??=[];record.properties??={};}list.push(record);}
  else if(index<0)throw new ApiError(404,'対象が見つかりません。');
- else if(method==='PATCH'&&key==='tasks'){record=makeTask(input,list[index]);list[index]=record;}
+ else if(method==='PATCH'&&['tasks','projects'].includes(key)){record=(key==='tasks'?makeTask:makeProject)(input,list[index]);list[index]=record;}
  else if(method==='PATCH'){record={...list[index],...input,id,updatedAt:now()};list[index]=record;}
  else if(method==='DELETE'){if(key==='assets'&&(state.tasks.some(t=>t.assetId===id)||state.inspectionPlans.some(p=>p.assetIds.includes(id))))throw new ApiError(409,'作業・点検計画で使用中の設備です。先に関連を整理してください。');if(key==='works'&&state.tasks.some(t=>t.workId===id))throw new ApiError(409,'作業から参照されています。先に関連工事の指定を外してください。');if(key==='teamMembers'&&(state.tasks.some(t=>t.assigneeId===id)||state.inspectionPlans.some(p=>p.assigneeId===id)))throw new ApiError(409,'担当作業が残っています。担当者を休止するか、割り当てを変更してください。');record=list.splice(index,1)[0];if(key==='propertyDefinitions')state.assets.forEach(a=>delete a.properties[id]);if(key==='assets')state.works.forEach(w=>w.assetIds=(w.assetIds||[]).filter(x=>x!==id));if(key==='layers')for(const set of state.layerSets)set.rules=set.rules.filter(r=>r.layerId!==id);if(key==='layers')for(const x of [...state.assets,...state.works,...state.notes,...state.drawingLinks])if(x.layerId===id)delete x.layerId;}
  else throw new ApiError(405,'この操作に対応していません。');return record;
@@ -106,8 +108,8 @@ export async function handleMap(request,env){
  if(path.startsWith('/api/notion/')){editable(c);return notionRoutes(request,env,c,{readJSON,commit,mutate});}
  if(path==='/api/session')return json({saas:true,sso:'Cloudflare Access',profile:c.profile,editor:c.editor,role:c.org.role,organization:{id:c.org.id,name:c.org.name},plan:c.org.plan,limits:c.limits,mockBilling:true,profiles:[{id:'free',name:'無料デモ',plan:'free',role:'editor'},{id:'pro',name:'有料管理者デモ',plan:'pro',role:'owner'}],preferences:await settings(env,c)});
  if(path==='/api/demo/profile'&&method==='POST'){const input=await readJSON(request);if(!['free','pro'].includes(input.profile))throw new ApiError(422,'アカウントを選択してください。');return json({profile:input.profile},200,{'set-cookie':cookie('factory_profile',input.profile)});}
- if(path==='/api/health')return json({ok:true,database:'Cloudflare D1',version:'2.3.0',billing:'demo-no-payments'});
- if(path==='/api/capabilities')return json({version:'2.3.0',authentication:'Cloudflare Access SSO',billing:'demo-no-payments',webmcp:true,tools:80,profile:c.profile,plan:c.org.plan,limits:c.limits,fileLimitBytes:5*1024*1024,snapshotLimitBytes:750000,features:['works','assets','drawings','properties','notes','inspection-history','photo-thumbnails','pdf-preview','shared-icons','shared-preferences','csv-history-import','json-import-export','backups','audit','demo-accounts','display-presets','custom-layers','drawing-hierarchy','work-history','configurable-registers','layer-sets','equipment-json-import','team-workboard','inspection-plans','task-history','handover-reports','notion-polling-sync','notion-connector']});
+ if(path==='/api/health')return json({ok:true,database:'Cloudflare D1',version:'2.4.0',billing:'demo-no-payments'});
+ if(path==='/api/capabilities')return json({version:'2.4.0',authentication:'Cloudflare Access SSO',billing:'demo-no-payments',webmcp:true,tools:87,profile:c.profile,plan:c.org.plan,limits:c.limits,fileLimitBytes:5*1024*1024,snapshotLimitBytes:750000,features:['works','assets','drawings','properties','notes','inspection-history','photo-thumbnails','pdf-preview','shared-icons','shared-preferences','csv-history-import','json-import-export','backups','audit','demo-accounts','display-presets','custom-layers','drawing-hierarchy','work-history','configurable-registers','layer-sets','equipment-json-import','team-workboard','inspection-plans','task-history','handover-reports','notion-polling-sync','notion-connector','team-projects','task-dependencies','task-subtasks','acceptance-criteria']});
  if(path==='/api/auth/status')return json({editor:c.editor,role:c.org.role,sso:true});
  if(path==='/api/auth/login'&&method==='POST'){if(!['owner','editor'].includes(c.org.role))throw new ApiError(403,'施設担当者の権限が必要です。');return json({editor:true,sso:true},200,{'set-cookie':cookie('factory_mode','facility')});}
  if(path==='/api/auth/logout'&&method==='POST')return json({editor:false},200,{'set-cookie':cookie('factory_mode','viewer')});
@@ -138,6 +140,8 @@ export async function handleMap(request,env){
  const snapshot=path.match(/^\/api\/snapshots\/([a-zA-Z0-9-]+)(\/restore)?$/);if(snapshot){owner(c);editable(c);if(!c.limits.snapshots)throw new ApiError(403,'Proの機能です。');const s=await env.DB.prepare('SELECT * FROM map_snapshots WHERE id=? AND organization_id=?').bind(snapshot[1],c.org.id).first();if(!s)throw new ApiError(404,'バックアップが見つかりません。');if(method==='DELETE'){await env.DB.prepare('DELETE FROM map_snapshots WHERE id=? AND organization_id=?').bind(s.id,c.org.id).run();return json({deleted:true});}if(method==='POST'&&snapshot[2]){const input=await readJSON(request);return json({revision:await commit(env,c,JSON.parse(s.state_json),'snapshot.restore',input.revision)});}}
  const requireRevision=input=>{if(!Number.isSafeInteger(input.revision))throw new ApiError(422,'最新のrevisionが必要です。');return input.revision;};
  if(path==='/api/team/report'&&method==='GET'){editable(c);const day=url.searchParams.get('date')||teamToday();if(!validDate(day))throw new ApiError(422,'日付が不正です。');const report=teamReport(state,day),comments=await env.DB.prepare("SELECT task_id,comment,created_at FROM map_task_events WHERE organization_id=? AND action='comment' ORDER BY created_at DESC LIMIT 20").bind(c.org.id).all();report.comments=comments.results.map(e=>({...e,title:state.tasks.find(t=>t.id===e.task_id)?.title||'削除済みの作業'}));report.markdown+='\n\n## 最近の引き継ぎコメント（最新20件）\n'+(report.comments.map(e=>'- '+e.title+'\n  '+e.comment.replace(/\n/g,'\n  ')).join('\n')||'- なし');return json({...report,revision:c.org.revision});}
+ if(path==='/api/team/projects'&&method==='GET'){editable(c);return json({items:state.projects.map(p=>({...p,stats:projectStats(state,p.id)})),blocked:state.tasks.filter(t=>!['done','cancelled'].includes(t.status)&&taskBlockers(state,t).dependencies.length).map(t=>t.id),revision:c.org.revision});}
+ if(path==='/api/team/workflow-demo'&&method==='POST'){editable(c);const input=await readJSON(request),next=structuredClone(state),result=addWorkflowDemo(next);return json({...result,revision:await commit(env,c,next,'team.workflow-demo',requireRevision(input))},201);}
  if(path==='/api/team/demo'&&method==='POST'){editable(c);const input=await readJSON(request),next=structuredClone(state),result=addDemoTeam(next);return json({...result,revision:await commit(env,c,next,'team.demo',requireRevision(input))},201);}
  const taskAction=path.match(/^\/api\/tasks\/([^/]+)\/(complete|history|comments)$/);
  if(taskAction){editable(c);const[,id,action]=taskAction,t=state.tasks.find(t=>t.id===id);
@@ -148,7 +152,7 @@ export async function handleMap(request,env){
  }
  const planAction=path.match(/^\/api\/inspectionPlans\/([^/]+)\/(preview|generate)$/);
  if(planAction){editable(c);const plan=state.inspectionPlans.find(p=>p.id===planAction[1]);if(!plan)throw new ApiError(404,'点検計画がありません。');if(planAction[2]==='preview'&&method==='GET')return json({...planPreview(state,plan),revision:c.org.revision});if(planAction[2]==='generate'&&method==='POST'){const input=await readJSON(request),next=structuredClone(state),preview=generatePlan(next,next.inspectionPlans.find(p=>p.id===plan.id),input.cycleDate);return json({...preview,revision:await commit(env,c,next,'inspection-plan.generate',requireRevision(input))},201);}throw new ApiError(405,'対応していない操作です。');}
- const teamEntity=path.match(/^\/api\/(tasks|teamMembers|inspectionPlans)(?:\/([^/]+))?$/);
+ const teamEntity=path.match(/^\/api\/(tasks|teamMembers|inspectionPlans|projects)(?:\/([^/]+))?$/);
  if(teamEntity){editable(c);const[,kind,id]=teamEntity,list=state[kind];if(method==='GET'){if(id){const record=list.find(x=>x.id===id);if(!record)throw new ApiError(404,'対象がありません。');return json({record,revision:c.org.revision});}const q=(url.searchParams.get('q')||'').toLocaleLowerCase();return json({items:list.filter(r=>!q||JSON.stringify(r).toLocaleLowerCase().includes(q)),revision:c.org.revision});}
   const input=await readJSON(request),next=structuredClone(state),record=mutate(next,kind,id,method,input.record||{});return json({record,revision:await commit(env,c,next,kind+'.'+method.toLowerCase(),requireRevision(input))},method==='POST'?201:200);
  }

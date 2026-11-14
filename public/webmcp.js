@@ -52,7 +52,7 @@ window.FactoryWebMCP = (() => {
       await add('go_parent_drawing','上の図面へ戻ります。',object({}),()=>{FactoryOrganization.goParent();return{drawingId:app.currentDrawing};},true);
       await add('preview_equipment_json','設備JSONの追加・更新・エラーを保存せず確認します。',{...object({assets:{type:'array'},mode:{type:'string',enum:['add','upsert']},drawingId:string}),required:['assets']},input=>request('/api/assets/import-preview',{method:'POST',body:input}),true);
       await add('import_equipment_json','プレビュー後の設備JSONを一括保存します。点検履歴と添付資料を保持しロックを守ります。',{...object({assets:{type:'array'},mode:{type:'string',enum:['add','upsert']},drawingId:string,revision:{type:'number'},confirm:{type:'string',enum:['IMPORT_ASSETS']}}),required:['assets','revision','confirm']},async input=>{const r=await request('/api/assets/import',{method:'POST',body:input});await app.refresh();return r;});
-      for(const [kind,label]of [['tasks','チームの作業'],['teamMembers','担当者名簿'],['inspectionPlans','点検計画']]){
+      for(const [kind,label]of [['tasks','チームの作業'],['teamMembers','担当者名簿'],['inspectionPlans','点検計画'],['projects','案件・改善プロジェクト']]){
         await add('list_'+kind,label+'を取得します。施設担当モード専用です。',object({q:{type:'string'}}),input=>request('/api/'+kind+'?'+new URLSearchParams(input)),true);
         await add('get_'+kind,label+'の詳細を取得します。',{...object({id:string}),required:['id']},input=>request('/api/'+kind+'/'+encodeURIComponent(input.id)),true);
         for(const [action,method]of [['create','POST'],['update','PATCH'],['delete','DELETE']]){
@@ -66,6 +66,8 @@ window.FactoryWebMCP = (() => {
       await add('get_task_history','作業の変更と引き継ぎコメントを取得します。',{...object({id:string}),required:['id']},input=>request('/api/tasks/'+encodeURIComponent(input.id)+'/history'),true);
       await add('add_task_comment','引き継ぎコメントを変更履歴に保存します。',{...object({id:string,revision:{type:'number'},text:string}),required:['id','revision','text']},async input=>{const r=await request('/api/tasks/'+encodeURIComponent(input.id)+'/comments',{method:'POST',body:{revision:input.revision,text:input.text}});await app.refresh();return r;});
       await add('get_team_report','期限超過・未割り当て・手配待ち・担当負荷・直近完了の引き継ぎレポートを取得します。',object({date:string}),input=>request('/api/team/report?'+new URLSearchParams(input)),true);
+      await add('get_project_workload','案件ごとの作業数・進捗・期限超過・先行作業待ちを取得します。',object({}),()=>request('/api/team/projects'),true);
+      await add('add_workflow_demo','チーム管理が未登録の場合だけ、架空の案件3件・工程付き作業16件・担当4名・点検計画1件を追加します。',{...object({revision:{type:'number'}}),required:['revision']},async input=>{const r=await request('/api/team/workflow-demo',{method:'POST',body:input});await app.refresh();return r;});
       await add('get_notion_sync_status','Notionとの定期同期の状態を取得します。接続トークンは返しません。',object({}),()=>request('/api/notion/status'),true);
       await add('list_notion_sync_issues','Notion同期の競合・入力エラー・削除確認を取得します。',object({}),()=>request('/api/notion/issues'),true);
       await add('list_notion_sync_runs','Notion同期の実行履歴を取得します。',object({}),()=>request('/api/notion/runs'),true);

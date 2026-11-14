@@ -176,3 +176,36 @@ test('equipment import remains valid when tasks and inspection plans reference o
  const preview=await(await team('/api/assets/import-preview','POST',payload)).json();assert.equal(preview.canApply,true,JSON.stringify(preview.errors));assert.equal((await team('/api/assets/import','POST',{...payload,revision:preview.revision,confirm:'IMPORT_ASSETS'})).status,200);
  const next=(await(await team('/api/state')).json()).state;assert.equal(next.tasks.length,s.state.tasks.length);assert.equal(next.inspectionPlans.length,s.state.inspectionPlans.length);assert.equal(next.assets[5].location,'作業管理開始後に取り込み');
 });
+
+test('projects and task sequencing enforce dependencies, parent completion and explicit acceptance across all APIs',async()=>{
+ const request=(p,m='GET',body,cookie='')=>call(p,m,body,'pro','workflow-user',cookie),snapshot=async()=>await(await request('/api/state')).json();
+ let current=await snapshot();let r=await request('/api/projects','POST',{revision:current.revision,record:{name:'配管更新',goal:'受入まで確認する'}});assert.equal(r.status,201);const project=(await r.json()).record;
+ const create=async record=>{const s=await snapshot(),r=await request('/api/tasks','POST',{revision:s.revision,record:{projectId:project.id,...record}});assert.equal(r.status,201,await r.clone().text());return(await r.json()).record;};
+ const first=await create({title:'隔離を確認',acceptanceCriteria:'隔離手順を現場で確認'}),parent=await create({title:'配管更新を受け入れる',dependsOnIds:[first.id]}),child=await create({title:'漏れ検査',parentId:parent.id});
+ current=await snapshot();for(const record of [{status:'in_progress'},{status:'done'}])assert.equal((await request('/api/tasks/'+parent.id,'PATCH',{revision:current.revision,record})).status,422);
+ assert.equal((await request('/api/tasks/'+first.id+'/complete','POST',{revision:current.revision})).status,422);
+ assert.equal((await request('/api/tasks/'+first.id+'/complete','POST',{revision:current.revision,record:{acceptanceConfirmed:true}})).status,200);
+ current=await snapshot();assert.equal((await request('/api/tasks/'+parent.id,'PATCH',{revision:current.revision,record:{status:'in_progress'}})).status,200);
+ current=await snapshot();assert.equal((await request('/api/tasks/'+parent.id+'/complete','POST',{revision:current.revision})).status,422,'open child blocks parent completion');
+ assert.equal((await request('/api/projects/'+project.id,'PATCH',{revision:current.revision,record:{status:'done'}})).status,422);
+ assert.equal((await request('/api/tasks/'+child.id+'/complete','POST',{revision:current.revision})).status,200);
+ current=await snapshot();assert.equal((await request('/api/tasks/'+parent.id+'/complete','POST',{revision:current.revision})).status,200);
+ current=await snapshot();assert.equal((await request('/api/projects/'+project.id,'PATCH',{revision:current.revision,record:{status:'done'}})).status,200);
+ const stats=(await(await request('/api/team/projects')).json()).items.find(p=>p.id===project.id).stats;assert.equal(stats.progress,100);assert.equal(stats.total,3);
+ current=await snapshot();assert.equal((await request('/api/tasks/'+first.id,'PATCH',{revision:current.revision,record:{status:'open'}})).status,422,'reopening a prerequisite must not invalidate finished dependent work');
+ for(const path of ['/api/projects','/api/projects/'+project.id,'/api/team/projects'])assert.equal((await request(path,'GET',undefined,'factory_mode=viewer')).status,403);
+ assert.deepEqual((await(await request('/api/state','GET',undefined,'factory_mode=viewer')).json()).state.projects,[]);
+ assert.equal((await call('/api/projects/'+project.id,'GET',undefined,'pro','other-workflow-user')).status,404);
+});
+
+test('workflow relationships reject missing references and cycles without partial writes; demo preserves facility records',async()=>{
+ const request=(p,m='GET',body)=>call(p,m,body,'pro','workflow-demo-user'),snapshot=async()=>await(await request('/api/state')).json();
+ let current=await snapshot(),before=structuredClone(current.state);assert.equal((await request('/api/team/workflow-demo','POST',{revision:current.revision})).status,201);
+ current=await snapshot();assert.equal(current.state.projects.length,3);assert.equal(current.state.tasks.length,16);assert.deepEqual(current.state.assets,before.assets);assert.deepEqual(current.state.works,before.works);
+ assert.equal((await request('/api/team/workflow-demo','POST',{revision:current.revision})).status,409);
+ const task=current.state.tasks.find(t=>t.id==='demo-pipe-survey');assert.equal((await request('/api/tasks/'+task.id,'PATCH',{revision:current.revision,record:{dependsOnIds:['demo-pipe-install']}})).status,422);
+ assert.equal((await request('/api/tasks/'+task.id,'PATCH',{revision:current.revision,record:{parentId:'missing'}})).status,422);
+ assert.equal((await request('/api/projects/'+task.projectId,'DELETE',{revision:current.revision})).status,422);
+ const invalid=structuredClone(current);invalid.state.tasks.find(t=>t.id===task.id).dependsOnIds=['demo-pipe-install'];assert.equal((await request('/api/state','PUT',invalid)).status,422);
+ assert.equal((await snapshot()).revision,current.revision);
+});
