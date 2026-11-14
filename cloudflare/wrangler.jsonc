@@ -4,6 +4,7 @@
   "compatibility_date": "2026-11-13",
   "workers_dev": true,
   "preview_urls": false,
+  "triggers": {"crons": ["* * * * *"]},
   "observability": {"enabled":true,"traces":{"enabled":true}},
   "d1_databases": [
     {

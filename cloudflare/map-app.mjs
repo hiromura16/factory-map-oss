@@ -4,6 +4,7 @@ import {LIMITS, validateMap, visibleState, fileIds, preferences} from './map-val
 import {TEAM_COLLECTIONS,ensureTeam,makeTask,planPreview,generatePlan,completeTask,teamReport,teamToday,validDate,addDemoTeam} from './team.mjs';
 import layerSets from '../layer-set-state.js';
 import {previewAssets} from './asset-import.mjs';
+import {notionRoutes} from './notion/routes.mjs';
 import seed from '../server/seed.json' with {type:'json'};
 
 const now=()=>new Date().toISOString(), enc=new TextEncoder();
@@ -54,7 +55,7 @@ const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Arra
 function taskChanges(previous,next){const before=new Map((previous.tasks||[]).map(t=>[t.id,t])),after=new Map((next.tasks||[]).map(t=>[t.id,t]));return [...new Set([...before.keys(),...after.keys()])].flatMap(id=>{const a=before.get(id),b=after.get(id);if(canonical(a)===canonical(b))return [];return [{id:crypto.randomUUID(),taskId:id,action:!a?'created':!b?'deleted':'updated',before:a||null,after:b||null,files:[...new Set([...fileIds(a),...fileIds(b)])]}];});}
 function workChanges(previous,next){const before=new Map(previous.works.map(w=>[w.id,w])),after=new Map(next.works.map(w=>[w.id,w]));return [...new Set([...before.keys(),...after.keys()])].flatMap(id=>{const a=before.get(id),b=after.get(id);if(canonical(a)===canonical(b))return [];return [{id:crypto.randomUUID(),workId:id,action:!a?'created':!b?'deleted':'updated',before:a||null,after:b||null,files:[...new Set([...fileIds(a),...fileIds(b)])]}];});}
 async function historyFileIds(env,c){const r=await env.DB.prepare("SELECT DISTINCT j.value AS id FROM (SELECT organization_id,file_ids FROM map_work_events UNION ALL SELECT organization_id,file_ids FROM map_task_events) e,json_each(e.file_ids) j WHERE e.organization_id=? AND j.type='text'").bind(c.org.id).all();return r.results.map(x=>x.id);}
-async function commit(env,c,next,action,expected=c.org.revision,extraTaskEvents=[]){
+export async function commit(env,c,next,action,expected=c.org.revision,extraTaskEvents=[]){
  if(expected!==c.org.revision)throw new ApiError(409,'ほかの更新があります。画面を更新してから保存してください。');
  const state=validateMap(next,c.org.plan,c.state);await validateFiles(env,c,state);const when=now(),events=workChanges(c.state,state),taskEvents=[...taskChanges(c.state,state),...extraTaskEvents];const r=await env.DB.batch([
   env.DB.prepare("INSERT INTO map_work_events(id,organization_id,work_id,action,actor_id,reason,revision,before_json,after_json,file_ids,created_at) SELECT json_extract(e.value,'$.id'),?,json_extract(e.value,'$.workId'),json_extract(e.value,'$.action'),?,?,?,json_extract(e.value,'$.before'),json_extract(e.value,'$.after'),json_extract(e.value,'$.files'),? FROM json_each(?) e WHERE EXISTS(SELECT 1 FROM organizations WHERE id=? AND revision=? AND plan=?)").bind(c.org.id,c.user.id,action,expected+1,when,JSON.stringify(events),c.org.id,expected,c.org.plan),
@@ -102,10 +103,11 @@ export async function handleMap(request,env){
  const url=new URL(request.url),path=routePath(url),method=request.method;
  const origin=request.headers.get('origin');if(!['GET','HEAD'].includes(method)&&((origin&&origin!==url.origin)||request.headers.get('sec-fetch-site')==='cross-site'))throw new ApiError(403,'別サイトからの変更は許可されていません。');
  const c=await context(request,env),state=c.state;
+ if(path.startsWith('/api/notion/')){editable(c);return notionRoutes(request,env,c,{readJSON,commit,mutate});}
  if(path==='/api/session')return json({saas:true,sso:'Cloudflare Access',profile:c.profile,editor:c.editor,role:c.org.role,organization:{id:c.org.id,name:c.org.name},plan:c.org.plan,limits:c.limits,mockBilling:true,profiles:[{id:'free',name:'無料デモ',plan:'free',role:'editor'},{id:'pro',name:'有料管理者デモ',plan:'pro',role:'owner'}],preferences:await settings(env,c)});
  if(path==='/api/demo/profile'&&method==='POST'){const input=await readJSON(request);if(!['free','pro'].includes(input.profile))throw new ApiError(422,'アカウントを選択してください。');return json({profile:input.profile},200,{'set-cookie':cookie('factory_profile',input.profile)});}
- if(path==='/api/health')return json({ok:true,database:'Cloudflare D1',version:'2.2.0',billing:'demo-no-payments'});
- if(path==='/api/capabilities')return json({version:'2.2.0',authentication:'Cloudflare Access SSO',billing:'demo-no-payments',webmcp:true,tools:74,profile:c.profile,plan:c.org.plan,limits:c.limits,fileLimitBytes:5*1024*1024,snapshotLimitBytes:750000,features:['works','assets','drawings','properties','notes','inspection-history','photo-thumbnails','pdf-preview','shared-icons','shared-preferences','csv-history-import','json-import-export','backups','audit','demo-accounts','display-presets','custom-layers','drawing-hierarchy','work-history','configurable-registers','layer-sets','equipment-json-import','team-workboard','inspection-plans','task-history','handover-reports']});
+ if(path==='/api/health')return json({ok:true,database:'Cloudflare D1',version:'2.3.0',billing:'demo-no-payments'});
+ if(path==='/api/capabilities')return json({version:'2.3.0',authentication:'Cloudflare Access SSO',billing:'demo-no-payments',webmcp:true,tools:80,profile:c.profile,plan:c.org.plan,limits:c.limits,fileLimitBytes:5*1024*1024,snapshotLimitBytes:750000,features:['works','assets','drawings','properties','notes','inspection-history','photo-thumbnails','pdf-preview','shared-icons','shared-preferences','csv-history-import','json-import-export','backups','audit','demo-accounts','display-presets','custom-layers','drawing-hierarchy','work-history','configurable-registers','layer-sets','equipment-json-import','team-workboard','inspection-plans','task-history','handover-reports','notion-polling-sync','notion-connector']});
  if(path==='/api/auth/status')return json({editor:c.editor,role:c.org.role,sso:true});
  if(path==='/api/auth/login'&&method==='POST'){if(!['owner','editor'].includes(c.org.role))throw new ApiError(403,'施設担当者の権限が必要です。');return json({editor:true,sso:true},200,{'set-cookie':cookie('factory_mode','facility')});}
  if(path==='/api/auth/logout'&&method==='POST')return json({editor:false},200,{'set-cookie':cookie('factory_mode','viewer')});

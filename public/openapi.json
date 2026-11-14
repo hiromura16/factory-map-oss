@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "PlantDesk API",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "description": "施設管理・工事台帳・点検・図面階層・お知らせの共有API。Cloudflare Access SSOで認証し、施設担当モードで更新します。閲覧モードには公開されたお知らせと図面のみ返します。"
   },
   "servers": [
@@ -5092,6 +5092,361 @@
                   "revision": {
                     "type": "integer",
                     "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notion/status": {
+      "get": {
+        "summary": "Notion同期の設定・状態・進捗",
+        "description": "トークンや暗号文は返しません。状態と組織のrevisionを返します。",
+        "tags": [
+          "Notion sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "202": {
+            "description": "スケジューラーで実行待ち"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同期中・競合状態の更新・別ワークスペースの同期先"
+          },
+          "422": {
+            "description": "設定・入力のエラー"
+          },
+          "503": {
+            "description": "トークン暗号化キー未設定"
+          }
+        }
+      }
+    },
+    "/api/notion/config": {
+      "put": {
+        "summary": "Notion接続を暗号化して保存",
+        "description": "トークンは内部接続のものを使用。指定ページと権限を確認後、AES-GCMで組織ごとに暗号化。初回は専用DBの作成と同期を予約します。",
+        "tags": [
+          "Notion sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "202": {
+            "description": "スケジューラーで実行待ち"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同期中・競合状態の更新・別ワークスペースの同期先"
+          },
+          "422": {
+            "description": "設定・入力のエラー"
+          },
+          "503": {
+            "description": "トークン暗号化キー未設定"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "homePageId",
+                  "intervalMinutes",
+                  "direction",
+                  "enabled"
+                ],
+                "properties": {
+                  "homePageId": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string",
+                    "format": "password",
+                    "writeOnly": true,
+                    "minLength": 20,
+                    "maxLength": 500
+                  },
+                  "intervalMinutes": {
+                    "type": "integer",
+                    "enum": [
+                      5,
+                      15,
+                      30,
+                      60
+                    ]
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "both",
+                      "push",
+                      "pull"
+                    ]
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Notion接続を切断",
+        "description": "両側のレコードは削除しません。接続情報とリンクを除去します。同期処理中は停止後に実行してください。",
+        "tags": [
+          "Notion sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "202": {
+            "description": "スケジューラーで実行待ち"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同期中・競合状態の更新・別ワークスペースの同期先"
+          },
+          "422": {
+            "description": "設定・入力のエラー"
+          },
+          "503": {
+            "description": "トークン暗号化キー未設定"
+          }
+        }
+      }
+    },
+    "/api/notion/run": {
+      "post": {
+        "summary": "Notion同期を実行待ちにする",
+        "description": "Cronで処理します。fullで削除候補を含め全件照合。大量データは複数回に分けて再開します。",
+        "tags": [
+          "Notion sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "202": {
+            "description": "スケジューラーで実行待ち"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同期中・競合状態の更新・別ワークスペースの同期先"
+          },
+          "422": {
+            "description": "設定・入力のエラー"
+          },
+          "503": {
+            "description": "トークン暗号化キー未設定"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "full": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notion/pause": {
+      "post": {
+        "summary": "Notion同期を停止",
+        "description": "",
+        "tags": [
+          "Notion sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "202": {
+            "description": "スケジューラーで実行待ち"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同期中・競合状態の更新・別ワークスペースの同期先"
+          },
+          "422": {
+            "description": "設定・入力のエラー"
+          },
+          "503": {
+            "description": "トークン暗号化キー未設定"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notion/issues": {
+      "get": {
+        "summary": "Notion同期の競合・削除候補・入力エラー",
+        "description": "最新100件。設備ロック・入力型・履歴整合性エラーも含みます。",
+        "tags": [
+          "Notion sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "202": {
+            "description": "スケジューラーで実行待ち"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同期中・競合状態の更新・別ワークスペースの同期先"
+          },
+          "422": {
+            "description": "設定・入力のエラー"
+          },
+          "503": {
+            "description": "トークン暗号化キー未設定"
+          }
+        }
+      }
+    },
+    "/api/notion/runs": {
+      "get": {
+        "summary": "Notion同期の最近20回の履歴",
+        "description": "",
+        "tags": [
+          "Notion sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "202": {
+            "description": "スケジューラーで実行待ち"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同期中・競合状態の更新・別ワークスペースの同期先"
+          },
+          "422": {
+            "description": "設定・入力のエラー"
+          },
+          "503": {
+            "description": "トークン暗号化キー未設定"
+          }
+        }
+      }
+    },
+    "/api/notion/resolve": {
+      "post": {
+        "summary": "同期競合・削除確認を解決",
+        "description": "同時変更は自動上書きせず明示的な採用待ちにします。削除を反映する選択にはconfirmが必要で、設備ロックと参照を再検証します。",
+        "tags": [
+          "Notion sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "202": {
+            "description": "スケジューラーで実行待ち"
+          },
+          "403": {
+            "description": "施設担当モードが必要"
+          },
+          "409": {
+            "description": "同期中・競合状態の更新・別ワークスペースの同期先"
+          },
+          "422": {
+            "description": "設定・入力のエラー"
+          },
+          "503": {
+            "description": "トークン暗号化キー未設定"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "localId",
+                  "source",
+                  "revision",
+                  "updatedAt"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "teamMembers",
+                      "assets",
+                      "works",
+                      "inspectionPlans",
+                      "tasks",
+                      "inspections"
+                    ]
+                  },
+                  "localId": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "local",
+                      "notion"
+                    ]
+                  },
+                  "revision": {
+                    "type": "integer"
+                  },
+                  "updatedAt": {
+                    "type": "string"
+                  },
+                  "confirm": {
+                    "type": "string",
+                    "enum": [
+                      "DELETE_REVIEWED"
+                    ]
                   }
                 }
               }

@@ -1,6 +1,8 @@
 import { handleScim } from './scim.mjs';
 import { ApiError, PLANS, MAX_BYTES, KINDS, validateState, importPreview, validateCustomization, requireRole } from './core.mjs';
 import { authenticate } from './auth.mjs';
+import {runNotionJobs} from './notion/engine.mjs';
+import {commit} from './map-app.mjs';
 import { handleMap } from './map-app.mjs';
 const JSON_HEADERS = {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer'};
 function json(data, status=200) { return new Response(JSON.stringify(data), {status,headers:JSON_HEADERS}); }
@@ -40,6 +42,7 @@ async function save(env, org, actor, data, action) {
   return json({revision:org.revision+1});
 }
 export default {
+ async scheduled(controller,env,ctx){ctx.waitUntil(runNotionJobs(env,{commit}).catch(error=>{console.error(JSON.stringify({event:'notion_poll_failed',type:error?.name||'Error'}));}));},
  async fetch(request,env) {
   try {
    const url=new URL(request.url);

@@ -1,0 +1,9 @@
+{
+  "name": "@plantdesk/notion-connector",
+  "version": "0.1.0",
+  "description": "Polling-ready Notion API connector with typed properties and three-way merge",
+  "type": "module",
+  "exports": "./index.mjs",
+  "engines": {"node": ">=22"},
+  "license": "MIT"
+}

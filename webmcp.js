@@ -66,6 +66,12 @@ window.FactoryWebMCP = (() => {
       await add('get_task_history','作業の変更と引き継ぎコメントを取得します。',{...object({id:string}),required:['id']},input=>request('/api/tasks/'+encodeURIComponent(input.id)+'/history'),true);
       await add('add_task_comment','引き継ぎコメントを変更履歴に保存します。',{...object({id:string,revision:{type:'number'},text:string}),required:['id','revision','text']},async input=>{const r=await request('/api/tasks/'+encodeURIComponent(input.id)+'/comments',{method:'POST',body:{revision:input.revision,text:input.text}});await app.refresh();return r;});
       await add('get_team_report','期限超過・未割り当て・手配待ち・担当負荷・直近完了の引き継ぎレポートを取得します。',object({date:string}),input=>request('/api/team/report?'+new URLSearchParams(input)),true);
+      await add('get_notion_sync_status','Notionとの定期同期の状態を取得します。接続トークンは返しません。',object({}),()=>request('/api/notion/status'),true);
+      await add('list_notion_sync_issues','Notion同期の競合・入力エラー・削除確認を取得します。',object({}),()=>request('/api/notion/issues'),true);
+      await add('list_notion_sync_runs','Notion同期の実行履歴を取得します。',object({}),()=>request('/api/notion/runs'),true);
+      await add('run_notion_sync','Webhookを使わないNotion同期を実行待ちにします。',object({full:{type:'boolean'}}),input=>request('/api/notion/run',{method:'POST',body:input}));
+      await add('pause_notion_sync','Notionの定期同期を停止します。',object({}),()=>request('/api/notion/pause',{method:'POST',body:{}}));
+      await add('resolve_notion_sync_issue','確認済みの同期競合で採用する側を指定します。削除反映には明示的な確認が必要です。',{...object({kind:string,localId:string,source:{type:'string',enum:['local','notion']},revision:{type:'number'},updatedAt:string,confirm:{type:'string',enum:['DELETE_REVIEWED']}}),required:['kind','localId','source','revision','updatedAt']},input=>request('/api/notion/resolve',{method:'POST',body:input}));
       registered=true;window.dispatchEvent(new Event('factory-webmcp-ready'));
     }catch(error){console.error('WebMCP registration:',error);}
   }
