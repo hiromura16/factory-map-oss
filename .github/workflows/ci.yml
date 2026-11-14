@@ -1,4 +1,4 @@
-name: Source checks
+name: CI
 on: [push, pull_request]
 permissions:
   contents: read
@@ -10,6 +10,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python formatter
+        run: pip install ruff==0.17.5
+      - name: Install code quality tools
+        run: npm ci
+      - name: Check formatting and lint
+        run: npm run check
       - name: Check JavaScript
         run: |
           for file in *.js; do node --check "$file"; done
@@ -19,12 +29,30 @@ jobs:
       - name: Test UI validation
         run: node tests/preferences.cjs && node tests/saas.cjs
       - name: Check Python syntax
-        run: python -m compileall -q tests
-      - name: Build React bundle
-        working-directory: frontend
-        run: npm ci && npm run build
+        run: ruff check . && ruff format --check . && python -m compileall -q tests scripts
+      - name: Build application
+        run: npm ci --prefix frontend && npm run build
       - name: Verify authentication and Notion connector in Workers runtime
         run: |
           npm ci --prefix cloudflare
           node tests/worker-auth-runtime.mjs
           node tests/notion-connector-runtime.mjs
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install application and browser
+        run: |
+          npm ci --prefix frontend
+          npm run build
+          pip install -r requirements-dev.txt
+          python -m playwright install --with-deps chromium
+      - name: Test task and inspection workflows
+        run: npm run test:ui

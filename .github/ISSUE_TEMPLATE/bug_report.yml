@@ -1,0 +1,21 @@
+name: 不具合の報告
+description: 再現手順と期待する動作を共有する
+labels: [bug]
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 起きたこと・期待する動作
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 再現手順
+      placeholder: 実際の工場データや認証情報を含まない手順を記載してください。
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: ブラウザー・画面幅・実行環境

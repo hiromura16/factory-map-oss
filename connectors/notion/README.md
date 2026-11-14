@@ -11,16 +11,16 @@ Notion APIのバージョンは `2026-03-11` に固定しています。接続�
 マージに使う `lastSyncedFields` は前回同期時、`localFields` は呼び出し元の現在の値、`notionFields` はNotionから取得した値を持つオブジェクトです。
 
 ```js
-import {NotionConnector, threeWayMerge} from './index.mjs';
+import { NotionConnector, threeWayMerge } from './index.mjs';
 
 const notion = new NotionConnector({
   token: process.env.NOTION_TOKEN,
   maxRequests: 30,
-  minIntervalMs: 400
+  minIntervalMs: 400,
 });
 const batch = await notion.queryPage(process.env.NOTION_DATA_SOURCE_ID, {
   pageSize: 25,
-  cursor: savedCursor
+  cursor: savedCursor,
 });
 // batch.resultsを処理してから、batch.next_cursorをDBなどへ保存します。
 const merge = threeWayMerge(lastSyncedFields, localFields, notionFields);

@@ -1,72 +1,694 @@
 /* Mixed content layers and navigable drawing areas, persisted in the shared state. */
-window.FactoryOrganization=(()=>{
- const app=()=>window.factoryMap,$=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let group,placement=null,corner=null,preview=null,trail=[],navigating=false;
- const allRecords=()=>['assets','works','notes','drawingLinks'].flatMap(k=>app().state[k]||[]);
- const layers=()=>app().state.layers||[];
- const layerName=id=>layers().find(l=>l.id===id)?.name||'未分類';
- const visible=record=>!record.layerId||!(window.FactoryPreferences?.getPreferences?.()?.hiddenLayerIds||window.FactoryAPI?.session?.preferences?.hiddenLayerIds||[]).includes(record.layerId);
- function layerInput(value=''){return `<label>配置レイヤー<select name="layerId" aria-label="配置レイヤー"><option value="">標準（未分類）</option>${layers().map(l=>`<option value="${esc(l.id)}" ${l.id===value?'selected':''}>${esc(l.name)}${l.audience==='facility'?' · 施設担当のみ':' · お知らせにも表示'}</option>`).join('')}</select></label>`;}
- function dialog(id,title,body){let el=$(id);if(!el){el=document.createElement('dialog');el.id=id;el.className='form-dialog organization-dialog';document.body.append(el);}el.innerHTML=`<div class="dialog-heading"><h2>${esc(title)}</h2><button type="button" class="icon-close" aria-label="閉じる">×</button></div>${body}<p class="form-error" role="alert"></p>`;el.querySelector('.icon-close').onclick=()=>el.close();el.showModal();return el;}
- const run=async(el,fn)=>{try{await fn();app().render();}catch(e){el.querySelector('.form-error').textContent=e.message;}};
- function refreshPanel(){
-  const root=$('custom-map-layers');if(!root)return;
-  root.innerHTML='<h4>追加レイヤー</h4>'+layers().map(l=>{const records=allRecords().filter(r=>r.layerId===l.id&&r.drawingId===app().currentDrawing);return `<label class="custom-layer-toggle"><input type="checkbox" data-map-layer="${esc(l.id)}" ${visible({layerId:l.id})?'checked':''}><i style="background:${esc(l.color)}"></i><span>${esc(l.name)}<small>${records.length}件${l.audience==='facility'?' · 施設担当のみ':''}</small></span></label>`;}).join('')+(layers().length?'':'<p class="layer-empty">追加レイヤーはまだありません。</p>')+(app().editor?'<button type="button" class="button secondary" id="layers-manage">レイヤーを管理</button>':'');
-  root.querySelectorAll('[data-map-layer]').forEach(input=>input.onchange=async()=>{try{const prefs=FactoryPreferences.getPreferences(),hidden=new Set(prefs.hiddenLayerIds);if(input.checked)hidden.delete(input.dataset.mapLayer);else hidden.add(input.dataset.mapLayer);await FactoryPreferences.update({hiddenLayerIds:[...hidden]});app().render();}catch(e){app().fail(e);refreshPanel();}});
-  if($('layers-manage'))$('layers-manage').onclick=manageLayers;window.FactoryLayerSets?.render();
- }
- function manageLayers(){if(!app().editor)return;
-  const el=dialog('map-layers-dialog','レイヤーを管理',`<p class="form-context">設備・工事・付箋・図面リンクを同じレイヤーへ配置できます。「施設担当のみ」のレイヤーは閲覧モードへ公開しません。</p><div id="layer-manager-list"></div><fieldset><legend>新しいレイヤー</legend><form id="layer-create"><div class="form-columns"><label>レイヤー名<input name="name" required maxlength="80" placeholder="例：空調・換気"></label><label>色<input name="color" type="color" value="#4c87a0"></label></div><label class="checkbox-property"><input name="public" type="checkbox">閲覧モードにも表示する</label><button type="submit" class="button primary">レイヤーを追加</button></form></fieldset><fieldset><legend>分類からまとめて整理</legend><p class="form-context">既存の割り当てを残し、未分類・ロックされていない設備を分類ごとのレイヤーへ振り分けます。</p><button type="button" class="button secondary" id="layer-from-categories">分類ごとのレイヤーを作成</button><div class="form-columns"><label>設備分類<select id="layer-bulk-category">${(app().state.propertyDefinitions.find(d=>d.id==='category')?.options||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('')}</select></label><label>移動先<select id="layer-bulk-target"></select></label></div><button type="button" class="button secondary" id="layer-bulk-move">この分類の設備を移動</button></fieldset>`);
-  const draw=()=>{
-   $('layer-manager-list').innerHTML=layers().map(l=>`<div class="layer-manager-row" data-layer-row="${esc(l.id)}"><input aria-label="レイヤー名 ${esc(l.name)}" data-name value="${esc(l.name)}" maxlength="80"><input aria-label="レイヤー色 ${esc(l.name)}" data-color type="color" value="${esc(l.color)}"><label class="checkbox-property"><input type="checkbox" data-public ${l.audience==='public'?'checked':''}>公開</label><small>${allRecords().filter(r=>r.layerId===l.id).length}件</small><button type="button" data-save>保存</button><button type="button" data-delete>削除</button></div>`).join('');
-   $('layer-bulk-target').innerHTML='<option value="">標準（未分類）</option>'+layers().map(l=>`<option value="${esc(l.id)}">${esc(l.name)}</option>`).join('');
-   el.querySelectorAll('[data-layer-row]').forEach(row=>{const id=row.dataset.layerRow;row.querySelector('[data-save]').onclick=()=>run(el,async()=>{await app().changeState(()=>{const l=app().state.layers.find(x=>x.id===id);Object.assign(l,{name:row.querySelector('[data-name]').value.trim(),color:row.querySelector('[data-color]').value,audience:row.querySelector('[data-public]').checked?'public':'facility'});});draw();});row.querySelector('[data-delete]').onclick=()=>run(el,async()=>{if(!confirm('レイヤーを削除して、配置されている項目を標準レイヤーへ戻しますか？\n工事・付箋は、標準レイヤーでは閲覧モードにも表示されます。'))return;await app().changeState(()=>{for(const r of allRecords())if(r.layerId===id){if(r.locks?.attributes)throw new Error('属性をロックした設備があります。先に解除してください。');delete r.layerId;}app().state.layers=layers().filter(x=>x.id!==id);for(const set of app().state.layerSets||[])set.rules=set.rules.filter(r=>r.layerId!==id);});draw();});});
-  };draw();
-  $('layer-create').onsubmit=e=>{e.preventDefault();run(el,async()=>{const f=new FormData(e.target);await app().changeState(()=>{app().state.layers??=[];app().state.layers.push({id:crypto.randomUUID(),name:String(f.get('name')).trim(),color:f.get('color'),audience:f.has('public')?'public':'facility'});});e.target.reset();draw();});};
-  $('layer-from-categories').onclick=()=>run(el,async()=>{let moved=0;await app().changeState(()=>{app().state.layers??=[];for(const c of app().state.propertyDefinitions.find(d=>d.id==='category')?.options||[]){const items=app().state.assets.filter(a=>a.properties?.category===c.id&&!a.layerId&&!a.locks?.attributes);if(!items.length)continue;let layer=layers().find(l=>l.sourceCategoryId===c.id);if(!layer){layer={id:crypto.randomUUID(),name:c.label,color:'#4c87a0',audience:'facility',sourceCategoryId:c.id};app().state.layers.push(layer);}for(const a of items){a.layerId=layer.id;moved++;}}});draw();app().toast(moved+'台を分類ごとのレイヤーへ整理しました。');});
-  $('layer-bulk-move').onclick=()=>run(el,async()=>{await app().changeState(()=>{for(const a of app().state.assets.filter(a=>a.properties?.category===$('layer-bulk-category').value)){if(a.locks?.attributes)throw new Error(a.name+'の属性ロックを解除してください。');if($('layer-bulk-target').value)a.layerId=$('layer-bulk-target').value;else delete a.layerId;}});draw();});
- }
- function cancel(){placement=null;corner=null;if(preview){group.removeLayer(preview);preview=null;}if($('drawing-link-instruction'))$('drawing-link-instruction').hidden=true;app()?.map.getContainer().classList.remove('drawing-link-placing');}
- function startLink(link=null){app().clearPending();cancel();placement={link};$('drawing-link-instruction').hidden=false;app().map.getContainer().classList.add('drawing-link-placing');app().toast('移動範囲の対角にある2点をクリックしてください。');}
- function linkForm(points,existing=null){const choices=app().state.drawings.filter(d=>d.id!==app().currentDrawing);if(!choices.length){app().toast('先に移動先の図面を追加してください。');return;}
-  const el=dialog('drawing-link-dialog',existing?'図面リンクを編集':'詳細図面へのリンクを作成',`<form><label>範囲の名前<input name="name" required maxlength="100" value="${esc(existing?.name||'詳細図面へ')}" placeholder="例：A棟 1F"></label><label>移動先の図面<select name="targetDrawingId" aria-label="移動先の図面">${choices.map(d=>`<option value="${esc(d.id)}" ${existing?.targetDrawingId===d.id?'selected':''}>${esc(d.name)}</option>`).join('')}</select></label>${layerInput(existing?.layerId)}<label class="checkbox-property"><input name="public" type="checkbox" ${existing?.audience==='public'?'checked':''}>閲覧モードにも、このリンクと移動先の図面を公開する</label><p class="form-context">地図上でこの範囲をダブルクリックすると、移動先の図面を開きます。上部の戻るボタンで元の図面に戻れます。</p><button type="submit" class="button primary">リンクを保存</button></form>`);
-  el.querySelector('form').onsubmit=e=>{e.preventDefault();run(el,async()=>{const f=new FormData(e.target);await app().changeState(()=>{app().state.drawingLinks??=[];const record={...existing,id:existing?.id||crypto.randomUUID(),name:String(f.get('name')).trim(),drawingId:existing?.drawingId||app().currentDrawing,targetDrawingId:f.get('targetDrawingId'),points,layerId:f.get('layerId')||undefined,audience:f.has('public')?'public':'facility'};const i=app().state.drawingLinks.findIndex(x=>x.id===record.id);if(i<0)app().state.drawingLinks.push(record);else app().state.drawingLinks[i]=record;});el.close();app().toast('図面リンクを保存しました。');});};
- }
- function manageDrawings(){if(!app().editor)return;const el=dialog('drawing-hierarchy-dialog','図面の階層と移動範囲',`<p class="form-context">「範囲を追加」で地図上の対角2点を指定し、移動先の棟・階の図面を選びます。</p><button type="button" class="button primary" id="drawing-link-add">現在の図面に移動範囲を追加</button><div class="drawing-link-list">${(app().state.drawingLinks||[]).map(l=>`<div><b>${esc(l.name)}</b><small>${esc(app().state.drawings.find(d=>d.id===l.drawingId)?.name)} → ${esc(app().state.drawings.find(d=>d.id===l.targetDrawingId)?.name)} · ${l.audience==='public'?'公開':'施設担当のみ'}</small><button type="button" data-edit-link="${esc(l.id)}">編集</button><button type="button" data-redraw-link="${esc(l.id)}">範囲変更</button><button type="button" data-delete-link="${esc(l.id)}">削除</button></div>`).join('')||'<p>移動範囲はまだ登録されていません。</p>'}</div>`);
-  $('drawing-link-add').onclick=()=>{el.close();startLink();};el.querySelectorAll('[data-edit-link]').forEach(b=>b.onclick=()=>{const l=app().state.drawingLinks.find(x=>x.id===b.dataset.editLink);el.close();app().setDrawing(l.drawingId);linkForm(l.points,l);});el.querySelectorAll('[data-redraw-link]').forEach(b=>b.onclick=()=>{const l=app().state.drawingLinks.find(x=>x.id===b.dataset.redrawLink);el.close();app().setDrawing(l.drawingId);startLink(l);});el.querySelectorAll('[data-delete-link]').forEach(b=>b.onclick=()=>run(el,async()=>{if(!confirm('この移動範囲を削除しますか？'))return;await app().changeState(()=>{app().state.drawingLinks=app().state.drawingLinks.filter(x=>x.id!==b.dataset.deleteLink);});el.close();manageDrawings();}));
- }
- function contains(points,p){let yes=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const a=points[i],b=points[j];if((a[1]>p[1])!==(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])yes=!yes;}return yes;}
- function area(points){return Math.abs(points.reduce((sum,p,i)=>{const q=points[(i+1)%points.length];return sum+p[0]*q[1]-q[0]*p[1];},0))/2;}
- const linkAt=point=>(app().state.drawingLinks||[]).filter(l=>l.drawingId===app().currentDrawing&&visible(l)&&contains(l.points,[point.lng,point.lat])).sort((a,b)=>area(a.points)-area(b.points))[0];
- function navigate(id){const current=trail[trail.length-1];if(current)current.view={center:app().map.getCenter(),zoom:app().map.getZoom()};navigating=true;trail.push({id});app().setDrawing(id);navigating=false;renderBreadcrumb();}
- function go(index){if(index<0||index>=trail.length)return;const entry=trail[index];trail=trail.slice(0,index+1);navigating=true;app().setDrawing(entry.id);navigating=false;if(entry.view)app().map.setView(entry.view.center,entry.view.zoom,{animate:false});renderBreadcrumb();}
- function parentTarget(){if(trail.length>1)return trail[trail.length-2].id;const parent=(app().state.drawingLinks||[]).find(l=>l.targetDrawingId===app().currentDrawing);if(parent)return parent.drawingId;const root=app().state.drawings.find(d=>d.id==='site')||app().state.drawings[0];return root?.id!==app().currentDrawing?root?.id:null;}
- function goParent(){const target=parentTarget();if(!target)return;if(trail.length>1)go(trail.length-2);else app().setDrawing(target);}
- function renderBreadcrumb(){const target=parentTarget(),up=$('drawing-up');if(up){up.disabled=!target;up.title=target?'戻り先：'+app().state.drawings.find(d=>d.id===target)?.name:'最上位の図面です';up.onclick=goParent;}
-const root=$('drawing-breadcrumb');if(!root)return;root.innerHTML=`<button type="button" id="drawing-back" ${trail.length<2?'disabled':''}>← 戻る</button><nav aria-label="図面の階層">${trail.map((entry,i)=>`<button type="button" data-drawing-crumb="${i}" ${i===trail.length-1?'aria-current="page"':''}>${esc(app().state.drawings.find(d=>d.id===entry.id)?.name||'図面')}</button>`).join('<span>›</span>')}</nav>${app().editor?'<button type="button" id="drawing-hierarchy-open">図面の階層を編集</button>':''}`;$('drawing-back').onclick=()=>go(trail.length-2);root.querySelectorAll('[data-drawing-crumb]').forEach(b=>b.onclick=()=>go(Number(b.dataset.drawingCrumb)));if($('drawing-hierarchy-open'))$('drawing-hierarchy-open').onclick=manageDrawings;}
- function drawingChanged(){if(!navigating){const chain=[app().currentDrawing],seen=new Set(chain);let current=app().currentDrawing;for(let i=0;i<app().state.drawings.length;i++){const parent=(app().state.drawingLinks||[]).find(l=>l.targetDrawingId===current&&visible(l));if(!parent||seen.has(parent.drawingId))break;seen.add(parent.drawingId);chain.unshift(parent.drawingId);current=parent.drawingId;}trail=chain.map(id=>({id}));}renderBreadcrumb();}
- function renderLinks(){if(!group)return;if(placement)return;group.clearLayers();if(!FactoryDisplay.settings().linkAreas)return;for(const link of app().state.drawingLinks||[]){if(link.drawingId!==app().currentDrawing||!visible(link))continue;const color=layers().find(l=>l.id===link.layerId)?.color||'#3d8c9e';const polygon=L.polygon(link.points.map(p=>[p[1],p[0]]),{pane:'drawingLinksPane',color,weight:1.5,dashArray:'5 5',fillOpacity:.035,interactive:false,pmIgnore:true}).addTo(group);const center=polygon.getBounds().getCenter();L.marker(center,{pane:'drawingLinksPane',interactive:false,pmIgnore:true,icon:L.divIcon({className:'drawing-link-label',html:`<span>↳ ${esc(link.name)}</span>`,iconSize:null})}).addTo(group);}}
- function setup(){const map=app().map;map.createPane('drawingLinksPane').style.zIndex=360;group=L.layerGroup().addTo(map);const panel=document.createElement('div');panel.id='custom-map-layers';$('cad-layers').before(panel);const crumbs=document.createElement('div');crumbs.id='drawing-breadcrumb';crumbs.className='drawing-breadcrumb';document.querySelector('.workspace').before(crumbs);const instruction=document.createElement('div');instruction.id='drawing-link-instruction';instruction.className='drawing-instruction';instruction.hidden=true;instruction.innerHTML='<span>移動範囲の対角2点をクリックしてください。</span><button type="button">キャンセル</button>';instruction.querySelector('button').onclick=cancel;map.getContainer().after(instruction);
-  map.on('click',e=>{if(!placement)return;if(!corner){corner=e.latlng;preview=L.circleMarker(corner,{pane:'drawingLinksPane',radius:4,color:'#3d8c9e',pmIgnore:true}).addTo(group);instruction.querySelector('span').textContent='反対側の角をクリックしてください。';return;}const a=corner,b=e.latlng;if(Math.abs(a.lng-b.lng)<.01||Math.abs(a.lat-b.lat)<.01)return;const points=[[Math.min(a.lng,b.lng),Math.min(a.lat,b.lat)],[Math.max(a.lng,b.lng),Math.min(a.lat,b.lat)],[Math.max(a.lng,b.lng),Math.max(a.lat,b.lat)],[Math.min(a.lng,b.lng),Math.max(a.lat,b.lat)]],existing=placement.link;cancel();linkForm(points,existing);});
-  // Selecting equipment rebuilds its DOM marker after the first click. Track
-  // paired clicks at the map container so this cannot swallow area navigation.
-  let previousClick=null,suppressDoubleUntil=0;
-  let pointerStart=null,pointerMoved=false;
-  map.getContainer().addEventListener('pointerdown',event=>{pointerStart={x:event.clientX,y:event.clientY};pointerMoved=false;},true);
-  map.getContainer().addEventListener('pointermove',event=>{if(event.buttons&&pointerStart&&Math.hypot(event.clientX-pointerStart.x,event.clientY-pointerStart.y)>6)pointerMoved=true;},true);
-  const blocked=()=>placement||document.querySelector('#work-dialog[open]');
-  map.getContainer().addEventListener('click',event=>{
-    if(blocked()||event.button!==0||event.detail===0)return;
-    if(pointerMoved){previousClick=null;return;}
-    const link=linkAt(map.mouseEventToLatLng(event));if(!link){previousClick=null;return;}
-    const time=performance.now(),previous=previousClick;
-    previousClick={time,x:event.clientX,y:event.clientY,id:link.id,drawingId:app().currentDrawing};
-    if(previous&&previous.id===link.id&&previous.drawingId===app().currentDrawing&&time-previous.time<450&&Math.hypot(event.clientX-previous.x,event.clientY-previous.y)<10){
-      previousClick=null;suppressDoubleUntil=time+600;event.preventDefault();event.stopPropagation();navigate(link.targetDrawingId);
+window.FactoryOrganization = (() => {
+  const app = () => window.factoryMap;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) =>
+    String(s ?? '').replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[c],
+    );
+  let group;
+  let placement = null;
+  let corner = null;
+  let preview = null;
+  let trail = [];
+  let navigating = false;
+  const allRecords = () =>
+    ['assets', 'works', 'notes', 'drawingLinks'].flatMap((k) => app().state[k] || []);
+  const layers = () => app().state.layers || [];
+  const layerName = (id) => layers().find((l) => l.id === id)?.name || '未分類';
+  const visible = (record) =>
+    !record.layerId ||
+    !(
+      window.FactoryPreferences?.getPreferences?.()?.hiddenLayerIds ||
+      window.FactoryAPI?.session?.preferences?.hiddenLayerIds ||
+      []
+    ).includes(record.layerId);
+  function layerInput(value = '') {
+    return `<label>配置レイヤー<select name="layerId" aria-label="配置レイヤー"><option value="">標準（未分類）</option>${layers()
+      .map(
+        (l) =>
+          `<option value="${esc(l.id)}" ${l.id === value ? 'selected' : ''}>${esc(l.name)}${l.audience === 'facility' ? ' · 施設担当のみ' : ' · お知らせにも表示'}</option>`,
+      )
+      .join('')}</select></label>`;
+  }
+  function dialog(id, title, body) {
+    let el = $(id);
+    if (!el) {
+      el = document.createElement('dialog');
+      el.id = id;
+      el.className = 'form-dialog organization-dialog';
+      document.body.append(el);
     }
-  },true);
-  map.getContainer().addEventListener('dblclick',event=>{if(performance.now()<suppressDoubleUntil){event.preventDefault();event.stopPropagation();return;}if(blocked())return;const link=linkAt(map.mouseEventToLatLng(event));if(!link)return;event.preventDefault();event.stopPropagation();previousClick=null;navigate(link.targetDrawingId);},true);
-  map.on('mousemove',e=>map.getContainer().classList.toggle('drawing-link-hover',!placement&&!!linkAt(e.latlng)));document.addEventListener('keydown',e=>{if(e.key==='Escape')cancel();});
- }
- return{goParent,setup,visible,layerInput,layerName,refreshPanel,manageLayers,manageDrawings,cancel,drawingChanged,renderLinks};
+    el.innerHTML = `<div class="dialog-heading"><h2>${esc(title)}</h2><button type="button" class="icon-close" aria-label="閉じる">×</button></div>${body}<p class="form-error" role="alert"></p>`;
+    el.querySelector('.icon-close').onclick = () => el.close();
+    el.showModal();
+    return el;
+  }
+  const run = async (el, fn) => {
+    try {
+      await fn();
+      app().render();
+    } catch (e) {
+      el.querySelector('.form-error').textContent = e.message;
+    }
+  };
+  function refreshPanel() {
+    const root = $('custom-map-layers');
+    if (!root) {
+      return;
+    }
+    root.innerHTML =
+      '<h4>追加レイヤー</h4>' +
+      layers()
+        .map((l) => {
+          const records = allRecords().filter(
+            (r) => r.layerId === l.id && r.drawingId === app().currentDrawing,
+          );
+          return `<label class="custom-layer-toggle"><input type="checkbox" data-map-layer="${esc(l.id)}" ${
+            visible({
+              layerId: l.id,
+            })
+              ? 'checked'
+              : ''
+          }><i style="background:${esc(l.color)}"></i><span>${esc(l.name)}<small>${records.length}件${l.audience === 'facility' ? ' · 施設担当のみ' : ''}</small></span></label>`;
+        })
+        .join('') +
+      (layers().length ? '' : '<p class="layer-empty">追加レイヤーはまだありません。</p>') +
+      (app().editor
+        ? '<button type="button" class="button secondary" id="layers-manage">レイヤーを管理</button>'
+        : '');
+    root.querySelectorAll('[data-map-layer]').forEach(
+      (input) =>
+        (input.onchange = async () => {
+          try {
+            const prefs = FactoryPreferences.getPreferences();
+            const hidden = new Set(prefs.hiddenLayerIds);
+            if (input.checked) {
+              hidden.delete(input.dataset.mapLayer);
+            } else {
+              hidden.add(input.dataset.mapLayer);
+            }
+            await FactoryPreferences.update({
+              hiddenLayerIds: [...hidden],
+            });
+            app().render();
+          } catch (e) {
+            app().fail(e);
+            refreshPanel();
+          }
+        }),
+    );
+    if ($('layers-manage')) {
+      $('layers-manage').onclick = manageLayers;
+    }
+    window.FactoryLayerSets?.render();
+  }
+  function manageLayers() {
+    if (!app().editor) {
+      return;
+    }
+    const el = dialog(
+      'map-layers-dialog',
+      'レイヤーを管理',
+      `<p class="form-context">設備・工事・付箋・図面リンクを同じレイヤーへ配置できます。「施設担当のみ」のレイヤーは閲覧モードへ公開しません。</p><div id="layer-manager-list"></div><fieldset><legend>新しいレイヤー</legend><form id="layer-create"><div class="form-columns"><label>レイヤー名<input name="name" required maxlength="80" placeholder="例：空調・換気"></label><label>色<input name="color" type="color" value="#4c87a0"></label></div><label class="checkbox-property"><input name="public" type="checkbox">閲覧モードにも表示する</label><button type="submit" class="button primary">レイヤーを追加</button></form></fieldset><fieldset><legend>分類からまとめて整理</legend><p class="form-context">既存の割り当てを残し、未分類・ロックされていない設備を分類ごとのレイヤーへ振り分けます。</p><button type="button" class="button secondary" id="layer-from-categories">分類ごとのレイヤーを作成</button><div class="form-columns"><label>設備分類<select id="layer-bulk-category">${(app().state.propertyDefinitions.find((d) => d.id === 'category')?.options || []).map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('')}</select></label><label>移動先<select id="layer-bulk-target"></select></label></div><button type="button" class="button secondary" id="layer-bulk-move">この分類の設備を移動</button></fieldset>`,
+    );
+    const draw = () => {
+      $('layer-manager-list').innerHTML = layers()
+        .map(
+          (l) =>
+            `<div class="layer-manager-row" data-layer-row="${esc(l.id)}"><input aria-label="レイヤー名 ${esc(l.name)}" data-name value="${esc(l.name)}" maxlength="80"><input aria-label="レイヤー色 ${esc(l.name)}" data-color type="color" value="${esc(l.color)}"><label class="checkbox-property"><input type="checkbox" data-public ${l.audience === 'public' ? 'checked' : ''}>公開</label><small>${allRecords().filter((r) => r.layerId === l.id).length}件</small><button type="button" data-save>保存</button><button type="button" data-delete>削除</button></div>`,
+        )
+        .join('');
+      $('layer-bulk-target').innerHTML =
+        '<option value="">標準（未分類）</option>' +
+        layers()
+          .map((l) => `<option value="${esc(l.id)}">${esc(l.name)}</option>`)
+          .join('');
+      el.querySelectorAll('[data-layer-row]').forEach((row) => {
+        const id = row.dataset.layerRow;
+        row.querySelector('[data-save]').onclick = () =>
+          run(el, async () => {
+            await app().changeState(() => {
+              const l = app().state.layers.find((x) => x.id === id);
+              Object.assign(l, {
+                name: row.querySelector('[data-name]').value.trim(),
+                color: row.querySelector('[data-color]').value,
+                audience: row.querySelector('[data-public]').checked ? 'public' : 'facility',
+              });
+            });
+            draw();
+          });
+        row.querySelector('[data-delete]').onclick = () =>
+          run(el, async () => {
+            if (
+              !confirm(
+                'レイヤーを削除して、配置されている項目を標準レイヤーへ戻しますか？\n工事・付箋は、標準レイヤーでは閲覧モードにも表示されます。',
+              )
+            ) {
+              return;
+            }
+            await app().changeState(() => {
+              for (const r of allRecords()) {
+                if (r.layerId === id) {
+                  if (r.locks?.attributes) {
+                    throw new Error('属性をロックした設備があります。先に解除してください。');
+                  }
+                  delete r.layerId;
+                }
+              }
+              app().state.layers = layers().filter((x) => x.id !== id);
+              for (const set of app().state.layerSets || []) {
+                set.rules = set.rules.filter((r) => r.layerId !== id);
+              }
+            });
+            draw();
+          });
+      });
+    };
+    draw();
+    $('layer-create').onsubmit = (e) => {
+      e.preventDefault();
+      run(el, async () => {
+        const f = new FormData(e.target);
+        await app().changeState(() => {
+          app().state.layers ??= [];
+          app().state.layers.push({
+            id: crypto.randomUUID(),
+            name: String(f.get('name')).trim(),
+            color: f.get('color'),
+            audience: f.has('public') ? 'public' : 'facility',
+          });
+        });
+        e.target.reset();
+        draw();
+      });
+    };
+    $('layer-from-categories').onclick = () =>
+      run(el, async () => {
+        let moved = 0;
+        await app().changeState(() => {
+          app().state.layers ??= [];
+          for (const c of app().state.propertyDefinitions.find((d) => d.id === 'category')
+            ?.options || []) {
+            const items = app().state.assets.filter(
+              (a) => a.properties?.category === c.id && !a.layerId && !a.locks?.attributes,
+            );
+            if (!items.length) {
+              continue;
+            }
+            let layer = layers().find((l) => l.sourceCategoryId === c.id);
+            if (!layer) {
+              layer = {
+                id: crypto.randomUUID(),
+                name: c.label,
+                color: '#4c87a0',
+                audience: 'facility',
+                sourceCategoryId: c.id,
+              };
+              app().state.layers.push(layer);
+            }
+            for (const a of items) {
+              a.layerId = layer.id;
+              moved++;
+            }
+          }
+        });
+        draw();
+        app().toast(moved + '台を分類ごとのレイヤーへ整理しました。');
+      });
+    $('layer-bulk-move').onclick = () =>
+      run(el, async () => {
+        await app().changeState(() => {
+          for (const a of app().state.assets.filter(
+            (a) => a.properties?.category === $('layer-bulk-category').value,
+          )) {
+            if (a.locks?.attributes) {
+              throw new Error(a.name + 'の属性ロックを解除してください。');
+            }
+            if ($('layer-bulk-target').value) {
+              a.layerId = $('layer-bulk-target').value;
+            } else {
+              delete a.layerId;
+            }
+          }
+        });
+        draw();
+      });
+  }
+  function cancel() {
+    placement = null;
+    corner = null;
+    if (preview) {
+      group.removeLayer(preview);
+      preview = null;
+    }
+    if ($('drawing-link-instruction')) {
+      $('drawing-link-instruction').hidden = true;
+    }
+    app()?.map.getContainer().classList.remove('drawing-link-placing');
+  }
+  function startLink(link = null) {
+    app().clearPending();
+    cancel();
+    placement = {
+      link,
+    };
+    $('drawing-link-instruction').hidden = false;
+    app().map.getContainer().classList.add('drawing-link-placing');
+    app().toast('移動範囲の対角にある2点をクリックしてください。');
+  }
+  function linkForm(points, existing = null) {
+    const choices = app().state.drawings.filter((d) => d.id !== app().currentDrawing);
+    if (!choices.length) {
+      app().toast('先に移動先の図面を追加してください。');
+      return;
+    }
+    const el = dialog(
+      'drawing-link-dialog',
+      existing ? '図面リンクを編集' : '詳細図面へのリンクを作成',
+      `<form><label>範囲の名前<input name="name" required maxlength="100" value="${esc(existing?.name || '詳細図面へ')}" placeholder="例：A棟 1F"></label><label>移動先の図面<select name="targetDrawingId" aria-label="移動先の図面">${choices.map((d) => `<option value="${esc(d.id)}" ${existing?.targetDrawingId === d.id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></label>${layerInput(existing?.layerId)}<label class="checkbox-property"><input name="public" type="checkbox" ${existing?.audience === 'public' ? 'checked' : ''}>閲覧モードにも、このリンクと移動先の図面を公開する</label><p class="form-context">地図上でこの範囲をダブルクリックすると、移動先の図面を開きます。上部の戻るボタンで元の図面に戻れます。</p><button type="submit" class="button primary">リンクを保存</button></form>`,
+    );
+    el.querySelector('form').onsubmit = (e) => {
+      e.preventDefault();
+      run(el, async () => {
+        const f = new FormData(e.target);
+        await app().changeState(() => {
+          app().state.drawingLinks ??= [];
+          const record = {
+            ...existing,
+            id: existing?.id || crypto.randomUUID(),
+            name: String(f.get('name')).trim(),
+            drawingId: existing?.drawingId || app().currentDrawing,
+            targetDrawingId: f.get('targetDrawingId'),
+            points,
+            layerId: f.get('layerId') || undefined,
+            audience: f.has('public') ? 'public' : 'facility',
+          };
+          const i = app().state.drawingLinks.findIndex((x) => x.id === record.id);
+          if (i < 0) {
+            app().state.drawingLinks.push(record);
+          } else {
+            app().state.drawingLinks[i] = record;
+          }
+        });
+        el.close();
+        app().toast('図面リンクを保存しました。');
+      });
+    };
+  }
+  function manageDrawings() {
+    if (!app().editor) {
+      return;
+    }
+    const el = dialog(
+      'drawing-hierarchy-dialog',
+      '図面の階層と移動範囲',
+      `<p class="form-context">「範囲を追加」で地図上の対角2点を指定し、移動先の棟・階の図面を選びます。</p><button type="button" class="button primary" id="drawing-link-add">現在の図面に移動範囲を追加</button><div class="drawing-link-list">${(app().state.drawingLinks || []).map((l) => `<div><b>${esc(l.name)}</b><small>${esc(app().state.drawings.find((d) => d.id === l.drawingId)?.name)} → ${esc(app().state.drawings.find((d) => d.id === l.targetDrawingId)?.name)} · ${l.audience === 'public' ? '公開' : '施設担当のみ'}</small><button type="button" data-edit-link="${esc(l.id)}">編集</button><button type="button" data-redraw-link="${esc(l.id)}">範囲変更</button><button type="button" data-delete-link="${esc(l.id)}">削除</button></div>`).join('') || '<p>移動範囲はまだ登録されていません。</p>'}</div>`,
+    );
+    $('drawing-link-add').onclick = () => {
+      el.close();
+      startLink();
+    };
+    el.querySelectorAll('[data-edit-link]').forEach(
+      (b) =>
+        (b.onclick = () => {
+          const l = app().state.drawingLinks.find((x) => x.id === b.dataset.editLink);
+          el.close();
+          app().setDrawing(l.drawingId);
+          linkForm(l.points, l);
+        }),
+    );
+    el.querySelectorAll('[data-redraw-link]').forEach(
+      (b) =>
+        (b.onclick = () => {
+          const l = app().state.drawingLinks.find((x) => x.id === b.dataset.redrawLink);
+          el.close();
+          app().setDrawing(l.drawingId);
+          startLink(l);
+        }),
+    );
+    el.querySelectorAll('[data-delete-link]').forEach(
+      (b) =>
+        (b.onclick = () =>
+          run(el, async () => {
+            if (!confirm('この移動範囲を削除しますか？')) {
+              return;
+            }
+            await app().changeState(() => {
+              app().state.drawingLinks = app().state.drawingLinks.filter(
+                (x) => x.id !== b.dataset.deleteLink,
+              );
+            });
+            el.close();
+            manageDrawings();
+          })),
+    );
+  }
+  function contains(points, p) {
+    let yes = false;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      const a = points[i];
+      const b = points[j];
+      if (
+        a[1] > p[1] !== b[1] > p[1] &&
+        p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]
+      ) {
+        yes = !yes;
+      }
+    }
+    return yes;
+  }
+  function area(points) {
+    return (
+      Math.abs(
+        points.reduce((sum, p, i) => {
+          const q = points[(i + 1) % points.length];
+          return sum + p[0] * q[1] - q[0] * p[1];
+        }, 0),
+      ) / 2
+    );
+  }
+  const linkAt = (point) =>
+    (app().state.drawingLinks || [])
+      .filter(
+        (l) =>
+          l.drawingId === app().currentDrawing &&
+          visible(l) &&
+          contains(l.points, [point.lng, point.lat]),
+      )
+      .sort((a, b) => area(a.points) - area(b.points))[0];
+  function navigate(id) {
+    const current = trail[trail.length - 1];
+    if (current) {
+      current.view = {
+        center: app().map.getCenter(),
+        zoom: app().map.getZoom(),
+      };
+    }
+    navigating = true;
+    trail.push({
+      id,
+    });
+    app().setDrawing(id);
+    navigating = false;
+    renderBreadcrumb();
+  }
+  function go(index) {
+    if (index < 0 || index >= trail.length) {
+      return;
+    }
+    const entry = trail[index];
+    trail = trail.slice(0, index + 1);
+    navigating = true;
+    app().setDrawing(entry.id);
+    navigating = false;
+    if (entry.view) {
+      app().map.setView(entry.view.center, entry.view.zoom, {
+        animate: false,
+      });
+    }
+    renderBreadcrumb();
+  }
+  function parentTarget() {
+    if (trail.length > 1) {
+      return trail[trail.length - 2].id;
+    }
+    const parent = (app().state.drawingLinks || []).find(
+      (l) => l.targetDrawingId === app().currentDrawing,
+    );
+    if (parent) {
+      return parent.drawingId;
+    }
+    const root = app().state.drawings.find((d) => d.id === 'site') || app().state.drawings[0];
+    return root?.id !== app().currentDrawing ? root?.id : null;
+  }
+  function goParent() {
+    const target = parentTarget();
+    if (!target) {
+      return;
+    }
+    if (trail.length > 1) {
+      go(trail.length - 2);
+    } else {
+      app().setDrawing(target);
+    }
+  }
+  function renderBreadcrumb() {
+    const target = parentTarget();
+    const up = $('drawing-up');
+    if (up) {
+      up.disabled = !target;
+      up.title = target
+        ? '戻り先：' + app().state.drawings.find((d) => d.id === target)?.name
+        : '最上位の図面です';
+      up.onclick = goParent;
+    }
+    const root = $('drawing-breadcrumb');
+    if (!root) {
+      return;
+    }
+    root.innerHTML = `<button type="button" id="drawing-back" ${trail.length < 2 ? 'disabled' : ''}>← 戻る</button><nav aria-label="図面の階層">${trail.map((entry, i) => `<button type="button" data-drawing-crumb="${i}" ${i === trail.length - 1 ? 'aria-current="page"' : ''}>${esc(app().state.drawings.find((d) => d.id === entry.id)?.name || '図面')}</button>`).join('<span>›</span>')}</nav>${app().editor ? '<button type="button" id="drawing-hierarchy-open">図面の階層を編集</button>' : ''}`;
+    $('drawing-back').onclick = () => go(trail.length - 2);
+    root
+      .querySelectorAll('[data-drawing-crumb]')
+      .forEach((b) => (b.onclick = () => go(Number(b.dataset.drawingCrumb))));
+    if ($('drawing-hierarchy-open')) {
+      $('drawing-hierarchy-open').onclick = manageDrawings;
+    }
+  }
+  function drawingChanged() {
+    if (!navigating) {
+      const chain = [app().currentDrawing];
+      const seen = new Set(chain);
+      let current = app().currentDrawing;
+      for (let i = 0; i < app().state.drawings.length; i++) {
+        const parent = (app().state.drawingLinks || []).find(
+          (l) => l.targetDrawingId === current && visible(l),
+        );
+        if (!parent || seen.has(parent.drawingId)) {
+          break;
+        }
+        seen.add(parent.drawingId);
+        chain.unshift(parent.drawingId);
+        current = parent.drawingId;
+      }
+      trail = chain.map((id) => ({
+        id,
+      }));
+    }
+    renderBreadcrumb();
+  }
+  function renderLinks() {
+    if (!group) {
+      return;
+    }
+    if (placement) {
+      return;
+    }
+    group.clearLayers();
+    if (!FactoryDisplay.settings().linkAreas) {
+      return;
+    }
+    for (const link of app().state.drawingLinks || []) {
+      if (link.drawingId !== app().currentDrawing || !visible(link)) {
+        continue;
+      }
+      const color = layers().find((l) => l.id === link.layerId)?.color || '#3d8c9e';
+      const polygon = L.polygon(
+        link.points.map((p) => [p[1], p[0]]),
+        {
+          pane: 'drawingLinksPane',
+          color,
+          weight: 1.5,
+          dashArray: '5 5',
+          fillOpacity: 0.035,
+          interactive: false,
+          pmIgnore: true,
+        },
+      ).addTo(group);
+      const center = polygon.getBounds().getCenter();
+      L.marker(center, {
+        pane: 'drawingLinksPane',
+        interactive: false,
+        pmIgnore: true,
+        icon: L.divIcon({
+          className: 'drawing-link-label',
+          html: `<span>↳ ${esc(link.name)}</span>`,
+          iconSize: null,
+        }),
+      }).addTo(group);
+    }
+  }
+  function setup() {
+    const map = app().map;
+    map.createPane('drawingLinksPane').style.zIndex = 360;
+    group = L.layerGroup().addTo(map);
+    const panel = document.createElement('div');
+    panel.id = 'custom-map-layers';
+    $('cad-layers').before(panel);
+    const crumbs = document.createElement('div');
+    crumbs.id = 'drawing-breadcrumb';
+    crumbs.className = 'drawing-breadcrumb';
+    document.querySelector('.workspace').before(crumbs);
+    const instruction = document.createElement('div');
+    instruction.id = 'drawing-link-instruction';
+    instruction.className = 'drawing-instruction';
+    instruction.hidden = true;
+    instruction.innerHTML =
+      '<span>移動範囲の対角2点をクリックしてください。</span><button type="button">キャンセル</button>';
+    instruction.querySelector('button').onclick = cancel;
+    map.getContainer().after(instruction);
+    map.on('click', (e) => {
+      if (!placement) {
+        return;
+      }
+      if (!corner) {
+        corner = e.latlng;
+        preview = L.circleMarker(corner, {
+          pane: 'drawingLinksPane',
+          radius: 4,
+          color: '#3d8c9e',
+          pmIgnore: true,
+        }).addTo(group);
+        instruction.querySelector('span').textContent = '反対側の角をクリックしてください。';
+        return;
+      }
+      const a = corner;
+      const b = e.latlng;
+      if (Math.abs(a.lng - b.lng) < 0.01 || Math.abs(a.lat - b.lat) < 0.01) {
+        return;
+      }
+      const points = [
+        [Math.min(a.lng, b.lng), Math.min(a.lat, b.lat)],
+        [Math.max(a.lng, b.lng), Math.min(a.lat, b.lat)],
+        [Math.max(a.lng, b.lng), Math.max(a.lat, b.lat)],
+        [Math.min(a.lng, b.lng), Math.max(a.lat, b.lat)],
+      ];
+      const existing = placement.link;
+      cancel();
+      linkForm(points, existing);
+    });
+    // Selecting equipment rebuilds its DOM marker after the first click. Track
+    // paired clicks at the map container so this cannot swallow area navigation.
+    let previousClick = null;
+    let suppressDoubleUntil = 0;
+    let pointerStart = null;
+    let pointerMoved = false;
+    map.getContainer().addEventListener(
+      'pointerdown',
+      (event) => {
+        pointerStart = {
+          x: event.clientX,
+          y: event.clientY,
+        };
+        pointerMoved = false;
+      },
+      true,
+    );
+    map.getContainer().addEventListener(
+      'pointermove',
+      (event) => {
+        if (
+          event.buttons &&
+          pointerStart &&
+          Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 6
+        ) {
+          pointerMoved = true;
+        }
+      },
+      true,
+    );
+    const blocked = () => placement || document.querySelector('#work-dialog[open]');
+    map.getContainer().addEventListener(
+      'click',
+      (event) => {
+        if (blocked() || event.button !== 0 || event.detail === 0) {
+          return;
+        }
+        if (pointerMoved) {
+          previousClick = null;
+          return;
+        }
+        const link = linkAt(map.mouseEventToLatLng(event));
+        if (!link) {
+          previousClick = null;
+          return;
+        }
+        const time = performance.now();
+        const previous = previousClick;
+        previousClick = {
+          time,
+          x: event.clientX,
+          y: event.clientY,
+          id: link.id,
+          drawingId: app().currentDrawing,
+        };
+        if (
+          previous &&
+          previous.id === link.id &&
+          previous.drawingId === app().currentDrawing &&
+          time - previous.time < 450 &&
+          Math.hypot(event.clientX - previous.x, event.clientY - previous.y) < 10
+        ) {
+          previousClick = null;
+          suppressDoubleUntil = time + 600;
+          event.preventDefault();
+          event.stopPropagation();
+          navigate(link.targetDrawingId);
+        }
+      },
+      true,
+    );
+    map.getContainer().addEventListener(
+      'dblclick',
+      (event) => {
+        if (performance.now() < suppressDoubleUntil) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+        if (blocked()) {
+          return;
+        }
+        const link = linkAt(map.mouseEventToLatLng(event));
+        if (!link) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        previousClick = null;
+        navigate(link.targetDrawingId);
+      },
+      true,
+    );
+    map.on('mousemove', (e) =>
+      map.getContainer().classList.toggle('drawing-link-hover', !placement && !!linkAt(e.latlng)),
+    );
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        cancel();
+      }
+    });
+  }
+  return {
+    goParent,
+    setup,
+    visible,
+    layerInput,
+    layerName,
+    refreshPanel,
+    manageLayers,
+    manageDrawings,
+    cancel,
+    drawingChanged,
+    renderLinks,
+  };
 })();

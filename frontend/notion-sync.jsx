@@ -1,19 +1,525 @@
-import React,{useEffect,useRef,useState} from 'react';
-const api=(...args)=>window.FactoryAPI.request(...args);
-const stamp=value=>value?new Date(value).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}):'未実行';
-const labels={disconnected:'未接続',prepared:'接続待ち',queued:'実行待ち',running:'同期中',continuing:'初回・続きの同期中',idle:'照合完了',paused:'停止中',stopping:'停止処理中',error:'再試行待ち'};
-export function NotionStatus({onChanged}){
- const [status,S]=useState(null),callback=useRef(onChanged);callback.current=onChanged;
- useEffect(()=>{let live=true,busy=false;const poll=async()=>{if(busy||document.hidden)return;busy=true;try{const r=await api('/api/notion/status');if(!live)return;const pending=r.revision!==window.FactoryAPI.revision,editing=document.querySelector('dialog[open],.asset-placing,.note-placing,.note-resizing,.leaflet-drag-target,#draw-instruction:not([hidden]),#drawing-link-instruction:not([hidden])');S({...r,updatePending:pending&&!!editing});if(pending&&!editing)await callback.current?.();}catch{}finally{busy=false;}};poll();const timer=setInterval(poll,15000);document.addEventListener('visibilitychange',poll);return()=>{live=false;clearInterval(timer);document.removeEventListener('visibilitychange',poll);};},[]);
- if(!status?.configured)return null;const issues=Object.entries(status.counts||{}).filter(([k])=>!['active','deleted'].includes(k)).reduce((n,[,v])=>n+v,0);
- return <a className={'notion-status-link '+(issues||status.lastError?'has-issues':'')} href="console.html#notion" title={'前回実行：'+stamp(status.lastRunAt)}><i/>Notion · {status.updatePending?'更新あり':issues?'要確認 '+issues+'件':labels[status.status]||status.status}</a>;
+import React, { useEffect, useRef, useState } from 'react';
+const api = (...args) => window.FactoryAPI.request(...args);
+const stamp = (value) =>
+  value
+    ? new Date(value).toLocaleString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+      })
+    : '未実行';
+const labels = {
+  disconnected: '未接続',
+  prepared: '接続待ち',
+  queued: '実行待ち',
+  running: '同期中',
+  continuing: '初回・続きの同期中',
+  idle: '照合完了',
+  paused: '停止中',
+  stopping: '停止処理中',
+  error: '再試行待ち',
+};
+export function NotionStatus({ onChanged }) {
+  const [status, setStatus] = useState(null);
+  const callback = useRef(onChanged);
+  callback.current = onChanged;
+  useEffect(() => {
+    let live = true;
+    let busy = false;
+    const poll = async () => {
+      if (busy || document.hidden) {
+        return;
+      }
+      busy = true;
+      try {
+        const r = await api('/api/notion/status');
+        if (!live) {
+          return;
+        }
+        const pending = r.revision !== window.FactoryAPI.revision;
+        const editing = document.querySelector(
+          'dialog[open],.asset-placing,.note-placing,.note-resizing,.leaflet-drag-target,#draw-instruction:not([hidden]),#drawing-link-instruction:not([hidden])',
+        );
+        setStatus({
+          ...r,
+          updatePending: pending && !!editing,
+        });
+        if (pending && !editing) {
+          await callback.current?.();
+        }
+      } catch {
+      } finally {
+        busy = false;
+      }
+    };
+    poll();
+    const timer = setInterval(poll, 15000);
+    document.addEventListener('visibilitychange', poll);
+    return () => {
+      live = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', poll);
+    };
+  }, []);
+  if (!status?.configured) {
+    return null;
+  }
+  const issues = Object.entries(status.counts || {})
+    .filter(([k]) => !['active', 'deleted'].includes(k))
+    .reduce((n, [, v]) => n + v, 0);
+  return (
+    <a
+      className={'notion-status-link ' + (issues || status.lastError ? 'has-issues' : '')}
+      href="console.html#notion"
+      title={'前回実行：' + stamp(status.lastRunAt)}
+    >
+      <i />
+      Notion ·{' '}
+      {status.updatePending
+        ? '更新あり'
+        : issues
+          ? '要確認 ' + issues + '件'
+          : labels[status.status] || status.status}
+    </a>
+  );
 }
-export function NotionSync({state,onRefresh}){
- const [status,S]=useState(null),[issues,I]=useState([]),[runs,R]=useState([]),[error,E]=useState(''),[busy,B]=useState(false),[draft,D]=useState({homePageId:'',token:'',intervalMinutes:15,direction:'both',enabled:true}),initialized=useRef(false);
- const load=async()=>{const [s,i,r]=await Promise.all([api('/api/notion/status'),api('/api/notion/issues'),api('/api/notion/runs')]);S(s);I(i.items);R(r.items);if(!initialized.current){D(d=>({...d,homePageId:s.homePageId,intervalMinutes:s.intervalMinutes,direction:s.direction,enabled:s.configured?s.enabled:true}));initialized.current=true;}return s;};
- useEffect(()=>{let live=true;load().catch(e=>{if(live)E(e.message);});const timer=setInterval(()=>{if(!document.hidden)load().catch(()=>{});},15000);return()=>{live=false;clearInterval(timer);};},[]);
- const set=(key,value)=>D(d=>({...d,[key]:value}));
- const run=async fn=>{B(true);E('');try{await fn();await load();}catch(e){E(e.message);}finally{B(false);}};
- const resolve=(issue,source)=>run(async()=>{const deleting=issue.state==='remote_deleted'&&source==='notion'||issue.state==='local_deleted'&&source==='local';if(!confirm(deleting?'選んだ側の削除をもう一方にも反映しますか？':'選択した側の内容で、この項目の競合を解消しますか？'))return;await api('/api/notion/resolve',{method:'POST',body:{kind:issue.kind,localId:issue.local_id,updatedAt:issue.updated_at,source,revision:window.FactoryAPI.revision,...(deleting?{confirm:'DELETE_REVIEWED'}:{})}});await onRefresh();E(deleting?'削除内容を反映しました。':'選択内容を次回の同期に反映します。');});
- return <><p className="section-intro">設備・工事・チーム作業・点検履歴をNotionと同期します。「ダッシュボード」は同期後のデータから更新されます。</p>{error&&<p className="product-message" role="status">{error}</p>}{status&&<><section className="product-card notion-connection"><div className="section-heading"><h2>接続設定</h2><span className="plan-pill">{labels[status.status]||status.status}</span></div>{!status.serverReady&&<p className="notion-warning">サーバーのトークン暗号化キーの設定が必要です。</p>}<p className="team-help">Notionで内部接続を作成し、読み取り・更新・作成を許可して、同期先ページへ接続を追加してください。トークンは保存後に表示しません。</p><fieldset disabled={busy||status.running}><div className="notion-form-grid"><label>Notionの同期先ページ<input aria-label="Notionの同期先ページ" value={draft.homePageId} onChange={e=>set('homePageId',e.target.value)} placeholder="NotionページのURLまたはID"/></label><label>Notion接続トークン<input aria-label="Notion接続トークン" type="password" autoComplete="new-password" value={draft.token} onChange={e=>set('token',e.target.value)} placeholder={status.configured?'変更する場合だけ入力':'ntn_…'}/></label><label>同期方向<select aria-label="Notion同期方向" value={draft.direction} onChange={e=>set('direction',e.target.value)}><option value="both">双方向</option><option value="push">PlantDesk → Notion</option><option value="pull">Notion → PlantDesk</option></select></label><label>同期間隔<select aria-label="Notion同期間隔" value={draft.intervalMinutes} onChange={e=>set('intervalMinutes',Number(e.target.value))}>{[5,15,30,60].map(n=><option key={n} value={n}>{n}分</option>)}</select></label></div><label className="team-checkbox"><input type="checkbox" aria-label="Notion定期同期を有効にする" checked={draft.enabled} onChange={e=>set('enabled',e.target.checked)}/>定期同期を有効にする</label></fieldset><div className="product-actions"><button className="primary-product" disabled={busy||status.running||!status.serverReady} onClick={()=>run(async()=>{await api('/api/notion/config',{method:'PUT',body:draft});D(d=>({...d,token:''}));E('接続を保存しました。DBの準備と同期を順次実行します。');})}>接続して同期</button><button disabled={busy||!status.configured} onClick={()=>run(()=>api('/api/notion/run',{method:'POST',body:{}}))}>今すぐ同期</button><button disabled={busy||!status.configured} onClick={()=>run(()=>api('/api/notion/run',{method:'POST',body:{full:true}}))}>全件照合</button><button disabled={busy||!status.configured} onClick={()=>run(async()=>{await api('/api/notion/pause',{method:'POST',body:{}});set('enabled',false);})}>同期を停止</button>{status.configured&&<button disabled={busy||status.running} onClick={()=>run(async()=>{if(!confirm('Notion接続を切断しますか？両方の台帳データは保持します。'))return;await api('/api/notion/config',{method:'DELETE'});initialized.current=false;D(d=>({...d,token:''}));})}>切断</button>}</div>{status.homeUrl&&<p><a href={status.homeUrl} target="_blank" rel="noreferrer">NotionのPlantDeskページを開く ↗</a></p>}<dl className="notion-status-details"><div><dt>前回実行</dt><dd>{stamp(status.lastRunAt)}</dd></div><div><dt>前回正常完了</dt><dd>{stamp(status.lastSuccessAt)}</dd></div><div><dt>次回予定</dt><dd>{status.enabled||status.requested?stamp(status.nextRunAt):'停止中'}</dd></div><div><dt>同期済み</dt><dd>{status.counts.active||0}件</dd></div></dl>{status.progress&&<p className="team-help">処理中：{status.sources.find(s=>s.kind===status.progress.kind)?.name||'データベース準備'}。件数が多い場合は、数回に分けて続行します。</p>}{status.lastError&&<p className="notion-warning">{status.lastError}</p>}<p className="team-help">Webhookは使いません。ブラウザーを閉じてもサーバーが定期実行します。手動実行は次のスケジューラー実行時（通常1分以内）に開始します。</p></section><section className="product-card"><h2>同期先データベース</h2><div className="notion-source-grid">{status.sources.map(s=><a key={s.kind} href={s.url||status.homeUrl} target="_blank" rel="noreferrer"><strong>{s.name}</strong><small>Notionで開く ↗</small></a>)}</div>{!status.sources.length&&<p className="team-help">接続後、指定ページの配下に担当者・案件・設備・工事・点検計画・チーム作業・点検履歴のデータベースを作成します。</p>}<details className="notion-help"><summary>同期する項目・扱いを確認</summary><ul><li>台帳の属性と関連先を同期します。Notionのページ本文や追加の無関係な列は変更しません。ワークスペースごとに別のNotionページを指定してください。</li><li>設備のカスタム属性はPlantDeskのプロパティ定義から作成します。列の型や選択肢はPlantDesk側で管理します。</li><li>新規設備は図面IDとX/Y座標、新規工事は図面IDと範囲JSONが必要です。入力不足は要確認に残します。</li><li>設備の位置・属性ロック、点検の確認項目、プランの登録上限を守ります。</li><li>Notionで点検作業を完了にする場合は、点検日・結果・実施内容とチェックJSONを入力します。記録済みの結果変更は点検履歴から行います。</li><li>図面本体・添付ファイル本体は同期対象外です。PlantDeskへのリンクから閲覧できます。</li><li>同じ項目を両方で変更した場合や削除がある場合は、ここで採用する内容を選びます。削除は自動反映しません。</li></ul></details></section><section className="product-card"><div className="section-heading"><h2>要確認の項目</h2><button disabled={busy} onClick={()=>run(load)}>最新の状態を取得</button></div>{!issues.length?<p className="team-help">要確認の項目はありません。</p>:<div className="notion-issues">{issues.map(i=><article key={i.kind+':'+i.local_id}><div className="section-heading"><strong>{i.name}</strong>{i.pageUrl&&<a href={i.pageUrl} target="_blank" rel="noreferrer">Notionで確認 ↗</a>}</div><p>{i.message}</p>{i.fields?.length>0&&<p className="team-help">対象：{i.fields.join('、')}</p>}<details><summary>両方の値を確認</summary><div className="notion-compare"><div><b>PlantDesk</b><pre>{JSON.stringify(i.local,null,2)||'削除・未登録'}</pre></div><div><b>Notion</b><pre>{JSON.stringify(i.notion,null,2)||'削除・取得不可'}</pre></div></div></details><div className="product-actions"><button disabled={busy||status.running} onClick={()=>resolve(i,'local')}>PlantDesk側を採用</button><button disabled={busy||status.running||!i.pageUrl} onClick={()=>resolve(i,'notion')}>Notion側を採用</button></div></article>)}</div>}</section><section className="product-card"><h2>同期履歴</h2><div className="table-scroll"><table><thead><tr><th>開始</th><th>状態</th><th>Notionへ</th><th>取り込み</th><th>競合・エラー</th></tr></thead><tbody>{runs.map(r=><tr key={r.id}><td>{stamp(r.started_at)}</td><td>{({success:'完了',issues:'要確認あり',running:'実行中',retrying:'再試行待ち'})[r.status]||r.status}</td><td>{r.counters.pushed||0}</td><td>{r.counters.pulled||0}</td><td>{(r.counters.conflicts||0)+(r.counters.errors||0)}{r.error&&<small>{r.error}</small>}</td></tr>)}</tbody></table></div></section></>}</>;
+export function NotionSync({ state: _state, onRefresh }) {
+  const [status, setStatus] = useState(null);
+  const [issues, setIssues] = useState([]);
+  const [runs, setRuns] = useState([]);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [draft, setDraft] = useState({
+    homePageId: '',
+    token: '',
+    intervalMinutes: 15,
+    direction: 'both',
+    enabled: true,
+  });
+  const initialized = useRef(false);
+  const load = async () => {
+    const [s, i, r] = await Promise.all([
+      api('/api/notion/status'),
+      api('/api/notion/issues'),
+      api('/api/notion/runs'),
+    ]);
+    setStatus(s);
+    setIssues(i.items);
+    setRuns(r.items);
+    if (!initialized.current) {
+      setDraft((d) => ({
+        ...d,
+        homePageId: s.homePageId,
+        intervalMinutes: s.intervalMinutes,
+        direction: s.direction,
+        enabled: s.configured ? s.enabled : true,
+      }));
+      initialized.current = true;
+    }
+    return s;
+  };
+  useEffect(() => {
+    let live = true;
+    load().catch((e) => {
+      if (live) {
+        setError(e.message);
+      }
+    });
+    const timer = setInterval(() => {
+      if (!document.hidden) {
+        load().catch(() => {});
+      }
+    }, 15000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, []);
+  const set = (key, value) =>
+    setDraft((d) => ({
+      ...d,
+      [key]: value,
+    }));
+  const run = async (fn) => {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const resolve = (issue, source) =>
+    run(async () => {
+      const deleting =
+        (issue.state === 'remote_deleted' && source === 'notion') ||
+        (issue.state === 'local_deleted' && source === 'local');
+      if (
+        !confirm(
+          deleting
+            ? '選んだ側の削除をもう一方にも反映しますか？'
+            : '選択した側の内容で、この項目の競合を解消しますか？',
+        )
+      ) {
+        return;
+      }
+      await api('/api/notion/resolve', {
+        method: 'POST',
+        body: {
+          kind: issue.kind,
+          localId: issue.local_id,
+          updatedAt: issue.updated_at,
+          source,
+          revision: window.FactoryAPI.revision,
+          ...(deleting
+            ? {
+                confirm: 'DELETE_REVIEWED',
+              }
+            : {}),
+        },
+      });
+      await onRefresh();
+      setError(deleting ? '削除内容を反映しました。' : '選択内容を次回の同期に反映します。');
+    });
+  return (
+    <>
+      <p className="section-intro">
+        設備・工事・チーム作業・点検履歴をNotionと同期します。「ダッシュボード」は同期後のデータから更新されます。
+      </p>
+      {error && (
+        <p className="product-message" role="status">
+          {error}
+        </p>
+      )}
+      {status && (
+        <>
+          <section className="product-card notion-connection">
+            <div className="section-heading">
+              <h2>接続設定</h2>
+              <span className="plan-pill">{labels[status.status] || status.status}</span>
+            </div>
+            {!status.serverReady && (
+              <p className="notion-warning">サーバーのトークン暗号化キーの設定が必要です。</p>
+            )}
+            <p className="team-help">
+              Notionで内部接続を作成し、読み取り・更新・作成を許可して、同期先ページへ接続を追加してください。トークンは保存後に表示しません。
+            </p>
+            <fieldset disabled={busy || status.running}>
+              <div className="notion-form-grid">
+                <label>
+                  Notionの同期先ページ
+                  <input
+                    aria-label="Notionの同期先ページ"
+                    value={draft.homePageId}
+                    onChange={(e) => set('homePageId', e.target.value)}
+                    placeholder="NotionページのURLまたはID"
+                  />
+                </label>
+                <label>
+                  Notion接続トークン
+                  <input
+                    aria-label="Notion接続トークン"
+                    type="password"
+                    autoComplete="new-password"
+                    value={draft.token}
+                    onChange={(e) => set('token', e.target.value)}
+                    placeholder={status.configured ? '変更する場合だけ入力' : 'ntn_…'}
+                  />
+                </label>
+                <label>
+                  同期方向
+                  <select
+                    aria-label="Notion同期方向"
+                    value={draft.direction}
+                    onChange={(e) => set('direction', e.target.value)}
+                  >
+                    <option value="both">双方向</option>
+                    <option value="push">PlantDesk → Notion</option>
+                    <option value="pull">Notion → PlantDesk</option>
+                  </select>
+                </label>
+                <label>
+                  同期間隔
+                  <select
+                    aria-label="Notion同期間隔"
+                    value={draft.intervalMinutes}
+                    onChange={(e) => set('intervalMinutes', Number(e.target.value))}
+                  >
+                    {[5, 15, 30, 60].map((n) => (
+                      <option key={n} value={n}>
+                        {n}分
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="team-checkbox">
+                <input
+                  type="checkbox"
+                  aria-label="Notion定期同期を有効にする"
+                  checked={draft.enabled}
+                  onChange={(e) => set('enabled', e.target.checked)}
+                />
+                定期同期を有効にする
+              </label>
+            </fieldset>
+            <div className="product-actions">
+              <button
+                className="primary-product"
+                disabled={busy || status.running || !status.serverReady}
+                onClick={() =>
+                  run(async () => {
+                    await api('/api/notion/config', {
+                      method: 'PUT',
+                      body: draft,
+                    });
+                    setDraft((d) => ({
+                      ...d,
+                      token: '',
+                    }));
+                    setError('接続を保存しました。DBの準備と同期を順次実行します。');
+                  })
+                }
+              >
+                接続して同期
+              </button>
+              <button
+                disabled={busy || !status.configured}
+                onClick={() =>
+                  run(() =>
+                    api('/api/notion/run', {
+                      method: 'POST',
+                      body: {},
+                    }),
+                  )
+                }
+              >
+                今すぐ同期
+              </button>
+              <button
+                disabled={busy || !status.configured}
+                onClick={() =>
+                  run(() =>
+                    api('/api/notion/run', {
+                      method: 'POST',
+                      body: {
+                        full: true,
+                      },
+                    }),
+                  )
+                }
+              >
+                全件照合
+              </button>
+              <button
+                disabled={busy || !status.configured}
+                onClick={() =>
+                  run(async () => {
+                    await api('/api/notion/pause', {
+                      method: 'POST',
+                      body: {},
+                    });
+                    set('enabled', false);
+                  })
+                }
+              >
+                同期を停止
+              </button>
+              {status.configured && (
+                <button
+                  disabled={busy || status.running}
+                  onClick={() =>
+                    run(async () => {
+                      if (!confirm('Notion接続を切断しますか？両方の台帳データは保持します。')) {
+                        return;
+                      }
+                      await api('/api/notion/config', {
+                        method: 'DELETE',
+                      });
+                      initialized.current = false;
+                      setDraft((d) => ({
+                        ...d,
+                        token: '',
+                      }));
+                    })
+                  }
+                >
+                  切断
+                </button>
+              )}
+            </div>
+            {status.homeUrl && (
+              <p>
+                <a href={status.homeUrl} target="_blank" rel="noreferrer">
+                  NotionのPlantDeskページを開く ↗
+                </a>
+              </p>
+            )}
+            <dl className="notion-status-details">
+              <div>
+                <dt>前回実行</dt>
+                <dd>{stamp(status.lastRunAt)}</dd>
+              </div>
+              <div>
+                <dt>前回正常完了</dt>
+                <dd>{stamp(status.lastSuccessAt)}</dd>
+              </div>
+              <div>
+                <dt>次回予定</dt>
+                <dd>{status.enabled || status.requested ? stamp(status.nextRunAt) : '停止中'}</dd>
+              </div>
+              <div>
+                <dt>同期済み</dt>
+                <dd>{status.counts.active || 0}件</dd>
+              </div>
+            </dl>
+            {status.progress && (
+              <p className="team-help">
+                処理中：
+                {status.sources.find((s) => s.kind === status.progress.kind)?.name ||
+                  'データベース準備'}
+                。件数が多い場合は、数回に分けて続行します。
+              </p>
+            )}
+            {status.lastError && <p className="notion-warning">{status.lastError}</p>}
+            <p className="team-help">
+              Webhookは使いません。ブラウザーを閉じてもサーバーが定期実行します。手動実行は次のスケジューラー実行時（通常1分以内）に開始します。
+            </p>
+          </section>
+          <section className="product-card">
+            <h2>同期先データベース</h2>
+            <div className="notion-source-grid">
+              {status.sources.map((s) => (
+                <a key={s.kind} href={s.url || status.homeUrl} target="_blank" rel="noreferrer">
+                  <strong>{s.name}</strong>
+                  <small>Notionで開く ↗</small>
+                </a>
+              ))}
+            </div>
+            {!status.sources.length && (
+              <p className="team-help">
+                接続後、指定ページの配下に担当者・案件・設備・工事・点検計画・チーム作業・点検履歴のデータベースを作成します。
+              </p>
+            )}
+            <details className="notion-help">
+              <summary>同期する項目・扱いを確認</summary>
+              <ul>
+                <li>
+                  台帳の属性と関連先を同期します。Notionのページ本文や追加の無関係な列は変更しません。ワークスペースごとに別のNotionページを指定してください。
+                </li>
+                <li>
+                  設備のカスタム属性はPlantDeskのプロパティ定義から作成します。列の型や選択肢はPlantDesk側で管理します。
+                </li>
+                <li>
+                  新規設備は図面IDとX/Y座標、新規工事は図面IDと範囲JSONが必要です。入力不足は要確認に残します。
+                </li>
+                <li>設備の位置・属性ロック、点検の確認項目、プランの登録上限を守ります。</li>
+                <li>
+                  Notionで点検作業を完了にする場合は、点検日・結果・実施内容とチェックJSONを入力します。記録済みの結果変更は点検履歴から行います。
+                </li>
+                <li>
+                  図面本体・添付ファイル本体は同期対象外です。PlantDeskへのリンクから閲覧できます。
+                </li>
+                <li>
+                  同じ項目を両方で変更した場合や削除がある場合は、ここで採用する内容を選びます。削除は自動反映しません。
+                </li>
+              </ul>
+            </details>
+          </section>
+          <section className="product-card">
+            <div className="section-heading">
+              <h2>要確認の項目</h2>
+              <button disabled={busy} onClick={() => run(load)}>
+                最新の状態を取得
+              </button>
+            </div>
+            {!issues.length ? (
+              <p className="team-help">要確認の項目はありません。</p>
+            ) : (
+              <div className="notion-issues">
+                {issues.map((i) => (
+                  <article key={i.kind + ':' + i.local_id}>
+                    <div className="section-heading">
+                      <strong>{i.name}</strong>
+                      {i.pageUrl && (
+                        <a href={i.pageUrl} target="_blank" rel="noreferrer">
+                          Notionで確認 ↗
+                        </a>
+                      )}
+                    </div>
+                    <p>{i.message}</p>
+                    {i.fields?.length > 0 && (
+                      <p className="team-help">対象：{i.fields.join('、')}</p>
+                    )}
+                    <details>
+                      <summary>両方の値を確認</summary>
+                      <div className="notion-compare">
+                        <div>
+                          <b>PlantDesk</b>
+                          <pre>{JSON.stringify(i.local, null, 2) || '削除・未登録'}</pre>
+                        </div>
+                        <div>
+                          <b>Notion</b>
+                          <pre>{JSON.stringify(i.notion, null, 2) || '削除・取得不可'}</pre>
+                        </div>
+                      </div>
+                    </details>
+                    <div className="product-actions">
+                      <button disabled={busy || status.running} onClick={() => resolve(i, 'local')}>
+                        PlantDesk側を採用
+                      </button>
+                      <button
+                        disabled={busy || status.running || !i.pageUrl}
+                        onClick={() => resolve(i, 'notion')}
+                      >
+                        Notion側を採用
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+          <section className="product-card">
+            <h2>同期履歴</h2>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>開始</th>
+                    <th>状態</th>
+                    <th>Notionへ</th>
+                    <th>取り込み</th>
+                    <th>競合・エラー</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {runs.map((r) => (
+                    <tr key={r.id}>
+                      <td>{stamp(r.started_at)}</td>
+                      <td>
+                        {{
+                          success: '完了',
+                          issues: '要確認あり',
+                          running: '実行中',
+                          retrying: '再試行待ち',
+                        }[r.status] || r.status}
+                      </td>
+                      <td>{r.counters.pushed || 0}</td>
+                      <td>{r.counters.pulled || 0}</td>
+                      <td>
+                        {(r.counters.conflicts || 0) + (r.counters.errors || 0)}
+                        {r.error && <small>{r.error}</small>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
+    </>
+  );
 }

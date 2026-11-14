@@ -1,13 +1,295 @@
-import React,{useState} from 'react';
-import {today,addDays,openTask,writeFile,Modal} from './team-shared.jsx';
-import {latestInspection,nextInspection} from './team-dashboard.jsx';
-
-const resultNames={normal:'異常なし',attention:'要対応',repaired:'補修済み'};
-export function InspectionRecords({state,onOpenTask,onNewTask}){
- const [view,V]=useState('due'),[query,Q]=useState(''),[condition,C]=useState('week'),[result,R]=useState(''),[limit,L]=useState(50),[detail,D]=useState(null);
- const match=(a,text='')=>[a.code,a.name,a.location,text].join(' ').normalize('NFKC').toLocaleLowerCase().includes(query.normalize('NFKC').toLocaleLowerCase());
- const assets=state.assets.filter(a=>match(a)&&(!condition||condition==='week'&&nextInspection(a)&&nextInspection(a)<=addDays(today(),7)||condition==='due'&&nextInspection(a)&&nextInspection(a)<=today()||condition==='attention'&&latestInspection(a)?.result==='attention')).sort((a,b)=>(nextInspection(a)||'9999').localeCompare(nextInspection(b)||'9999'));
- const rows=state.assets.flatMap(asset=>(asset.history||[]).map(history=>({asset,history}))).filter(({asset,history:h})=>match(asset,[h.text,h.inspector].join(' '))&&(!result||h.result===result)).sort((a,b)=>b.history.date.localeCompare(a.history.date));
- const exportRows=()=>writeFile('点検履歴-'+today()+'.csv','\uFEFF'+[['設備ID','設備名','実施日','内容','結果','実施者','次回点検日'],...rows.map(({asset:a,history:h})=>[a.code,a.name,h.date,h.text,resultNames[h.result]||'',h.inspector,h.nextDate])].map(r=>r.map(v=>'"'+(/^[=+@-]/.test(String(v))?"'":'')+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n'),'text/csv;charset=utf-8');
- return <section className="work-surface inspection-register"><div className="work-section-title"><h2>点検予定・履歴</h2><div className="team-layout-switch"><button aria-pressed={view==='due'} onClick={()=>{V('due');L(50);}}>点検待ち設備</button><button aria-pressed={view==='history'} onClick={()=>{V('history');L(50);}}>実施履歴</button></div></div><p className="work-caption">{view==='due'?'設備の次回点検日から、点検作業を登録します。登録済みの作業はそのまま開けます。':'設備に記録した点検結果を横断して確認します。'}</p><div className="inspection-toolbar"><input type="search" aria-label="点検予定・履歴を検索" value={query} placeholder="設備・場所・点検内容を検索" onChange={e=>{Q(e.target.value);L(50);}}/>{view==='due'?<select aria-label="点検待ち設備の条件" value={condition} onChange={e=>{C(e.target.value);L(50);}}><option value="week">7日以内・期限超過</option><option value="due">今日までに点検</option><option value="attention">直近の点検で要対応</option><option value="">すべての設備</option></select>:<><select aria-label="点検履歴の結果" value={result} onChange={e=>{R(e.target.value);L(50);}}><option value="">すべての結果</option>{Object.entries(resultNames).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select><button onClick={exportRows}>CSV保存</button></>}</div><div className="table-scroll"><table className="inspection-record-table"><thead><tr>{(view==='due'?['設備','場所','次回点検日','前回の結果','作業']:['実施日','設備','点検内容','結果','実施者','詳細']).map(s=><th key={s}>{s}</th>)}</tr></thead><tbody>{view==='due'?assets.slice(0,limit).map(a=>{const tasks=state.tasks.filter(t=>t.assetId===a.id&&['inspection','repair'].includes(t.kind)&&openTask(t)),attention=latestInspection(a)?.result==='attention';return <tr key={a.id} data-inspection-asset={a.id}><td><b>{a.name}</b><small>{a.code}</small></td><td>{a.location||'—'}</td><td className={nextInspection(a)&&nextInspection(a)<today()?'task-overdue':''}>{nextInspection(a)||'未設定'}</td><td><span className={'inspection-result '+(latestInspection(a)?.result||'')}>{resultNames[latestInspection(a)?.result]||'未点検'}</span></td><td>{tasks.length?tasks.slice(0,3).map(t=><button className="inspection-task-link" key={t.id} onClick={()=>onOpenTask(t)}>{t.title} →</button>):<button onClick={()=>onNewTask({kind:attention?'repair':'inspection',assetId:a.id,drawingId:a.drawingId,title:a.name+(attention?'の要対応を確認':'の点検'),dueDate:nextInspection(a)>today()?nextInspection(a):today()})}>{attention?'対応タスクを登録':'点検タスクを登録'}</button>}{tasks.length>3&&<small>ほか{tasks.length-3}件</small>}</td></tr>;}):rows.slice(0,limit).map(({asset:a,history:h})=><tr key={a.id+':'+h.id} data-inspection-history={h.id}><td>{h.date}</td><td><b>{a.name}</b><small>{a.code}</small></td><td className="inspection-history-text">{h.text}</td><td><span className={'inspection-result '+h.result}>{resultNames[h.result]||'—'}</span></td><td>{h.inspector||'—'}</td><td><button onClick={()=>D({asset:a,history:h})}>結果を見る</button></td></tr>)}</tbody></table></div><p className="work-caption">{view==='due'?assets.length:rows.length}件{(view==='due'?assets.length:rows.length)>limit&&<> · <button onClick={()=>L(limit+50)}>さらに50件表示</button></>}</p>{!(view==='due'?assets.length:rows.length)&&<p className="team-empty">条件に合う{view==='due'?'設備':'点検履歴'}はありません。</p>}{detail&&<Modal title="点検結果" onClose={()=>D(null)}><h3>{detail.asset.name}</h3><p>{detail.asset.code} · {detail.history.date} · {resultNames[detail.history.result]}</p><p className="inspection-result-text">{detail.history.text}</p><p>実施者：{detail.history.inspector||'未設定'}<br/>次回：{detail.history.nextDate||'未設定'}</p>{(detail.history.attachments||[]).map(f=><p key={f.fileId||f.id}><a href={'/api/files/'+encodeURIComponent(f.fileId||f.id)+'?inline=1'} target="_blank" rel="noreferrer">{f.name} ↗</a></p>)}<a href={'index.html?asset='+encodeURIComponent(detail.asset.id)}>設備を地図で開く ↗</a></Modal>}</section>;
+import React, { useState } from 'react';
+import { today, addDays, openTask, writeFile, Modal } from './team-shared.jsx';
+import { latestInspection, nextInspection } from './team-dashboard.jsx';
+const resultNames = {
+  normal: '異常なし',
+  attention: '要対応',
+  repaired: '補修済み',
+};
+export function InspectionRecords({ state, onOpenTask, onNewTask }) {
+  const [view, setView] = useState('due');
+  const [query, setQuery] = useState('');
+  const [condition, setCondition] = useState('week');
+  const [result, setResult] = useState('');
+  const [limit, setLimit] = useState(50);
+  const [detail, setDetail] = useState(null);
+  const match = (a, text = '') =>
+    [a.code, a.name, a.location, text]
+      .join(' ')
+      .normalize('NFKC')
+      .toLocaleLowerCase()
+      .includes(query.normalize('NFKC').toLocaleLowerCase());
+  const assets = state.assets
+    .filter(
+      (a) =>
+        match(a) &&
+        (!condition ||
+          (condition === 'week' && nextInspection(a) && nextInspection(a) <= addDays(today(), 7)) ||
+          (condition === 'due' && nextInspection(a) && nextInspection(a) <= today()) ||
+          (condition === 'attention' && latestInspection(a)?.result === 'attention')),
+    )
+    .sort((a, b) => (nextInspection(a) || '9999').localeCompare(nextInspection(b) || '9999'));
+  const rows = state.assets
+    .flatMap((asset) =>
+      (asset.history || []).map((history) => ({
+        asset,
+        history,
+      })),
+    )
+    .filter(
+      ({ asset, history: h }) =>
+        match(asset, [h.text, h.inspector].join(' ')) && (!result || h.result === result),
+    )
+    .sort((a, b) => b.history.date.localeCompare(a.history.date));
+  const exportRows = () =>
+    writeFile(
+      '点検履歴-' + today() + '.csv',
+      '\uFEFF' +
+        [
+          ['設備ID', '設備名', '実施日', '内容', '結果', '実施者', '次回点検日'],
+          ...rows.map(({ asset: a, history: h }) => [
+            a.code,
+            a.name,
+            h.date,
+            h.text,
+            resultNames[h.result] || '',
+            h.inspector,
+            h.nextDate,
+          ]),
+        ]
+          .map((r) =>
+            r
+              .map(
+                (v) =>
+                  '"' +
+                  (/^[=+@-]/.test(String(v)) ? "'" : '') +
+                  String(v ?? '').replaceAll('"', '""') +
+                  '"',
+              )
+              .join(','),
+          )
+          .join('\r\n'),
+      'text/csv;charset=utf-8',
+    );
+  return (
+    <section className="work-surface inspection-register">
+      <div className="work-section-title">
+        <h2>点検予定・履歴</h2>
+        <div className="team-layout-switch">
+          <button
+            aria-pressed={view === 'due'}
+            onClick={() => {
+              setView('due');
+              setLimit(50);
+            }}
+          >
+            点検待ち設備
+          </button>
+          <button
+            aria-pressed={view === 'history'}
+            onClick={() => {
+              setView('history');
+              setLimit(50);
+            }}
+          >
+            実施履歴
+          </button>
+        </div>
+      </div>
+      <p className="work-caption">
+        {view === 'due'
+          ? '設備の次回点検日から、点検作業を登録します。登録済みの作業はそのまま開けます。'
+          : '設備に記録した点検結果を横断して確認します。'}
+      </p>
+      <div className="inspection-toolbar">
+        <input
+          type="search"
+          aria-label="点検予定・履歴を検索"
+          value={query}
+          placeholder="設備・場所・点検内容を検索"
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setLimit(50);
+          }}
+        />
+        {view === 'due' ? (
+          <select
+            aria-label="点検待ち設備の条件"
+            value={condition}
+            onChange={(e) => {
+              setCondition(e.target.value);
+              setLimit(50);
+            }}
+          >
+            <option value="week">7日以内・期限超過</option>
+            <option value="due">今日までに点検</option>
+            <option value="attention">直近の点検で要対応</option>
+            <option value="">すべての設備</option>
+          </select>
+        ) : (
+          <>
+            <select
+              aria-label="点検履歴の結果"
+              value={result}
+              onChange={(e) => {
+                setResult(e.target.value);
+                setLimit(50);
+              }}
+            >
+              <option value="">すべての結果</option>
+              {Object.entries(resultNames).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+            <button onClick={exportRows}>CSV保存</button>
+          </>
+        )}
+      </div>
+      <div className="table-scroll">
+        <table className="inspection-record-table">
+          <thead>
+            <tr>
+              {(view === 'due'
+                ? ['設備', '場所', '次回点検日', '前回の結果', '作業']
+                : ['実施日', '設備', '点検内容', '結果', '実施者', '詳細']
+              ).map((s) => (
+                <th key={s}>{s}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {view === 'due'
+              ? assets.slice(0, limit).map((a) => {
+                  const tasks = state.tasks.filter(
+                    (t) =>
+                      t.assetId === a.id &&
+                      ['inspection', 'repair'].includes(t.kind) &&
+                      openTask(t),
+                  );
+                  const attention = latestInspection(a)?.result === 'attention';
+                  return (
+                    <tr key={a.id} data-inspection-asset={a.id}>
+                      <td>
+                        <b>{a.name}</b>
+                        <small>{a.code}</small>
+                      </td>
+                      <td>{a.location || '—'}</td>
+                      <td
+                        className={
+                          nextInspection(a) && nextInspection(a) < today() ? 'task-overdue' : ''
+                        }
+                      >
+                        {nextInspection(a) || '未設定'}
+                      </td>
+                      <td>
+                        <span
+                          className={'inspection-result ' + (latestInspection(a)?.result || '')}
+                        >
+                          {resultNames[latestInspection(a)?.result] || '未点検'}
+                        </span>
+                      </td>
+                      <td>
+                        {tasks.length ? (
+                          tasks.slice(0, 3).map((t) => (
+                            <button
+                              className="inspection-task-link"
+                              key={t.id}
+                              onClick={() => onOpenTask(t)}
+                            >
+                              {t.title} →
+                            </button>
+                          ))
+                        ) : (
+                          <button
+                            onClick={() =>
+                              onNewTask({
+                                kind: attention ? 'repair' : 'inspection',
+                                assetId: a.id,
+                                drawingId: a.drawingId,
+                                title: a.name + (attention ? 'の要対応を確認' : 'の点検'),
+                                dueDate: nextInspection(a) > today() ? nextInspection(a) : today(),
+                              })
+                            }
+                          >
+                            {attention ? '対応タスクを登録' : '点検タスクを登録'}
+                          </button>
+                        )}
+                        {tasks.length > 3 && <small>ほか{tasks.length - 3}件</small>}
+                      </td>
+                    </tr>
+                  );
+                })
+              : rows.slice(0, limit).map(({ asset: a, history: h }) => (
+                  <tr key={a.id + ':' + h.id} data-inspection-history={h.id}>
+                    <td>{h.date}</td>
+                    <td>
+                      <b>{a.name}</b>
+                      <small>{a.code}</small>
+                    </td>
+                    <td className="inspection-history-text">{h.text}</td>
+                    <td>
+                      <span className={'inspection-result ' + h.result}>
+                        {resultNames[h.result] || '—'}
+                      </span>
+                    </td>
+                    <td>{h.inspector || '—'}</td>
+                    <td>
+                      <button
+                        onClick={() =>
+                          setDetail({
+                            asset: a,
+                            history: h,
+                          })
+                        }
+                      >
+                        結果を見る
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="work-caption">
+        {view === 'due' ? assets.length : rows.length}件
+        {(view === 'due' ? assets.length : rows.length) > limit && (
+          <>
+            {' '}
+            · <button onClick={() => setLimit(limit + 50)}>さらに50件表示</button>
+          </>
+        )}
+      </p>
+      {!(view === 'due' ? assets.length : rows.length) && (
+        <p className="team-empty">条件に合う{view === 'due' ? '設備' : '点検履歴'}はありません。</p>
+      )}
+      {detail && (
+        <Modal title="点検結果" onClose={() => setDetail(null)}>
+          <h3>{detail.asset.name}</h3>
+          <p>
+            {detail.asset.code} · {detail.history.date} · {resultNames[detail.history.result]}
+          </p>
+          <p className="inspection-result-text">{detail.history.text}</p>
+          <p>
+            実施者：{detail.history.inspector || '未設定'}
+            <br />
+            次回：{detail.history.nextDate || '未設定'}
+          </p>
+          {(detail.history.attachments || []).map((f) => (
+            <p key={f.fileId || f.id}>
+              <a
+                href={'/api/files/' + encodeURIComponent(f.fileId || f.id) + '?inline=1'}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {f.name} ↗
+              </a>
+            </p>
+          ))}
+          <a href={'index.html?asset=' + encodeURIComponent(detail.asset.id)}>設備を地図で開く ↗</a>
+        </Modal>
+      )}
+    </section>
+  );
 }

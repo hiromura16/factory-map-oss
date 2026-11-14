@@ -1,12 +1,119 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>構内マップ | SaaS Console</title><link rel="stylesheet" href="saas.css"><script defer src="saas.js"></script></head><body>
-<header><a href="index.html">▦ 構内マップ</a><span>SAAS CONSOLE · DEVELOPMENT</span></header>
-<main><h1>ワークスペース管理</h1><p class="intro">組織・データ移行・利用枠をひとつの場所で。課金はモックです。</p>
-<aside class="notice">このコンソールは新しい D1 API 専用です。<a href="index.html">既存の地図画面</a>は旧 API のため、ここで選んだ組織やデータとはまだ連携していません。SSO の実 IdP 接続・SCIM・本番運用は未検証です。</aside>
-<p id="message" role="status" aria-live="polite"></p>
-<section id="setup" hidden><h2>帰宅後の接続設定を待っています</h2><p>Cloudflare と IdP の設定はまだ変更していません。公開設定 <code>saas-config.json</code> を配置すると接続できます。秘密鍵・client secret をこのファイルに入れないでください。</p><p><a href="docs/saas-console.md">設定・検証手順</a> · <a href="saas-config.example.json" download>公開設定例</a></p></section>
-<section id="auth"><div class="section-heading"><h2>アカウント</h2><span id="auth-state">未接続</span></div><p>登録・認証は選択した IdP で行います。ログインボタンを押すまでは移動しません。</p><div class="actions"><button id="login" disabled>SSO でログイン / 登録</button><button id="cancel-login" class="secondary">ログインを取り消す</button><button id="logout" class="secondary" hidden>このコンソールからログアウト</button></div><small>ログアウトはコンソール内のトークンを破棄します。IdP 全体のセッションは終了しません。再読込後は再ログインが必要です。</small></section>
-<div id="console" hidden>
-<section><h2>組織</h2><label>ワークスペース<select id="org-select"><option value="">選択してください</option></select></label><button id="refresh" class="secondary">一覧を再取得</button><form id="create-org"><label>新しい組織名<input id="org-name" required maxlength="80" placeholder="例：サンプル工場"></label><button>組織を作成</button></form><small>新規作成にはサーバー側の ALLOW_REGISTRATION が必要です。</small></section>
-<div id="workspace" hidden><section><div class="section-heading"><h2>利用枠と課金モック</h2><span id="role"></span></div><div id="usage" class="usage"></div><p id="revision"></p><form id="billing"><label>プラン<select id="plan"><option value="free">Community</option><option value="pro">Team</option><option value="enterprise">Enterprise</option></select></label><button id="change-plan">モックプランを変更</button></form><small>料金は発生しません。変更すると D1 側の利用枠に反映されます。所有者のみ変更でき、上限超過のダウングレードはデータを削除せず拒否されます。</small></section>
-<section><h2>旧データからの移行</h2><p>JSON の検証・プレビュー後、空の組織にのみ取り込めます。添付ファイル本体の移行はまだ未接続です。既存レコードは上書きしません。</p><label>JSON スナップショット（750KB以下）<input id="import-file" type="file" accept="application/json,.json"></label><div class="actions"><button id="preview" disabled>取り込みを検証</button><button id="apply-import" disabled>この組織へ取り込む</button><button id="export" class="secondary">JSON を書き出す</button></div><pre id="preview-result" aria-live="polite">ファイルを選択してください。</pre><small>書き出しは JSON と添付参照のみで、ファイル本体を含む完全バックアップではありません。</small></section></div></div>
-</main><footer>開発版 · 実際の課金はありません · IdP トークンはメモリにのみ保持</footer></body></html>
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>構内マップ | SaaS Console</title>
+    <link rel="stylesheet" href="saas.css" />
+    <script defer src="saas.js"></script>
+  </head>
+  <body>
+    <header><a href="index.html">▦ 構内マップ</a><span>SAAS CONSOLE · DEVELOPMENT</span></header>
+    <main>
+      <h1>ワークスペース管理</h1>
+      <p class="intro">組織・データ移行・利用枠をひとつの場所で。課金はモックです。</p>
+      <aside class="notice">
+        このコンソールは新しい D1 API 専用です。<a href="index.html">既存の地図画面</a>は旧 API
+        のため、ここで選んだ組織やデータとはまだ連携していません。SSO の実 IdP
+        接続・SCIM・本番運用は未検証です。
+      </aside>
+      <p id="message" role="status" aria-live="polite"></p>
+      <section id="setup" hidden>
+        <h2>帰宅後の接続設定を待っています</h2>
+        <p>
+          Cloudflare と IdP の設定はまだ変更していません。公開設定
+          <code>saas-config.json</code> を配置すると接続できます。秘密鍵・client secret
+          をこのファイルに入れないでください。
+        </p>
+        <p>
+          <a href="docs/saas-console.md">設定・検証手順</a> ·
+          <a href="saas-config.example.json" download>公開設定例</a>
+        </p>
+      </section>
+      <section id="auth">
+        <div class="section-heading">
+          <h2>アカウント</h2>
+          <span id="auth-state">未接続</span>
+        </div>
+        <p>登録・認証は選択した IdP で行います。ログインボタンを押すまでは移動しません。</p>
+        <div class="actions">
+          <button id="login" disabled>SSO でログイン / 登録</button
+          ><button id="cancel-login" class="secondary">ログインを取り消す</button
+          ><button id="logout" class="secondary" hidden>このコンソールからログアウト</button>
+        </div>
+        <small
+          >ログアウトはコンソール内のトークンを破棄します。IdP
+          全体のセッションは終了しません。再読込後は再ログインが必要です。</small
+        >
+      </section>
+      <div id="console" hidden>
+        <section>
+          <h2>組織</h2>
+          <label
+            >ワークスペース<select id="org-select">
+              <option value="">選択してください</option>
+            </select></label
+          ><button id="refresh" class="secondary">一覧を再取得</button>
+          <form id="create-org">
+            <label
+              >新しい組織名<input
+                id="org-name"
+                required
+                maxlength="80"
+                placeholder="例：サンプル工場" /></label
+            ><button>組織を作成</button>
+          </form>
+          <small>新規作成にはサーバー側の ALLOW_REGISTRATION が必要です。</small>
+        </section>
+        <div id="workspace" hidden>
+          <section>
+            <div class="section-heading">
+              <h2>利用枠と課金モック</h2>
+              <span id="role"></span>
+            </div>
+            <div id="usage" class="usage"></div>
+            <p id="revision"></p>
+            <form id="billing">
+              <label
+                >プラン<select id="plan">
+                  <option value="free">Community</option>
+                  <option value="pro">Team</option>
+                  <option value="enterprise">Enterprise</option>
+                </select></label
+              ><button id="change-plan">モックプランを変更</button>
+            </form>
+            <small
+              >料金は発生しません。変更すると D1
+              側の利用枠に反映されます。所有者のみ変更でき、上限超過のダウングレードはデータを削除せず拒否されます。</small
+            >
+          </section>
+          <section>
+            <h2>旧データからの移行</h2>
+            <p>
+              JSON
+              の検証・プレビュー後、空の組織にのみ取り込めます。添付ファイル本体の移行はまだ未接続です。既存レコードは上書きしません。
+            </p>
+            <label
+              >JSON スナップショット（750KB以下）<input
+                id="import-file"
+                type="file"
+                accept="application/json,.json"
+            /></label>
+            <div class="actions">
+              <button id="preview" disabled>取り込みを検証</button
+              ><button id="apply-import" disabled>この組織へ取り込む</button
+              ><button id="export" class="secondary">JSON を書き出す</button>
+            </div>
+            <pre id="preview-result" aria-live="polite">ファイルを選択してください。</pre>
+            <small
+              >書き出しは JSON
+              と添付参照のみで、ファイル本体を含む完全バックアップではありません。</small
+            >
+          </section>
+        </div>
+      </div>
+    </main>
+    <footer>開発版 · 実際の課金はありません · IdP トークンはメモリにのみ保持</footer>
+  </body>
+</html>

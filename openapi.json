@@ -15,9 +15,7 @@
     "/api/health": {
       "get": {
         "summary": "接続確認",
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "responses": {
           "200": {
             "description": "成功",
@@ -45,9 +43,7 @@
     "/api/capabilities": {
       "get": {
         "summary": "対応機能・制限",
-        "tags": [
-          "Capabilities"
-        ],
+        "tags": ["Capabilities"],
         "responses": {
           "200": {
             "description": "成功",
@@ -75,9 +71,7 @@
     "/api/stats": {
       "get": {
         "summary": "件数・工事状態別集計",
-        "tags": [
-          "Stats"
-        ],
+        "tags": ["Stats"],
         "responses": {
           "200": {
             "description": "成功",
@@ -106,9 +100,7 @@
     "/api/works": {
       "get": {
         "summary": "工事一覧・絞り込み",
-        "tags": [
-          "Works"
-        ],
+        "tags": ["Works"],
         "responses": {
           "200": {
             "description": "成功",
@@ -201,9 +193,7 @@
       },
       "post": {
         "summary": "工事登録",
-        "tags": [
-          "Works"
-        ],
+        "tags": ["Works"],
         "responses": {
           "201": {
             "description": "成功",
@@ -249,18 +239,9 @@
                 "end": "2026-11-14",
                 "status": "planned",
                 "points": [
-                  [
-                    100,
-                    100
-                  ],
-                  [
-                    200,
-                    100
-                  ],
-                  [
-                    200,
-                    200
-                  ]
+                  [100, 100],
+                  [200, 100],
+                  [200, 200]
                 ],
                 "impacts": [],
                 "assetIds": [],
@@ -274,9 +255,7 @@
     "/api/works/{id}": {
       "get": {
         "summary": "工事詳細",
-        "tags": [
-          "Works"
-        ],
+        "tags": ["Works"],
         "responses": {
           "200": {
             "description": "成功",
@@ -312,9 +291,7 @@
       },
       "patch": {
         "summary": "工事部分更新",
-        "tags": [
-          "Works"
-        ],
+        "tags": ["Works"],
         "responses": {
           "200": {
             "description": "成功",
@@ -372,9 +349,7 @@
       },
       "delete": {
         "summary": "工事削除",
-        "tags": [
-          "Works"
-        ],
+        "tags": ["Works"],
         "responses": {
           "200": {
             "description": "成功",
@@ -420,9 +395,7 @@
     "/api/assets": {
       "get": {
         "summary": "設備一覧・絞り込み",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "200": {
             "description": "成功",
@@ -526,9 +499,7 @@
       },
       "post": {
         "summary": "設備登録",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "201": {
             "description": "成功",
@@ -614,10 +585,7 @@
                 "code": "DEMO-NEW-001",
                 "drawingId": "site",
                 "location": "動力棟",
-                "point": [
-                  900,
-                  400
-                ],
+                "point": [900, 400],
                 "properties": {},
                 "history": [],
                 "attachments": []
@@ -630,9 +598,7 @@
     "/api/assets/{id}": {
       "get": {
         "summary": "設備詳細",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "200": {
             "description": "成功",
@@ -679,9 +645,7 @@
       },
       "patch": {
         "summary": "設備部分更新",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "200": {
             "description": "成功",
@@ -781,9 +745,7 @@
       },
       "delete": {
         "summary": "設備削除",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "200": {
             "description": "成功",
@@ -832,9 +794,7 @@
     "/api/drawings": {
       "get": {
         "summary": "図面一覧・絞り込み",
-        "tags": [
-          "Drawings"
-        ],
+        "tags": ["Drawings"],
         "responses": {
           "200": {
             "description": "成功",
@@ -928,9 +888,7 @@
       },
       "post": {
         "summary": "図面登録",
-        "tags": [
-          "Drawings"
-        ],
+        "tags": ["Drawings"],
         "responses": {
           "201": {
             "description": "成功",
@@ -974,14 +932,8 @@
                 "type": "sample",
                 "asset": "assets/site-plan.svg",
                 "bounds": [
-                  [
-                    0,
-                    0
-                  ],
-                  [
-                    1100,
-                    2000
-                  ]
+                  [0, 0],
+                  [1100, 2000]
                 ],
                 "metres": true
               }
@@ -993,9 +945,7 @@
     "/api/drawings/{id}": {
       "get": {
         "summary": "図面詳細",
-        "tags": [
-          "Drawings"
-        ],
+        "tags": ["Drawings"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1032,9 +982,7 @@
       },
       "patch": {
         "summary": "図面部分更新",
-        "tags": [
-          "Drawings"
-        ],
+        "tags": ["Drawings"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1092,9 +1040,7 @@
       },
       "delete": {
         "summary": "図面削除",
-        "tags": [
-          "Drawings"
-        ],
+        "tags": ["Drawings"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1140,9 +1086,7 @@
     "/api/properties": {
       "get": {
         "summary": "プロパティ定義一覧・絞り込み",
-        "tags": [
-          "Properties"
-        ],
+        "tags": ["Properties"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1243,9 +1187,7 @@
       },
       "post": {
         "summary": "プロパティ定義登録",
-        "tags": [
-          "Properties"
-        ],
+        "tags": ["Properties"],
         "responses": {
           "201": {
             "description": "成功",
@@ -1299,9 +1241,7 @@
     "/api/properties/{id}": {
       "get": {
         "summary": "プロパティ定義詳細",
-        "tags": [
-          "Properties"
-        ],
+        "tags": ["Properties"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1345,9 +1285,7 @@
       },
       "patch": {
         "summary": "プロパティ定義部分更新",
-        "tags": [
-          "Properties"
-        ],
+        "tags": ["Properties"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1405,9 +1343,7 @@
       },
       "delete": {
         "summary": "プロパティ定義削除",
-        "tags": [
-          "Properties"
-        ],
+        "tags": ["Properties"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1453,9 +1389,7 @@
     "/api/state": {
       "get": {
         "summary": "一貫した共有状態とリビジョン",
-        "tags": [
-          "State"
-        ],
+        "tags": ["State"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1482,9 +1416,7 @@
       },
       "put": {
         "summary": "状態の一括保存（リビジョン競合を検出）",
-        "tags": [
-          "State"
-        ],
+        "tags": ["State"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1524,10 +1456,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "state"
-                ],
+                "required": ["revision", "state"],
                 "properties": {
                   "revision": {
                     "type": "integer"
@@ -1546,9 +1475,7 @@
     "/api/search": {
       "get": {
         "summary": "工事・設備・図面・付箋を横断検索",
-        "tags": [
-          "Search"
-        ],
+        "tags": ["Search"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1586,9 +1513,7 @@
     "/api/auth/status": {
       "get": {
         "summary": "ログイン状態",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1616,9 +1541,7 @@
     "/api/auth/login": {
       "post": {
         "summary": "SSO認証済み利用者が施設担当モードに切り替える",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1657,9 +1580,7 @@
     "/api/auth/logout": {
       "post": {
         "summary": "ログアウト",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1687,9 +1608,7 @@
     "/api/batch": {
       "post": {
         "summary": "最大100件の操作を原子的に反映",
-        "tags": [
-          "Batch"
-        ],
+        "tags": ["Batch"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1729,9 +1648,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "operations"
-                ],
+                "required": ["operations"],
                 "properties": {
                   "operations": {
                     "type": "array",
@@ -1741,21 +1658,11 @@
                       "properties": {
                         "kind": {
                           "type": "string",
-                          "enum": [
-                            "works",
-                            "assets",
-                            "drawings",
-                            "properties",
-                            "notes"
-                          ]
+                          "enum": ["works", "assets", "drawings", "properties", "notes"]
                         },
                         "op": {
                           "type": "string",
-                          "enum": [
-                            "create",
-                            "update",
-                            "delete"
-                          ]
+                          "enum": ["create", "update", "delete"]
                         },
                         "id": {
                           "type": "string"
@@ -1765,10 +1672,7 @@
                           "additionalProperties": true
                         }
                       },
-                      "required": [
-                        "kind",
-                        "op"
-                      ]
+                      "required": ["kind", "op"]
                     }
                   }
                 }
@@ -1793,9 +1697,7 @@
     "/api/assets/{id}/maintenance": {
       "get": {
         "summary": "設備の点検履歴",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1839,9 +1741,7 @@
       },
       "post": {
         "summary": "点検・保守履歴を追加",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "200": {
             "description": "成功",
@@ -1878,10 +1778,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "date",
-                  "text"
-                ],
+                "required": ["date", "text"],
                 "properties": {
                   "date": {
                     "type": "string",
@@ -1902,11 +1799,7 @@
                   },
                   "result": {
                     "type": "string",
-                    "enum": [
-                      "normal",
-                      "attention",
-                      "repaired"
-                    ]
+                    "enum": ["normal", "attention", "repaired"]
                   },
                   "attachments": {
                     "type": "array",
@@ -1941,9 +1834,7 @@
     "/api/assets/{id}/maintenance/{history_id}": {
       "patch": {
         "summary": "点検履歴を編集",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "200": {
             "description": "成功",
@@ -2006,9 +1897,7 @@
       },
       "delete": {
         "summary": "点検履歴を削除",
-        "tags": [
-          "Assets"
-        ],
+        "tags": ["Assets"],
         "responses": {
           "200": {
             "description": "成功",
@@ -2062,9 +1951,7 @@
     "/api/files": {
       "post": {
         "summary": "複数資料アップロード（各20MB）",
-        "tags": [
-          "Files"
-        ],
+        "tags": ["Files"],
         "responses": {
           "201": {
             "description": "成功",
@@ -2101,9 +1988,7 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "file"
-                ],
+                "required": ["file"],
                 "properties": {
                   "file": {
                     "type": "array",
@@ -2120,9 +2005,7 @@
         }
       },
       "get": {
-        "tags": [
-          "資料"
-        ],
+        "tags": ["資料"],
         "summary": "資料・写真・アイコンの一覧",
         "responses": {
           "200": {
@@ -2134,9 +2017,7 @@
     "/api/files/{id}": {
       "get": {
         "summary": "登録済み資料をダウンロード / PDF・画像をプレビュー",
-        "tags": [
-          "Files"
-        ],
+        "tags": ["Files"],
         "responses": {
           "200": {
             "description": "資料本体（バイナリ）",
@@ -2165,10 +2046,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "0",
-                "1"
-              ]
+              "enum": ["0", "1"]
             }
           },
           {
@@ -2183,9 +2061,7 @@
         "description": "未ログインの場合は工事・お知らせ・付箋に公開範囲を限定します。設備情報・設備専用資料は認証後に取得できます。"
       },
       "delete": {
-        "tags": [
-          "資料"
-        ],
+        "tags": ["資料"],
         "summary": "未使用のファイルを削除",
         "parameters": [
           {
@@ -2210,9 +2086,7 @@
     "/api/export": {
       "get": {
         "summary": "図面と登録データのJSON出力（添付は参照ID）",
-        "tags": [
-          "Export"
-        ],
+        "tags": ["Export"],
         "responses": {
           "200": {
             "description": "成功",
@@ -2248,9 +2122,7 @@
     "/api/audit": {
       "get": {
         "summary": "操作履歴",
-        "tags": [
-          "Audit"
-        ],
+        "tags": ["Audit"],
         "responses": {
           "200": {
             "description": "成功",
@@ -2286,9 +2158,7 @@
     "/api/notes": {
       "get": {
         "summary": "付箋一覧・絞り込み",
-        "tags": [
-          "Notes"
-        ],
+        "tags": ["Notes"],
         "responses": {
           "200": {
             "description": "成功",
@@ -2346,9 +2216,7 @@
       },
       "post": {
         "summary": "付箋登録",
-        "tags": [
-          "Notes"
-        ],
+        "tags": ["Notes"],
         "responses": {
           "201": {
             "description": "成功",
@@ -2388,10 +2256,7 @@
               },
               "example": {
                 "drawingId": "site",
-                "point": [
-                  850,
-                  500
-                ],
+                "point": [850, 500],
                 "text": "こちらの通路をご利用ください。",
                 "color": "#fff2ad",
                 "size": 100,
@@ -2405,9 +2270,7 @@
     "/api/notes/{id}": {
       "get": {
         "summary": "付箋詳細",
-        "tags": [
-          "Notes"
-        ],
+        "tags": ["Notes"],
         "responses": {
           "200": {
             "description": "成功",
@@ -2443,9 +2306,7 @@
       },
       "patch": {
         "summary": "付箋部分更新",
-        "tags": [
-          "Notes"
-        ],
+        "tags": ["Notes"],
         "responses": {
           "200": {
             "description": "成功",
@@ -2540,11 +2401,7 @@
                   },
                   "fontFamily": {
                     "type": "string",
-                    "enum": [
-                      "sans",
-                      "serif",
-                      "mono"
-                    ],
+                    "enum": ["sans", "serif", "mono"],
                     "default": "sans"
                   },
                   "fontSize": {
@@ -2583,9 +2440,7 @@
       },
       "delete": {
         "summary": "付箋削除",
-        "tags": [
-          "Notes"
-        ],
+        "tags": ["Notes"],
         "responses": {
           "200": {
             "description": "成功",
@@ -2631,9 +2486,7 @@
     "/api/files/{id}/thumbnail": {
       "get": {
         "summary": "写真のサムネイル（最大320×240、DBキャッシュ）",
-        "tags": [
-          "Files"
-        ],
+        "tags": ["Files"],
         "description": "原本と同じ閲覧権限を適用。設備専用写真は施設グループの認証が必要。JPEG・PNG・GIF・WebP対応。",
         "parameters": [
           {
@@ -2668,9 +2521,7 @@
     },
     "/api/session": {
       "get": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "SSOと現在のデモアカウント",
         "responses": {
           "200": {
@@ -2690,9 +2541,7 @@
     },
     "/api/demo/profile": {
       "post": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "無料／有料管理者デモを切り替える",
         "responses": {
           "200": {
@@ -2723,9 +2572,7 @@
     },
     "/api/preferences": {
       "get": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "保存した表示設定と独自アイコン",
         "responses": {
           "200": {
@@ -2743,9 +2590,7 @@
         }
       },
       "put": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "表示設定と独自アイコンを保存",
         "responses": {
           "200": {
@@ -2782,12 +2627,7 @@
                 "hiddenLayerIds": [],
                 "tableViews": {
                   "equipment": {
-                    "columns": [
-                      "code",
-                      "name",
-                      "category",
-                      "prop:manufacturer"
-                    ],
+                    "columns": ["code", "name", "category", "prop:manufacturer"],
                     "sort": "name",
                     "descending": false,
                     "filters": {
@@ -2804,9 +2644,7 @@
     },
     "/api/dashboard": {
       "get": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "設備・点検・容量と利用枠",
         "responses": {
           "200": {
@@ -2826,9 +2664,7 @@
     },
     "/api/import-preview": {
       "post": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "JSON取り込みの事前検証",
         "responses": {
           "200": {
@@ -2859,9 +2695,7 @@
     },
     "/api/import": {
       "post": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "確認したJSONを取り込む",
         "responses": {
           "200": {
@@ -2892,9 +2726,7 @@
     },
     "/api/snapshots": {
       "get": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "Proバックアップの一覧",
         "responses": {
           "200": {
@@ -2912,9 +2744,7 @@
         }
       },
       "post": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "Proバックアップを作成",
         "responses": {
           "200": {
@@ -2945,9 +2775,7 @@
     },
     "/api/snapshots/{id}": {
       "delete": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "バックアップを削除",
         "responses": {
           "200": {
@@ -2977,9 +2805,7 @@
     },
     "/api/snapshots/{id}/restore": {
       "post": {
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "summary": "バックアップから復元",
         "responses": {
           "200": {
@@ -3021,9 +2847,7 @@
     "/api/layers": {
       "get": {
         "summary": "レイヤー詳細・一覧",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3082,9 +2906,7 @@
       },
       "post": {
         "summary": "レイヤー登録",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "201": {
             "description": "成功",
@@ -3131,9 +2953,7 @@
     "/api/layers/{id}": {
       "get": {
         "summary": "レイヤー詳細・一覧",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3170,9 +2990,7 @@
       },
       "patch": {
         "summary": "レイヤー更新",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3227,9 +3045,7 @@
       },
       "delete": {
         "summary": "レイヤー削除",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3276,9 +3092,7 @@
     "/api/drawingLinks": {
       "get": {
         "summary": "図面リンク詳細・一覧",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3337,9 +3151,7 @@
       },
       "post": {
         "summary": "図面リンク登録",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "201": {
             "description": "成功",
@@ -3386,9 +3198,7 @@
     "/api/drawingLinks/{id}": {
       "get": {
         "summary": "図面リンク詳細・一覧",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3425,9 +3235,7 @@
       },
       "patch": {
         "summary": "図面リンク更新",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3482,9 +3290,7 @@
       },
       "delete": {
         "summary": "図面リンク削除",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3531,9 +3337,7 @@
     "/api/work-register": {
       "get": {
         "summary": "施設担当用の工事一覧・削除済み一覧",
-        "tags": [
-          "Work history"
-        ],
+        "tags": ["Work history"],
         "description": "現在の工事と削除済み工事を取得。削除済み一覧はnextOffsetでページングします。",
         "parameters": [
           {
@@ -3573,9 +3377,7 @@
     "/api/works/{id}/history": {
       "get": {
         "summary": "工事の変更履歴",
-        "tags": [
-          "Work history"
-        ],
+        "tags": ["Work history"],
         "description": "登録・変更・削除の前後の内容、実行者、日時、リビジョンを返します。導入前の過去変更は復元できず、導入時点をbaselineとして残します。nextCursorをbeforeに渡すと以前の履歴を取得できます。履歴中の添付資料は削除から保護します。",
         "parameters": [
           {
@@ -3622,9 +3424,7 @@
     "/api/layerSets": {
       "get": {
         "summary": "レイヤーセット詳細・一覧",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3683,9 +3483,7 @@
       },
       "post": {
         "summary": "レイヤーセット登録",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "201": {
             "description": "成功",
@@ -3732,9 +3530,7 @@
     "/api/layerSets/{id}": {
       "get": {
         "summary": "レイヤーセット詳細・一覧",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3771,9 +3567,7 @@
       },
       "patch": {
         "summary": "レイヤーセット更新",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3828,9 +3622,7 @@
       },
       "delete": {
         "summary": "レイヤーセット削除",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "responses": {
           "200": {
             "description": "成功",
@@ -3878,18 +3670,14 @@
       "post": {
         "summary": "レイヤーセットの表示を適用",
         "description": "savedは入力順に保存ルールを適用。show/hideは全メンバー、isolateは表示ルールの和集合、intersectionは共通部分だけ表示。標準・CAD背景は変更しません。ユーザーの表示設定だけを変更し、公開範囲は変更しません。",
-        "tags": [
-          "Map organization"
-        ],
+        "tags": ["Map organization"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "ids"
-                ],
+                "required": ["ids"],
                 "properties": {
                   "ids": {
                     "type": "array",
@@ -3902,13 +3690,7 @@
                   },
                   "operation": {
                     "type": "string",
-                    "enum": [
-                      "saved",
-                      "show",
-                      "hide",
-                      "isolate",
-                      "intersection"
-                    ],
+                    "enum": ["saved", "show", "hide", "isolate", "intersection"],
                     "default": "saved"
                   }
                 }
@@ -3936,18 +3718,14 @@
       "post": {
         "summary": "設備JSONの追加・更新を事前確認",
         "description": "保存せず行別のエラー・追加数・更新数とrevisionを返します。新規はnameとpointが必要。drawingIdは既定図面を指定できます。propertiesは登録済みIDで指定します。",
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "assets"
-                ],
+                "required": ["assets"],
                 "properties": {
                   "assets": {
                     "type": "array",
@@ -3959,10 +3737,7 @@
                   },
                   "mode": {
                     "type": "string",
-                    "enum": [
-                      "add",
-                      "upsert"
-                    ],
+                    "enum": ["add", "upsert"],
                     "default": "add"
                   },
                   "drawingId": {
@@ -3993,20 +3768,14 @@
       "post": {
         "summary": "設備JSONを一括追加・更新",
         "description": "プレビューのrevisionを指定。全件成功時のみ保存します。更新はcodeで照合し、省略フィールドとpropertiesの省略キーを保持。既存のhistory・attachments・locksを入力すると拒否。ロックとプラン上限と添付ファイルの所有権を検証します。",
-        "tags": [
-          "SaaS"
-        ],
+        "tags": ["SaaS"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "assets",
-                  "revision",
-                  "confirm"
-                ],
+                "required": ["assets", "revision", "confirm"],
                 "properties": {
                   "assets": {
                     "type": "array",
@@ -4018,10 +3787,7 @@
                   },
                   "mode": {
                     "type": "string",
-                    "enum": [
-                      "add",
-                      "upsert"
-                    ],
+                    "enum": ["add", "upsert"],
                     "default": "add"
                   },
                   "drawingId": {
@@ -4032,9 +3798,7 @@
                   },
                   "confirm": {
                     "type": "string",
-                    "enum": [
-                      "IMPORT_ASSETS"
-                    ]
+                    "enum": ["IMPORT_ASSETS"]
                   }
                 }
               }
@@ -4061,9 +3825,7 @@
       "get": {
         "summary": "作業一覧",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4085,9 +3847,7 @@
       "post": {
         "summary": "作業を登録",
         "description": "案件・親作業・先行作業・依頼元・完了条件を指定できます。循環参照、先行作業が未完了の状態での開始、未完了の子作業がある親の完了を拒否します。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4111,10 +3871,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "record"
-                ],
+                "required": ["revision", "record"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4134,9 +3891,7 @@
       "get": {
         "summary": "作業詳細",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4168,9 +3923,7 @@
       "patch": {
         "summary": "作業を更新",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4194,10 +3947,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "record"
-                ],
+                "required": ["revision", "record"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4225,9 +3975,7 @@
       "delete": {
         "summary": "作業を削除",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4251,9 +3999,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision"
-                ],
+                "required": ["revision"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4280,9 +4026,7 @@
       "get": {
         "summary": "担当者名簿一覧",
         "description": "作業の割り振り用名簿です。ログインアカウントの作成・SSO招待・権限変更は行いません。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4304,9 +4048,7 @@
       "post": {
         "summary": "担当者名簿を登録",
         "description": "作業の割り振り用名簿です。ログインアカウントの作成・SSO招待・権限変更は行いません。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4330,10 +4072,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "record"
-                ],
+                "required": ["revision", "record"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4353,9 +4092,7 @@
       "get": {
         "summary": "担当者名簿詳細",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4387,9 +4124,7 @@
       "patch": {
         "summary": "担当者名簿を更新",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4413,10 +4148,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "record"
-                ],
+                "required": ["revision", "record"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4444,9 +4176,7 @@
       "delete": {
         "summary": "担当者名簿を削除",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4470,9 +4200,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision"
-                ],
+                "required": ["revision"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4499,9 +4227,7 @@
       "get": {
         "summary": "点検計画一覧",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4523,9 +4249,7 @@
       "post": {
         "summary": "点検計画を登録",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4549,10 +4273,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "record"
-                ],
+                "required": ["revision", "record"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4572,9 +4293,7 @@
       "get": {
         "summary": "点検計画詳細",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4606,9 +4325,7 @@
       "patch": {
         "summary": "点検計画を更新",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4632,10 +4349,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "record"
-                ],
+                "required": ["revision", "record"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4663,9 +4377,7 @@
       "delete": {
         "summary": "点検計画を削除",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4689,9 +4401,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision"
-                ],
+                "required": ["revision"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4718,9 +4428,7 @@
       "get": {
         "summary": "作業の変更・引き継ぎ履歴",
         "description": "組織ごとの追記専用履歴。削除後も残ります。beforeでリビジョンのカーソル指定が可能。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4762,9 +4470,7 @@
       "post": {
         "summary": "引き継ぎコメントを保存",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4788,10 +4494,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "text"
-                ],
+                "required": ["revision", "text"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4822,9 +4525,7 @@
       "post": {
         "summary": "作業を完了し点検結果を台帳へ記録",
         "description": "全チェック項目の確認が必要。点検は対象設備・実施日・結果・内容を必須とし履歴を一度だけ追加。次回日プロパティの更新はupdateNextDateで指定しロックを尊重。要対応時はcreateFollowupとfollowupDueDateで修理作業も同じ保存内で追加。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4848,9 +4549,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision"
-                ],
+                "required": ["revision"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4879,11 +4578,7 @@
                   },
                   "result": {
                     "type": "string",
-                    "enum": [
-                      "normal",
-                      "attention",
-                      "repaired"
-                    ]
+                    "enum": ["normal", "attention", "repaired"]
                   },
                   "text": {
                     "type": "string",
@@ -4927,9 +4622,7 @@
       "post": {
         "summary": "今回の点検作業をまとめ起票",
         "description": "",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -4953,10 +4646,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "cycleDate"
-                ],
+                "required": ["revision", "cycleDate"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -4987,9 +4677,7 @@
       "get": {
         "summary": "今回起票する点検の内容確認",
         "description": "cycleDate、次回日、設備ごとの起票済み判定、revisionを返します。起票はgenerateを明示的に呼び出す方式です。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5023,9 +4711,7 @@
       "get": {
         "summary": "朝会・引き継ぎレポート",
         "description": "現在の作業から期限超過・未割り当て・手配待ち・担当者別見積時間・直近7日完了とMarkdown本文を生成。過去時点の状態復元ではありません。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5059,9 +4745,7 @@
       "post": {
         "summary": "チーム管理のサンプルを追加",
         "description": "作業・担当者・点検計画がすべて空の場合だけ、担当者4名・作業8件・計画1件を追加。既存の設備や工事は保持します。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5085,9 +4769,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision"
-                ],
+                "required": ["revision"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -5104,9 +4786,7 @@
       "get": {
         "summary": "Notion同期の設定・状態・進捗",
         "description": "トークンや暗号文は返しません。状態と組織のrevisionを返します。",
-        "tags": [
-          "Notion sync"
-        ],
+        "tags": ["Notion sync"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5133,9 +4813,7 @@
       "put": {
         "summary": "Notion接続を暗号化して保存",
         "description": "トークンは内部接続のものを使用。指定ページと権限を確認後、AES-GCMで組織ごとに暗号化。初回は専用DBの作成と同期を予約します。",
-        "tags": [
-          "Notion sync"
-        ],
+        "tags": ["Notion sync"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5162,12 +4840,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "homePageId",
-                  "intervalMinutes",
-                  "direction",
-                  "enabled"
-                ],
+                "required": ["homePageId", "intervalMinutes", "direction", "enabled"],
                 "properties": {
                   "homePageId": {
                     "type": "string"
@@ -5181,20 +4854,11 @@
                   },
                   "intervalMinutes": {
                     "type": "integer",
-                    "enum": [
-                      5,
-                      15,
-                      30,
-                      60
-                    ]
+                    "enum": [5, 15, 30, 60]
                   },
                   "direction": {
                     "type": "string",
-                    "enum": [
-                      "both",
-                      "push",
-                      "pull"
-                    ]
+                    "enum": ["both", "push", "pull"]
                   },
                   "enabled": {
                     "type": "boolean"
@@ -5208,9 +4872,7 @@
       "delete": {
         "summary": "Notion接続を切断",
         "description": "両側のレコードは削除しません。接続情報とリンクを除去します。同期処理中は停止後に実行してください。",
-        "tags": [
-          "Notion sync"
-        ],
+        "tags": ["Notion sync"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5237,9 +4899,7 @@
       "post": {
         "summary": "Notion同期を実行待ちにする",
         "description": "Cronで処理します。fullで削除候補を含め全件照合。大量データは複数回に分けて再開します。",
-        "tags": [
-          "Notion sync"
-        ],
+        "tags": ["Notion sync"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5281,9 +4941,7 @@
       "post": {
         "summary": "Notion同期を停止",
         "description": "",
-        "tags": [
-          "Notion sync"
-        ],
+        "tags": ["Notion sync"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5320,9 +4978,7 @@
       "get": {
         "summary": "Notion同期の競合・削除候補・入力エラー",
         "description": "最新100件。設備ロック・入力型・履歴整合性エラーも含みます。",
-        "tags": [
-          "Notion sync"
-        ],
+        "tags": ["Notion sync"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5349,9 +5005,7 @@
       "get": {
         "summary": "Notion同期の最近20回の履歴",
         "description": "",
-        "tags": [
-          "Notion sync"
-        ],
+        "tags": ["Notion sync"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5378,9 +5032,7 @@
       "post": {
         "summary": "同期競合・削除確認を解決",
         "description": "同時変更は自動上書きせず明示的な採用待ちにします。削除を反映する選択にはconfirmが必要で、設備ロックと参照を再検証します。",
-        "tags": [
-          "Notion sync"
-        ],
+        "tags": ["Notion sync"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5407,13 +5059,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "kind",
-                  "localId",
-                  "source",
-                  "revision",
-                  "updatedAt"
-                ],
+                "required": ["kind", "localId", "source", "revision", "updatedAt"],
                 "properties": {
                   "kind": {
                     "type": "string",
@@ -5431,10 +5077,7 @@
                   },
                   "source": {
                     "type": "string",
-                    "enum": [
-                      "local",
-                      "notion"
-                    ]
+                    "enum": ["local", "notion"]
                   },
                   "revision": {
                     "type": "integer"
@@ -5444,9 +5087,7 @@
                   },
                   "confirm": {
                     "type": "string",
-                    "enum": [
-                      "DELETE_REVIEWED"
-                    ]
+                    "enum": ["DELETE_REVIEWED"]
                   }
                 }
               }
@@ -5459,9 +5100,7 @@
       "get": {
         "summary": "案件一覧",
         "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5483,9 +5122,7 @@
       "post": {
         "summary": "案件を登録",
         "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5509,10 +5146,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "record"
-                ],
+                "required": ["revision", "record"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -5532,9 +5166,7 @@
       "get": {
         "summary": "案件詳細",
         "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5566,9 +5198,7 @@
       "patch": {
         "summary": "案件を更新",
         "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5592,10 +5222,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision",
-                  "record"
-                ],
+                "required": ["revision", "record"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -5623,9 +5250,7 @@
       "delete": {
         "summary": "案件を削除",
         "description": "施設担当モード専用。未完了作業のある案件は完了できません。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5649,9 +5274,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision"
-                ],
+                "required": ["revision"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -5678,9 +5301,7 @@
       "get": {
         "summary": "案件の進捗と先行作業待ち",
         "description": "施設担当モード専用。中止を除く作業の完了率・期限超過・見積時間を返します。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "案件ごとのstatsと、先行作業待ちの作業IDを返します。"
@@ -5695,9 +5316,7 @@
       "post": {
         "summary": "案件と工程のサンプルを追加",
         "description": "案件・作業・担当者・点検計画がすべて空の場合だけ、案件3件・作業16件・担当者4名・計画1件を追加します。設備・工事は保持します。",
-        "tags": [
-          "Team operations"
-        ],
+        "tags": ["Team operations"],
         "responses": {
           "200": {
             "description": "成功"
@@ -5721,9 +5340,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "revision"
-                ],
+                "required": ["revision"],
                 "properties": {
                   "revision": {
                     "type": "integer",
@@ -5758,15 +5375,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "text",
-              "number",
-              "date",
-              "checkbox",
-              "select",
-              "multiselect",
-              "url"
-            ]
+            "enum": ["text", "number", "date", "checkbox", "select", "multiselect", "url"]
           },
           "required": {
             "type": "boolean"
@@ -5778,10 +5387,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "id",
-                "label"
-              ],
+              "required": ["id", "label"],
               "properties": {
                 "id": {
                   "type": "string"
@@ -5796,11 +5402,7 @@
       },
       "Note": {
         "type": "object",
-        "required": [
-          "drawingId",
-          "point",
-          "text"
-        ],
+        "required": ["drawingId", "point", "text"],
         "properties": {
           "id": {
             "type": "string"
@@ -5859,11 +5461,7 @@
           },
           "fontFamily": {
             "type": "string",
-            "enum": [
-              "sans",
-              "serif",
-              "mono"
-            ],
+            "enum": ["sans", "serif", "mono"],
             "default": "sans"
           },
           "fontSize": {
@@ -5933,11 +5531,7 @@
       },
       "MapLayer": {
         "type": "object",
-        "required": [
-          "name",
-          "color",
-          "audience"
-        ],
+        "required": ["name", "color", "audience"],
         "properties": {
           "id": {
             "type": "string"
@@ -5952,22 +5546,13 @@
           },
           "audience": {
             "type": "string",
-            "enum": [
-              "facility",
-              "public"
-            ]
+            "enum": ["facility", "public"]
           }
         }
       },
       "DrawingLink": {
         "type": "object",
-        "required": [
-          "name",
-          "drawingId",
-          "targetDrawingId",
-          "points",
-          "audience"
-        ],
+        "required": ["name", "drawingId", "targetDrawingId", "points", "audience"],
         "properties": {
           "id": {
             "type": "string"
@@ -6001,23 +5586,13 @@
           },
           "audience": {
             "type": "string",
-            "enum": [
-              "facility",
-              "public"
-            ]
+            "enum": ["facility", "public"]
           }
         }
       },
       "LayerSet": {
         "type": "object",
-        "required": [
-          "name",
-          "description",
-          "color",
-          "audience",
-          "mode",
-          "rules"
-        ],
+        "required": ["name", "description", "color", "audience", "mode", "rules"],
         "properties": {
           "id": {
             "type": "string"
@@ -6036,27 +5611,18 @@
           },
           "audience": {
             "type": "string",
-            "enum": [
-              "facility",
-              "public"
-            ]
+            "enum": ["facility", "public"]
           },
           "mode": {
             "type": "string",
-            "enum": [
-              "merge",
-              "replace"
-            ]
+            "enum": ["merge", "replace"]
           },
           "rules": {
             "type": "array",
             "maxItems": 100,
             "items": {
               "type": "object",
-              "required": [
-                "layerId",
-                "visible"
-              ],
+              "required": ["layerId", "visible"],
               "properties": {
                 "layerId": {
                   "type": "string"
@@ -6071,9 +5637,7 @@
       },
       "EquipmentImportRecord": {
         "type": "object",
-        "required": [
-          "code"
-        ],
+        "required": ["code"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -6145,31 +5709,15 @@
           },
           "kind": {
             "type": "string",
-            "enum": [
-              "task",
-              "inspection",
-              "repair",
-              "coordination"
-            ]
+            "enum": ["task", "inspection", "repair", "coordination"]
           },
           "status": {
             "type": "string",
-            "enum": [
-              "open",
-              "in_progress",
-              "waiting",
-              "done",
-              "cancelled"
-            ]
+            "enum": ["open", "in_progress", "waiting", "done", "cancelled"]
           },
           "priority": {
             "type": "string",
-            "enum": [
-              "urgent",
-              "high",
-              "normal",
-              "low"
-            ]
+            "enum": ["urgent", "high", "normal", "low"]
           },
           "dueDate": {
             "type": "string"
@@ -6200,10 +5748,7 @@
             "maxItems": 50,
             "items": {
               "type": "object",
-              "required": [
-                "id",
-                "text"
-              ],
+              "required": ["id", "text"],
               "properties": {
                 "id": {
                   "type": "string"
@@ -6315,12 +5860,7 @@
           },
           "priority": {
             "type": "string",
-            "enum": [
-              "urgent",
-              "high",
-              "normal",
-              "low"
-            ]
+            "enum": ["urgent", "high", "normal", "low"]
           },
           "estimatedMinutes": {
             "type": "integer",
@@ -6332,10 +5872,7 @@
             "maxItems": 50,
             "items": {
               "type": "object",
-              "required": [
-                "id",
-                "text"
-              ],
+              "required": ["id", "text"],
               "properties": {
                 "id": {
                   "type": "string"
@@ -6379,13 +5916,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "planning",
-              "active",
-              "on_hold",
-              "done",
-              "cancelled"
-            ]
+            "enum": ["planning", "active", "on_hold", "done", "cancelled"]
           }
         }
       }

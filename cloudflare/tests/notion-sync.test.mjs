@@ -1,88 +1,1085 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {webcrypto} from 'node:crypto';
-import {spawnSync} from 'node:child_process';
-import {mkdtempSync,readFileSync,rmSync} from 'node:fs';
+import { webcrypto } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import worker from '../worker.mjs';
-import {commit} from '../map-app.mjs';
-import {runNotionConnection,runNotionJobs} from '../notion/engine.mjs';
-import {encryptToken,decryptToken} from '../notion/credentials.mjs';
-import {KINDS,fields,project} from '../notion/model.mjs';
-import {NotionConnector,NotionError,PollBudgetExceeded,threeWayMerge,encodeProperty,decodeProperty,notionId} from '../../connectors/notion/index.mjs';
-if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
-const directory=mkdtempSync(path.join(os.tmpdir(),'notion-sync-')),dbpath=path.join(directory,'test.sqlite');
-const python=`import json,sqlite3,sys\ndb=sqlite3.connect(sys.argv[1]);db.execute('PRAGMA foreign_keys=ON');db.row_factory=sqlite3.Row\nx=json.load(sys.stdin)\nif 'schema' in x:db.executescript(x['schema']);db.commit();print('[]');sys.exit()\nr=[]\nwith db:\n for q in x['queries']:\n  c=db.execute(q['sql'],q['params']);r.append({'results':[dict(row)for row in c.fetchall()]if c.description else [],'meta':{'changes':max(c.rowcount,0)}})\nprint(json.dumps(r))`;
-function sql(input){const r=spawnSync('python3',['-c',python,dbpath],{input:JSON.stringify(input),encoding:'utf8',timeout:10000,maxBuffer:16*1024*1024});if(r.status!==0)throw new Error(r.stderr||String(r.error));return JSON.parse(r.stdout);}
-for(const file of ['0001_tenants.sql','0002_scim.sql','0003_map_product.sql','0004_work_events.sql','0005_team_tasks.sql','0006_notion_sync.sql'])sql({schema:readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8')});
-const DB={prepare(sql){return{sql,params:[],bind(...params){this.params=params;return this;},async all(){return sqlRun(this);},async first(){return(await this.all()).results[0]||null;},async run(){return this.all();}};},async batch(q){return sql({queries:q});}};function sqlRun(q){return sql({queries:[q]})[0];}
-const TOKEN='ntn_test_connector_token_only_not_a_real_credential',HOME='11111111-1111-4111-8111-111111111111',env={DB,ACCESS_TEAM:'https://notion-access.test',ACCESS_AUD:'notion-aud',NOTION_TOKEN_KEY:Buffer.alloc(32,11).toString('base64'),NOTION_API_INTERVAL_MS:'0'};
-const key=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']),jwk=await crypto.subtle.exportKey('jwk',key.publicKey);jwk.kid='notion-test';const b64=x=>Buffer.from(x).toString('base64url');
-async function jwt(user){const data=b64(JSON.stringify({alg:'RS256',kid:jwk.kid}))+'.'+b64(JSON.stringify({iss:env.ACCESS_TEAM,sub:user,aud:[env.ACCESS_AUD],exp:Date.now()/1000+3600}));return data+'.'+b64(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key.privateKey,new TextEncoder().encode(data)));}
-async function call(p,m='GET',body,user='sync-owner',cookie=''){return worker.fetch(new Request('https://plantdesk.test'+p,{method:m,headers:{'cf-access-jwt-assertion':await jwt(user),cookie,...(body!==undefined?{'content-type':'application/json'}:{})},...(body!==undefined?{body:JSON.stringify(body)}:{})}),env);}
-let seq=10,tick=0,rateLimit=false,uncertainCreate=false,failNextPageRead=false,uncertainDatabase=false;const databases=new Map(),sources=new Map(),pages=new Map(),calls=[];
-const id=()=>('00000000-0000-4000-8000-'+String(seq++).padStart(12,'0'));
-const edited=()=>new Date(1800000000000+ ++tick*1000).toISOString();
-const json=x=>new Response(JSON.stringify(x),{headers:{'content-type':'application/json'}});
-function responseProperties(values,source){return Object.fromEntries(Object.entries(source.properties).map(([name,f])=>{const p=values[f.id]||values[name]||{[f.type]:f.type==='checkbox'?false:f.type==='number'||f.type==='date'||f.type==='select'||f.type==='url'?null:[]};const value=structuredClone(p[f.type]);if(f.type==='select'&&value)value.id=source.properties[name].select.options.find(o=>o.name===value.name)?.id;if(f.type==='multi_select')for(const v of value||[])v.id=source.properties[name].multi_select.options.find(o=>o.name===v.name)?.id;return[name,{id:f.id,type:f.type,[f.type]:['rich_text','title'].includes(f.type)?(value||[]).map(v=>({...v,plain_text:v.text?.content||''})):value}];}));}
-const previousFetch=globalThis.fetch;globalThis.fetch=async(url,options={})=>{
- if(String(url)===env.ACCESS_TEAM+'/cdn-cgi/access/certs')return json({keys:[jwk]});const u=new URL(String(url));assert.equal(u.origin,'https://api.notion.com');assert.equal(options.headers['Notion-Version'],'2026-03-11');assert.equal(options.headers.authorization,'Bearer '+TOKEN);calls.push({path:u.pathname,method:options.method});const p=u.pathname.slice(3),body=options.body?JSON.parse(options.body):{};
- if(rateLimit){rateLimit=false;return new Response('{}',{status:429,headers:{'retry-after':'90'}});}
- if(p==='/users/me')return json({id:'bot',type:'bot'});
- if(p==='/pages/'+HOME)return json({id:HOME,properties:{},last_edited_time:edited()});
- if(p==='/blocks/'+HOME+'/children')return json({results:[{id:'22222222-2222-4222-8222-222222222222',type:'toggle',has_children:true}],has_more:false,next_cursor:null});
- if(p==='/blocks/22222222-2222-4222-8222-222222222222/children')return json({results:[...databases.values()].map(d=>({id:d.id,type:'child_database',child_database:{title:d.title[0].text.content}})),has_more:false,next_cursor:null});
- if(p==='/databases'&&options.method==='POST'){const dbId=id(),sourceId=id(),properties={};for(const[name,f]of Object.entries(body.initial_data_source.properties)){const type=Object.keys(f)[0];properties[name]={...f,name,id:'p-'+seq++,type};if(f[type]?.options)properties[name][type].options=f[type].options.map(o=>({...o,id:o.id||'opt-'+seq++}));}const d={id:dbId,title:body.title,data_sources:[{id:sourceId}]};databases.set(dbId,d);sources.set(sourceId,{id:sourceId,properties});if(uncertainDatabase){uncertainDatabase=false;throw new Error('database created but the response was lost');}return json(d);}
- if(p.startsWith('/databases/'))return json(databases.get(p.split('/')[2]));
- if(p.startsWith('/data_sources/')){const source=sources.get(p.split('/')[2]);assert.ok(source,'unknown source');if(p.endsWith('/query')){let list=[...pages.values()].filter(v=>v.parent.data_source_id===source.id&&!v.in_trash);if(body.filter){const f=body.filter;list=list.filter(v=>{const field=Object.values(v.properties).find(v=>v.id===f.property)||v.properties[f.property];return(field?.rich_text||[]).map(v=>v.plain_text).join('')===f.rich_text.equals;});}const start=Number(body.start_cursor)||0,size=body.page_size||25;return json({results:list.slice(start,start+size),has_more:start+size<list.length,next_cursor:start+size<list.length?String(start+size):null});}if(options.method==='PATCH'){for(const[name,f]of Object.entries(body.properties)){const old=source.properties[name]||Object.values(source.properties).find(p=>p.id===name),type=Object.keys(f).find(k=>k!=='name')||old.type,propertyName=f.name||old?.name||name;source.properties[propertyName]={...old,...f,type,name:propertyName,id:old?.id||'p-'+seq++};if(f[type]?.options)source.properties[propertyName][type].options=f[type].options.map(o=>({...o,id:o.id||'opt-'+seq++}));for(const page of pages.values())if(page.parent.data_source_id===source.id)for(const property of Object.values(page.properties))if(property.id===old?.id&&['select','multi_select'].includes(type)){const values=type==='select'?[property.select].filter(Boolean):property.multi_select;for(const value of values){const option=source.properties[propertyName][type].options.find(o=>o.id===value.id);if(option)value.name=option.name;}}}return json(source);}return json(source);}
- if(p==='/pages'&&options.method==='POST'){const source=sources.get(body.parent.data_source_id),page={id:id(),parent:body.parent,properties:responseProperties(body.properties,source),last_edited_time:edited(),in_trash:false};pages.set(page.id,page);if(uncertainCreate){uncertainCreate=false;throw new Error('network failure after the provider committed');}return json(page);}
- if(p.startsWith('/pages/')){if(options.method==='GET'&&failNextPageRead){failNextPageRead=false;throw new Error('network failure before writing the external ID');}const page=pages.get(p.split('/')[2]);if(!page)return new Response('{}',{status:404});if(options.method==='PATCH'){if(body.properties){const source=sources.get(page.parent.data_source_id);const values={...Object.fromEntries(Object.values(page.properties).map(f=>[f.id,{[f.type]:f[f.type]}])),...body.properties};page.properties=responseProperties(values,source);}if(body.in_trash!==undefined)page.in_trash=body.in_trash;page.last_edited_time=edited();}return json(page);}
- throw new Error('Notion mock endpoint missing: '+p);
+import { commit } from '../map-app.mjs';
+import { runNotionConnection, runNotionJobs } from '../notion/engine.mjs';
+import { encryptToken, decryptToken } from '../notion/credentials.mjs';
+import { KINDS, fields } from '../notion/model.mjs';
+import {
+  NotionConnector,
+  NotionError,
+  PollBudgetExceeded,
+  threeWayMerge,
+  encodeProperty,
+  decodeProperty,
+  notionId,
+} from '../../connectors/notion/index.mjs';
+if (!globalThis.crypto) {
+  Object.defineProperty(globalThis, 'crypto', {
+    value: webcrypto,
+  });
+}
+const directory = mkdtempSync(path.join(os.tmpdir(), 'notion-sync-'));
+const dbpath = path.join(directory, 'test.sqlite');
+const python = `import json,sqlite3,sys\ndb=sqlite3.connect(sys.argv[1]);db.execute('PRAGMA foreign_keys=ON');db.row_factory=sqlite3.Row\nx=json.load(sys.stdin)\nif 'schema' in x:db.executescript(x['schema']);db.commit();print('[]');sys.exit()\nr=[]\nwith db:\n for q in x['queries']:\n  c=db.execute(q['sql'],q['params']);r.append({'results':[dict(row)for row in c.fetchall()]if c.description else [],'meta':{'changes':max(c.rowcount,0)}})\nprint(json.dumps(r))`;
+function sql(input) {
+  const r = spawnSync('python3', ['-c', python, dbpath], {
+    input: JSON.stringify(input),
+    encoding: 'utf8',
+    timeout: 10000,
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  if (r.status !== 0) {
+    throw new Error(r.stderr || String(r.error));
+  }
+  return JSON.parse(r.stdout);
+}
+for (const file of [
+  '0001_tenants.sql',
+  '0002_scim.sql',
+  '0003_map_product.sql',
+  '0004_work_events.sql',
+  '0005_team_tasks.sql',
+  '0006_notion_sync.sql',
+]) {
+  sql({
+    schema: readFileSync(new URL('../migrations/' + file, import.meta.url), 'utf8'),
+  });
+}
+const DB = {
+  prepare(sql) {
+    return {
+      sql,
+      params: [],
+      bind(...params) {
+        this.params = params;
+        return this;
+      },
+      async all() {
+        return sqlRun(this);
+      },
+      async first() {
+        return (await this.all()).results[0] || null;
+      },
+      async run() {
+        return this.all();
+      },
+    };
+  },
+  async batch(q) {
+    return sql({
+      queries: q,
+    });
+  },
+};
+function sqlRun(q) {
+  return sql({
+    queries: [q],
+  })[0];
+}
+const TOKEN = 'ntn_test_connector_token_only_not_a_real_credential';
+const HOME = '11111111-1111-4111-8111-111111111111';
+const env = {
+  DB,
+  ACCESS_TEAM: 'https://notion-access.test',
+  ACCESS_AUD: 'notion-aud',
+  NOTION_TOKEN_KEY: Buffer.alloc(32, 11).toString('base64'),
+  NOTION_API_INTERVAL_MS: '0',
+};
+const key = await crypto.subtle.generateKey(
+  {
+    name: 'RSASSA-PKCS1-v1_5',
+    modulusLength: 2048,
+    publicExponent: new Uint8Array([1, 0, 1]),
+    hash: 'SHA-256',
+  },
+  true,
+  ['sign', 'verify'],
+);
+const jwk = await crypto.subtle.exportKey('jwk', key.publicKey);
+jwk.kid = 'notion-test';
+const b64 = (x) => Buffer.from(x).toString('base64url');
+async function jwt(user) {
+  const data =
+    b64(
+      JSON.stringify({
+        alg: 'RS256',
+        kid: jwk.kid,
+      }),
+    ) +
+    '.' +
+    b64(
+      JSON.stringify({
+        iss: env.ACCESS_TEAM,
+        sub: user,
+        aud: [env.ACCESS_AUD],
+        exp: Date.now() / 1000 + 3600,
+      }),
+    );
+  return (
+    data +
+    '.' +
+    b64(
+      await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key.privateKey, new TextEncoder().encode(data)),
+    )
+  );
+}
+async function call(p, m = 'GET', body, user = 'sync-owner', cookie = '') {
+  return worker.fetch(
+    new Request('https://plantdesk.test' + p, {
+      method: m,
+      headers: {
+        'cf-access-jwt-assertion': await jwt(user),
+        cookie,
+        ...(body !== undefined
+          ? {
+              'content-type': 'application/json',
+            }
+          : {}),
+      },
+      ...(body !== undefined
+        ? {
+            body: JSON.stringify(body),
+          }
+        : {}),
+    }),
+    env,
+  );
+}
+let seq = 10;
+let tick = 0;
+let rateLimit = false;
+let uncertainCreate = false;
+let failNextPageRead = false;
+let uncertainDatabase = false;
+const databases = new Map();
+const sources = new Map();
+const pages = new Map();
+const calls = [];
+const id = () => '00000000-0000-4000-8000-' + String(seq++).padStart(12, '0');
+const edited = () => new Date(1800000000000 + ++tick * 1000).toISOString();
+const json = (x) =>
+  new Response(JSON.stringify(x), {
+    headers: {
+      'content-type': 'application/json',
+    },
+  });
+function responseProperties(values, source) {
+  return Object.fromEntries(
+    Object.entries(source.properties).map(([name, f]) => {
+      const p = values[f.id] ||
+        values[name] || {
+          [f.type]:
+            f.type === 'checkbox'
+              ? false
+              : f.type === 'number' || f.type === 'date' || f.type === 'select' || f.type === 'url'
+                ? null
+                : [],
+        };
+      const value = structuredClone(p[f.type]);
+      if (f.type === 'select' && value) {
+        value.id = source.properties[name].select.options.find((o) => o.name === value.name)?.id;
+      }
+      if (f.type === 'multi_select') {
+        for (const v of value || []) {
+          v.id = source.properties[name].multi_select.options.find((o) => o.name === v.name)?.id;
+        }
+      }
+      return [
+        name,
+        {
+          id: f.id,
+          type: f.type,
+          [f.type]: ['rich_text', 'title'].includes(f.type)
+            ? (value || []).map((v) => ({
+                ...v,
+                plain_text: v.text?.content || '',
+              }))
+            : value,
+        },
+      ];
+    }),
+  );
+}
+const previousFetch = globalThis.fetch;
+globalThis.fetch = async (url, options = {}) => {
+  if (String(url) === env.ACCESS_TEAM + '/cdn-cgi/access/certs') {
+    return json({
+      keys: [jwk],
+    });
+  }
+  const u = new URL(String(url));
+  assert.equal(u.origin, 'https://api.notion.com');
+  assert.equal(options.headers['Notion-Version'], '2026-03-11');
+  assert.equal(options.headers.authorization, 'Bearer ' + TOKEN);
+  calls.push({
+    path: u.pathname,
+    method: options.method,
+  });
+  const p = u.pathname.slice(3);
+  const body = options.body ? JSON.parse(options.body) : {};
+  if (rateLimit) {
+    rateLimit = false;
+    return new Response('{}', {
+      status: 429,
+      headers: {
+        'retry-after': '90',
+      },
+    });
+  }
+  if (p === '/users/me') {
+    return json({
+      id: 'bot',
+      type: 'bot',
+    });
+  }
+  if (p === '/pages/' + HOME) {
+    return json({
+      id: HOME,
+      properties: {},
+      last_edited_time: edited(),
+    });
+  }
+  if (p === '/blocks/' + HOME + '/children') {
+    return json({
+      results: [
+        {
+          id: '22222222-2222-4222-8222-222222222222',
+          type: 'toggle',
+          has_children: true,
+        },
+      ],
+      has_more: false,
+      next_cursor: null,
+    });
+  }
+  if (p === '/blocks/22222222-2222-4222-8222-222222222222/children') {
+    return json({
+      results: [...databases.values()].map((d) => ({
+        id: d.id,
+        type: 'child_database',
+        child_database: {
+          title: d.title[0].text.content,
+        },
+      })),
+      has_more: false,
+      next_cursor: null,
+    });
+  }
+  if (p === '/databases' && options.method === 'POST') {
+    const dbId = id();
+    const sourceId = id();
+    const properties = {};
+    for (const [name, f] of Object.entries(body.initial_data_source.properties)) {
+      const type = Object.keys(f)[0];
+      properties[name] = {
+        ...f,
+        name,
+        id: 'p-' + seq++,
+        type,
+      };
+      if (f[type]?.options) {
+        properties[name][type].options = f[type].options.map((o) => ({
+          ...o,
+          id: o.id || 'opt-' + seq++,
+        }));
+      }
+    }
+    const d = {
+      id: dbId,
+      title: body.title,
+      data_sources: [
+        {
+          id: sourceId,
+        },
+      ],
+    };
+    databases.set(dbId, d);
+    sources.set(sourceId, {
+      id: sourceId,
+      properties,
+    });
+    if (uncertainDatabase) {
+      uncertainDatabase = false;
+      throw new Error('database created but the response was lost');
+    }
+    return json(d);
+  }
+  if (p.startsWith('/databases/')) {
+    return json(databases.get(p.split('/')[2]));
+  }
+  if (p.startsWith('/data_sources/')) {
+    const source = sources.get(p.split('/')[2]);
+    assert.ok(source, 'unknown source');
+    if (p.endsWith('/query')) {
+      let list = [...pages.values()].filter(
+        (v) => v.parent.data_source_id === source.id && !v.in_trash,
+      );
+      if (body.filter) {
+        const f = body.filter;
+        list = list.filter((v) => {
+          const field =
+            Object.values(v.properties).find((v) => v.id === f.property) ||
+            v.properties[f.property];
+          return (field?.rich_text || []).map((v) => v.plain_text).join('') === f.rich_text.equals;
+        });
+      }
+      const start = Number(body.start_cursor) || 0;
+      const size = body.page_size || 25;
+      return json({
+        results: list.slice(start, start + size),
+        has_more: start + size < list.length,
+        next_cursor: start + size < list.length ? String(start + size) : null,
+      });
+    }
+    if (options.method === 'PATCH') {
+      for (const [name, f] of Object.entries(body.properties)) {
+        const old =
+          source.properties[name] || Object.values(source.properties).find((p) => p.id === name);
+        const type = Object.keys(f).find((k) => k !== 'name') || old.type;
+        const propertyName = f.name || old?.name || name;
+        source.properties[propertyName] = {
+          ...old,
+          ...f,
+          type,
+          name: propertyName,
+          id: old?.id || 'p-' + seq++,
+        };
+        if (f[type]?.options) {
+          source.properties[propertyName][type].options = f[type].options.map((o) => ({
+            ...o,
+            id: o.id || 'opt-' + seq++,
+          }));
+        }
+        for (const page of pages.values()) {
+          if (page.parent.data_source_id === source.id) {
+            for (const property of Object.values(page.properties)) {
+              if (property.id === old?.id && ['select', 'multi_select'].includes(type)) {
+                const values =
+                  type === 'select' ? [property.select].filter(Boolean) : property.multi_select;
+                for (const value of values) {
+                  const option = source.properties[propertyName][type].options.find(
+                    (o) => o.id === value.id,
+                  );
+                  if (option) {
+                    value.name = option.name;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return json(source);
+    }
+    return json(source);
+  }
+  if (p === '/pages' && options.method === 'POST') {
+    const source = sources.get(body.parent.data_source_id);
+    const page = {
+      id: id(),
+      parent: body.parent,
+      properties: responseProperties(body.properties, source),
+      last_edited_time: edited(),
+      in_trash: false,
+    };
+    pages.set(page.id, page);
+    if (uncertainCreate) {
+      uncertainCreate = false;
+      throw new Error('network failure after the provider committed');
+    }
+    return json(page);
+  }
+  if (p.startsWith('/pages/')) {
+    if (options.method === 'GET' && failNextPageRead) {
+      failNextPageRead = false;
+      throw new Error('network failure before writing the external ID');
+    }
+    const page = pages.get(p.split('/')[2]);
+    if (!page) {
+      return new Response('{}', {
+        status: 404,
+      });
+    }
+    if (options.method === 'PATCH') {
+      if (body.properties) {
+        const source = sources.get(page.parent.data_source_id);
+        const values = {
+          ...Object.fromEntries(
+            Object.values(page.properties).map((f) => [
+              f.id,
+              {
+                [f.type]: f[f.type],
+              },
+            ]),
+          ),
+          ...body.properties,
+        };
+        page.properties = responseProperties(values, source);
+      }
+      if (body.in_trash !== undefined) {
+        page.in_trash = body.in_trash;
+      }
+      page.last_edited_time = edited();
+    }
+    return json(page);
+  }
+  throw new Error('Notion mock endpoint missing: ' + p);
 };
 let orgId;
-async function state(){return(await(await call('/api/state')).json());}
-async function cycle({full=false}={}){await call('/api/notion/run','POST',{full});for(let i=0;i<60;i++){const r=await runNotionConnection(env,orgId,{commit,origin:'https://plantdesk.test'});if(r.complete)return r;if(r.status==='error')throw new Error(JSON.stringify(r)+' '+(await(await call('/api/notion/status')).json()).lastError);}throw new Error('poll did not finish');}
-function sourceFor(kind){const c=sql({queries:[{sql:'SELECT sources_json FROM map_notion_connections WHERE organization_id=?',params:[orgId]}]})[0].results[0];return JSON.parse(c.sources_json)[kind];}
-function pageFor(kind,localId){const source=sourceFor(kind);return [...pages.values()].find(p=>p.parent.data_source_id===source.id&&Object.values(p.properties).find(f=>f.id===source.properties._id)?.rich_text.map(v=>v.plain_text).join('')===localId);}
-function editPage(kind,localId,field,value){const source=sourceFor(kind),page=pageFor(kind,localId),f=Object.values(page.properties).find(v=>v.id===source.properties[field]);f[f.type]=f.type==='rich_text'||f.type==='title'?[{text:{content:value},plain_text:value}]:value;page.last_edited_time=edited();}
-test('connector round trips typed properties, merges disjoint fields, and checks IDs',()=>{assert.equal(notionId('https://app.notion.com/p/'+HOME.replaceAll('-','')),HOME);assert.throws(()=>notionId('https://evil.test/'+HOME.replaceAll('-','')));for(const[type,v]of [['number',0],['checkbox',false],['rich_text','日本語'],['date','2026-11-14']]){const encoded=encodeProperty({name:'test',type},v);assert.deepEqual(decodeProperty({name:'test',type},{type,...encoded}),v);}assert.deepEqual(threeWayMerge({a:1,b:1},{a:2,b:1},{a:1,b:3}).value,{a:2,b:3});assert.deepEqual(threeWayMerge({a:1},{a:2},{a:3}).conflicts,['a']);});
-test('tokens are authenticated encrypted per tenant and never returned by API',async()=>{const cipher=await encryptToken(env,'org-1',TOKEN);assert.ok(!cipher.includes(TOKEN));assert.equal(await decryptToken(env,'org-1',cipher),TOKEN);await assert.rejects(decryptToken(env,'org-2',cipher));const s=await state();orgId=(await(await call('/api/session')).json()).organization.id;s.state.assets=s.state.assets.slice(0,3);s.state.works=s.state.works.slice(0,1);s.state.works.forEach(w=>w.assetIds=w.assetIds.filter(id=>s.state.assets.some(a=>a.id===id)));assert.equal((await call('/api/state','PUT',s)).status,200);const r=await call('/api/notion/config','PUT',{token:TOKEN,homePageId:HOME,direction:'both',intervalMinutes:5,enabled:true});assert.equal(r.status,200,await r.clone().text());assert.ok(!(await r.text()).includes(TOKEN));const stored=sql({queries:[{sql:'SELECT token_cipher FROM map_notion_connections WHERE organization_id=?',params:[orgId]}]})[0].results[0].token_cipher;assert.ok(!stored.includes(TOKEN));for(const p of ['/api/notion/status','/api/notion/issues','/api/notion/runs'])assert.equal((await call(p,'GET',undefined,'sync-owner','factory_mode=viewer')).status,403);assert.equal((await(await call('/api/notion/status','GET',undefined,'someone-else')).json()).configured,false);assert.equal((await call('/api/notion/config','PUT',{token:TOKEN,homePageId:HOME,direction:'both',intervalMinutes:5,enabled:true},'someone-else')).status,409,'a Notion home cannot be shared across tenants');});
-test('polling discovers nested databases, recovers uncertain setup writes, resumes batches, and is idempotent',async()=>{uncertainDatabase=true;let initial;for(let i=0;i<30;i++){initial=await runNotionConnection(env,orgId,{commit});if(initial.status==='error')break;}assert.equal(initial.status,'error');const r=await cycle();assert.equal(databases.size,KINDS.length);assert.equal(r.counters.errors,0,JSON.stringify(await(await call('/api/notion/issues')).json()));assert.ok(pages.size>5);const count=pages.size,revision=(await state()).revision;await cycle();assert.equal(pages.size,count);assert.equal((await state()).revision,revision,'unchanged sync must not rewrite state');assert.ok(calls.every(c=>!c.path.includes('/webhooks')));});
-test('large remote sources paginate across saved polling batches',async()=>{
- let current=await state();for(let i=0;i<31;i++)current.state.teamMembers.push({id:'bulk-member-'+String(i).padStart(2,'0'),name:'巡回班 '+i,specialty:'設備',contact:'',active:true,color:'#224466'});assert.equal((await call('/api/state','PUT',current)).status,200);
- await call('/api/notion/run','POST',{});const partial=await runNotionConnection(env,orgId,{commit});assert.equal(partial.status,'continuing');const pending=sql({queries:[{sql:'SELECT next_run_at FROM map_notion_connections WHERE organization_id=?',params:[orgId]}]})[0].results[0];assert.ok(Date.parse(pending.next_run_at)<=Date.now(),'続きは次のCronで再開でき、余分な60秒待ちを入れない');await cycle();
- editPage('teamMembers','bulk-member-30','contact','内線430');const count=pages.size;await cycle();assert.equal((await state()).state.teamMembers.find(m=>m.id==='bulk-member-30').contact,'内線430');assert.equal(pages.size,count,'pagination must not create duplicate rows');
+async function state() {
+  return await (await call('/api/state')).json();
+}
+async function cycle({ full = false } = {}) {
+  await call('/api/notion/run', 'POST', {
+    full,
+  });
+  for (let i = 0; i < 60; i++) {
+    const r = await runNotionConnection(env, orgId, {
+      commit,
+      origin: 'https://plantdesk.test',
+    });
+    if (r.complete) {
+      return r;
+    }
+    if (r.status === 'error') {
+      throw new Error(
+        JSON.stringify(r) + ' ' + (await (await call('/api/notion/status')).json()).lastError,
+      );
+    }
+  }
+  throw new Error('poll did not finish');
+}
+function sourceFor(kind) {
+  const c = sql({
+    queries: [
+      {
+        sql: 'SELECT sources_json FROM map_notion_connections WHERE organization_id=?',
+        params: [orgId],
+      },
+    ],
+  })[0].results[0];
+  return JSON.parse(c.sources_json)[kind];
+}
+function pageFor(kind, localId) {
+  const source = sourceFor(kind);
+  return [...pages.values()].find(
+    (p) =>
+      p.parent.data_source_id === source.id &&
+      Object.values(p.properties)
+        .find((f) => f.id === source.properties._id)
+        ?.rich_text.map((v) => v.plain_text)
+        .join('') === localId,
+  );
+}
+function editPage(kind, localId, field, value) {
+  const source = sourceFor(kind);
+  const page = pageFor(kind, localId);
+  const f = Object.values(page.properties).find((v) => v.id === source.properties[field]);
+  f[f.type] =
+    f.type === 'rich_text' || f.type === 'title'
+      ? [
+          {
+            text: {
+              content: value,
+            },
+            plain_text: value,
+          },
+        ]
+      : value;
+  page.last_edited_time = edited();
+}
+test('connector round trips typed properties, merges disjoint fields, and checks IDs', () => {
+  assert.equal(notionId('https://app.notion.com/p/' + HOME.replaceAll('-', '')), HOME);
+  assert.throws(() => notionId('https://evil.test/' + HOME.replaceAll('-', '')));
+  for (const [type, v] of [
+    ['number', 0],
+    ['checkbox', false],
+    ['rich_text', '日本語'],
+    ['date', '2026-11-14'],
+  ]) {
+    const encoded = encodeProperty(
+      {
+        name: 'test',
+        type,
+      },
+      v,
+    );
+    assert.deepEqual(
+      decodeProperty(
+        {
+          name: 'test',
+          type,
+        },
+        {
+          type,
+          ...encoded,
+        },
+      ),
+      v,
+    );
+  }
+  assert.deepEqual(
+    threeWayMerge(
+      {
+        a: 1,
+        b: 1,
+      },
+      {
+        a: 2,
+        b: 1,
+      },
+      {
+        a: 1,
+        b: 3,
+      },
+    ).value,
+    {
+      a: 2,
+      b: 3,
+    },
+  );
+  assert.deepEqual(
+    threeWayMerge(
+      {
+        a: 1,
+      },
+      {
+        a: 2,
+      },
+      {
+        a: 3,
+      },
+    ).conflicts,
+    ['a'],
+  );
 });
-test('edits in either side merge, conflicts wait for explicit resolution',async()=>{const s=await state(),a=s.state.assets[0];editPage('assets',a.id,'location','Notionで場所を更新');await cycle();assert.equal((await state()).state.assets[0].location,'Notionで場所を更新');let current=await state();current.state.assets[0].name='PlantDeskで名前を更新';assert.equal((await call('/api/state','PUT',current)).status,200);await cycle();const source=sourceFor('assets'),title=Object.values(pageFor('assets',a.id).properties).find(v=>v.id===source.properties.title);assert.equal(title.title[0].plain_text,'PlantDeskで名前を更新');current=await state();current.state.assets[0].location='こちらの場所';assert.equal((await call('/api/state','PUT',current)).status,200);editPage('assets',a.id,'location','あちらの場所');await cycle();const issues=await(await call('/api/notion/issues')).json(),issue=issues.items.find(i=>i.local_id===a.id);assert.equal(issue.state,'conflict');assert.equal((await state()).state.assets[0].location,'こちらの場所');assert.equal((await call('/api/notion/resolve','POST',{kind:'assets',localId:a.id,source:'notion',revision:(await state()).revision,updatedAt:issue.updated_at})).status,202);await cycle();assert.equal((await state()).state.assets[0].location,'あちらの場所');});
-test('locks prevent Notion edits and archived pages are reviewed, never auto-deleted',async()=>{let s=await state(),a=s.state.assets[0];s.state.assets[0].locks={attributes:true,position:true};await call('/api/state','PUT',s);await cycle();editPage('assets',a.id,'location','ロック中の編集');await cycle();assert.notEqual((await state()).state.assets[0].location,'ロック中の編集');assert.ok((await(await call('/api/notion/issues')).json()).items.some(i=>i.local_id===a.id&&i.message.includes('ロック')));pageFor('assets',a.id).in_trash=true;await cycle({full:true});assert.ok((await state()).state.assets.some(v=>v.id===a.id));assert.ok((await(await call('/api/notion/issues')).json()).items.some(i=>i.state==='remote_deleted'));});
-test('Notion completion uses the inspection workflow and preserves one completion across retries',async()=>{
- let current=await state(),a=current.state.assets[1];let r=await call('/api/teamMembers','POST',{revision:current.revision,record:{name:'巡回担当',specialty:'点検',contact:'',active:true,color:'#224466'}});const member=(await r.json()).record;current=await state();r=await call('/api/tasks','POST',{revision:current.revision,record:{title:'Notionで点検を完了',kind:'inspection',assetId:a.id,drawingId:a.drawingId,assigneeId:member.id,checklist:[{id:'c1',text:'異音を確認',done:false}]}});const task=(await r.json()).record;await cycle();
- const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),next=new Date(day+'T00:00:00Z');next.setUTCDate(next.getUTCDate()+7);const date=next.toISOString().slice(0,10);
- editPage('tasks',task.id,'checklist',JSON.stringify([{id:'c1',text:'異音を確認',done:true}]));editPage('tasks',task.id,'inspectionDate',{start:day});editPage('tasks',task.id,'inspectionResult',{name:'要対応'});editPage('tasks',task.id,'inspectionText','振動を確認。補修の手配。');editPage('tasks',task.id,'inspector','巡回担当');editPage('tasks',task.id,'nextDate',{start:date});editPage('tasks',task.id,'updateNextDate',true);editPage('tasks',task.id,'createFollowup',true);editPage('tasks',task.id,'followupDueDate',{start:date});editPage('tasks',task.id,'status',{name:'完了'});
- await cycle();current=await state();assert.equal(current.state.tasks.find(t=>t.id===task.id).status,'done');assert.equal(current.state.tasks.filter(t=>t.followupFor===task.id).length,1);assert.equal(current.state.assets[1].history.filter(h=>h.taskId===task.id).length,1);assert.equal(current.state.assets[1].properties.nextInspection,date);const revision=current.revision;await cycle();assert.equal((await state()).revision,revision,'completed inspection must not loop');
+test('tokens are authenticated encrypted per tenant and never returned by API', async () => {
+  const cipher = await encryptToken(env, 'org-1', TOKEN);
+  assert.ok(!cipher.includes(TOKEN));
+  assert.equal(await decryptToken(env, 'org-1', cipher), TOKEN);
+  await assert.rejects(decryptToken(env, 'org-2', cipher));
+  const s = await state();
+  orgId = (await (await call('/api/session')).json()).organization.id;
+  s.state.assets = s.state.assets.slice(0, 3);
+  s.state.works = s.state.works.slice(0, 1);
+  s.state.works.forEach(
+    (w) => (w.assetIds = w.assetIds.filter((id) => s.state.assets.some((a) => a.id === id))),
+  );
+  assert.equal((await call('/api/state', 'PUT', s)).status, 200);
+  const r = await call('/api/notion/config', 'PUT', {
+    token: TOKEN,
+    homePageId: HOME,
+    direction: 'both',
+    intervalMinutes: 5,
+    enabled: true,
+  });
+  assert.equal(r.status, 200, await r.clone().text());
+  assert.ok(!(await r.text()).includes(TOKEN));
+  const stored = sql({
+    queries: [
+      {
+        sql: 'SELECT token_cipher FROM map_notion_connections WHERE organization_id=?',
+        params: [orgId],
+      },
+    ],
+  })[0].results[0].token_cipher;
+  assert.ok(!stored.includes(TOKEN));
+  for (const p of ['/api/notion/status', '/api/notion/issues', '/api/notion/runs']) {
+    assert.equal(
+      (await call(p, 'GET', undefined, 'sync-owner', 'factory_mode=viewer')).status,
+      403,
+    );
+  }
+  assert.equal(
+    (await (await call('/api/notion/status', 'GET', undefined, 'someone-else')).json()).configured,
+    false,
+  );
+  assert.equal(
+    (
+      await call(
+        '/api/notion/config',
+        'PUT',
+        {
+          token: TOKEN,
+          homePageId: HOME,
+          direction: 'both',
+          intervalMinutes: 5,
+          enabled: true,
+        },
+        'someone-else',
+      )
+    ).status,
+    409,
+    'a Notion home cannot be shared across tenants',
+  );
 });
-test('renamed local select options retain values and unrelated Notion columns are preserved',async()=>{
- let current=await state(),category=current.state.propertyDefinitions.find(p=>p.id==='category'),choice=category.options.find(o=>o.id===current.state.assets[1].properties.category);choice.label='電気設備（変更）';current.state.assets[1].name='変更した設備名';await call('/api/state','PUT',current);
- const source=sourceFor('assets'),remote=sources.get(source.id);remote.properties['社内メモ']={id:'unmanaged',type:'rich_text',name:'社内メモ',rich_text:{}};const page=pageFor('assets',current.state.assets[1].id);page.properties['社内メモ']={id:'unmanaged',type:'rich_text',rich_text:[{text:{content:'保持するメモ'},plain_text:'保持するメモ'}]};await cycle();assert.equal(page.properties['社内メモ'].rich_text[0].plain_text,'保持するメモ');assert.equal((await state()).state.assets[1].properties.category,choice.id);
+test('polling discovers nested databases, recovers uncertain setup writes, resumes batches, and is idempotent', async () => {
+  uncertainDatabase = true;
+  let initial;
+  for (let i = 0; i < 30; i++) {
+    initial = await runNotionConnection(env, orgId, {
+      commit,
+    });
+    if (initial.status === 'error') {
+      break;
+    }
+  }
+  assert.equal(initial.status, 'error');
+  const r = await cycle();
+  assert.equal(databases.size, KINDS.length);
+  assert.equal(
+    r.counters.errors,
+    0,
+    JSON.stringify(await (await call('/api/notion/issues')).json()),
+  );
+  assert.ok(pages.size > 5);
+  const count = pages.size;
+  const revision = (await state()).revision;
+  await cycle();
+  assert.equal(pages.size, count);
+  assert.equal((await state()).revision, revision, 'unchanged sync must not rewrite state');
+  assert.ok(calls.every((c) => !c.path.includes('/webhooks')));
 });
-test('uncertain create is recovered by stable ID lookup without duplicate pages',async()=>{
- let current=await state();const r=await call('/api/teamMembers','POST',{revision:current.revision,record:{name:'通信再試行の担当',specialty:'',contact:'',active:true,color:'#445566'}}),member=(await r.json()).record;uncertainCreate=true;await call('/api/notion/run','POST',{});let failed;for(let i=0;i<60;i++){failed=await runNotionConnection(env,orgId,{commit});if(failed.status==='error')break;}assert.equal(failed.status,'error');await cycle();const source=sourceFor('teamMembers');assert.equal([...pages.values()].filter(p=>p.parent.data_source_id===source.id&&Object.values(p.properties).some(v=>v.id===source.properties._id&&v.rich_text?.map(x=>x.plain_text).join('')===member.id)).length,1);
+test('large remote sources paginate across saved polling batches', async () => {
+  const current = await state();
+  for (let i = 0; i < 31; i++) {
+    current.state.teamMembers.push({
+      id: 'bulk-member-' + String(i).padStart(2, '0'),
+      name: '巡回班 ' + i,
+      specialty: '設備',
+      contact: '',
+      active: true,
+      color: '#224466',
+    });
+  }
+  assert.equal((await call('/api/state', 'PUT', current)).status, 200);
+  await call('/api/notion/run', 'POST', {});
+  const partial = await runNotionConnection(env, orgId, {
+    commit,
+  });
+  assert.equal(partial.status, 'continuing');
+  const pending = sql({
+    queries: [
+      {
+        sql: 'SELECT next_run_at FROM map_notion_connections WHERE organization_id=?',
+        params: [orgId],
+      },
+    ],
+  })[0].results[0];
+  assert.ok(
+    Date.parse(pending.next_run_at) <= Date.now(),
+    '続きは次のCronで再開でき、余分な60秒待ちを入れない',
+  );
+  await cycle();
+  editPage('teamMembers', 'bulk-member-30', 'contact', '内線430');
+  const count = pages.size;
+  await cycle();
+  assert.equal(
+    (await state()).state.teamMembers.find((m) => m.id === 'bulk-member-30').contact,
+    '内線430',
+  );
+  assert.equal(pages.size, count, 'pagination must not create duplicate rows');
 });
-test('new Notion rows retain a stable local ID after an interrupted import',async()=>{
- const source=sourceFor('teamMembers'),notion=new NotionConnector({token:TOKEN,minIntervalMs:0}),properties={};const f=(key,value)=>{const definition=fields('teamMembers',(null)).find(f=>f.key===key);properties[source.properties[key]]=encodeProperty(definition,value);};f('title','Notionから追加する担当');f('specialty','配管');f('contact','内線500');f('active',true);f('color','#224466');const remote=await notion.createPage(source.id,properties);failNextPageRead=true;await call('/api/notion/run','POST',{});
- for(let i=0;i<60;i++){const r=await runNotionConnection(env,orgId,{commit});if(r.status==='error')break;if(i===59)assert.fail('expected interrupted import');}await cycle();const members=(await state()).state.teamMembers.filter(m=>m.name==='Notionから追加する担当');assert.equal(members.length,1);assert.equal(members[0].id,'notion-'+remote.id);
+test('edits in either side merge, conflicts wait for explicit resolution', async () => {
+  const s = await state();
+  const a = s.state.assets[0];
+  editPage('assets', a.id, 'location', 'Notionで場所を更新');
+  await cycle();
+  assert.equal((await state()).state.assets[0].location, 'Notionで場所を更新');
+  let current = await state();
+  current.state.assets[0].name = 'PlantDeskで名前を更新';
+  assert.equal((await call('/api/state', 'PUT', current)).status, 200);
+  await cycle();
+  const source = sourceFor('assets');
+  const title = Object.values(pageFor('assets', a.id).properties).find(
+    (v) => v.id === source.properties.title,
+  );
+  assert.equal(title.title[0].plain_text, 'PlantDeskで名前を更新');
+  current = await state();
+  current.state.assets[0].location = 'こちらの場所';
+  assert.equal((await call('/api/state', 'PUT', current)).status, 200);
+  editPage('assets', a.id, 'location', 'あちらの場所');
+  await cycle();
+  const issues = await (await call('/api/notion/issues')).json();
+  const issue = issues.items.find((i) => i.local_id === a.id);
+  assert.equal(issue.state, 'conflict');
+  assert.equal((await state()).state.assets[0].location, 'こちらの場所');
+  assert.equal(
+    (
+      await call('/api/notion/resolve', 'POST', {
+        kind: 'assets',
+        localId: a.id,
+        source: 'notion',
+        revision: (await state()).revision,
+        updatedAt: issue.updated_at,
+      })
+    ).status,
+    202,
+  );
+  await cycle();
+  assert.equal((await state()).state.assets[0].location, 'あちらの場所');
 });
-test('projects and forward task relations round trip without erasing dependencies; computed progress refreshes after pulls',async()=>{
- let current=await state(),r=await call('/api/projects','POST',{revision:current.revision,record:{name:'Notion連携の更新案件',status:'active',goal:'工程と受入の確認'}});assert.equal(r.status,201);const project=(await r.json()).record;current=await state();
- const tasks=[{id:'z-first',title:'先行確認',status:'done'},{id:'a-next',title:'次の工程',dependsOnIds:['z-first']},{id:'z-parent',title:'親工程'},{id:'a-child',title:'子工程',parentId:'z-parent'}];
- assert.equal((await call('/api/batch','POST',{revision:current.revision,operations:tasks.map(record=>({kind:'tasks',method:'POST',record:{...record,projectId:project.id}}))})).status,200);
- await cycle();current=await state();assert.deepEqual(current.state.tasks.find(t=>t.id==='a-next').dependsOnIds,['z-first']);assert.equal(current.state.tasks.find(t=>t.id==='a-child').parentId,'z-parent');
- const taskSource=sourceFor('tasks'),nextPage=pageFor('tasks','a-next');assert.equal(Object.values(nextPage.properties).find(p=>p.id===taskSource.properties.dependsOnIds).relation[0].id,pageFor('tasks','z-first').id);
- editPage('tasks','a-child','status',{name:'完了'});editPage('projects',project.id,'goal','Notionで受入条件を更新');await cycle();current=await state();assert.equal(current.state.projects.find(p=>p.id===project.id).goal,'Notionで受入条件を更新');assert.equal(current.state.tasks.find(t=>t.id==='a-child').status,'done');
- const projectSource=sourceFor('projects'),progress=Object.values(pageFor('projects',project.id).properties).find(p=>p.id===projectSource.properties._progress);assert.equal(progress.number,50,'project totals must refresh after task imports');
- editPage('tasks','a-next','status',{name:'完了'});editPage('tasks','z-parent','status',{name:'完了'});editPage('projects',project.id,'status',{name:'完了'});await cycle();current=await state();assert.equal(current.state.projects.find(p=>p.id===project.id).status,'done','project completion must follow task imports within the same polling cycle');assert.ok(!(await(await call('/api/notion/issues')).json()).items.some(i=>i.kind==='projects'&&i.local_id===project.id));
- const revision=current.revision;await cycle();assert.equal((await state()).revision,revision,'workflow sync must remain idempotent');
+test('locks prevent Notion edits and archived pages are reviewed, never auto-deleted', async () => {
+  const s = await state();
+  const a = s.state.assets[0];
+  s.state.assets[0].locks = {
+    attributes: true,
+    position: true,
+  };
+  await call('/api/state', 'PUT', s);
+  await cycle();
+  editPage('assets', a.id, 'location', 'ロック中の編集');
+  await cycle();
+  assert.notEqual((await state()).state.assets[0].location, 'ロック中の編集');
+  assert.ok(
+    (await (await call('/api/notion/issues')).json()).items.some(
+      (i) => i.local_id === a.id && i.message.includes('ロック'),
+    ),
+  );
+  pageFor('assets', a.id).in_trash = true;
+  await cycle({
+    full: true,
+  });
+  assert.ok((await state()).state.assets.some((v) => v.id === a.id));
+  assert.ok(
+    (await (await call('/api/notion/issues')).json()).items.some(
+      (i) => i.state === 'remote_deleted',
+    ),
+  );
 });
-test('rate limits, leases, pause and scheduled due checks are safe',async()=>{rateLimit=true;await call('/api/notion/run','POST',{});const limited=await runNotionConnection(env,orgId,{commit});assert.equal(limited.status,'error');const before=calls.length;await runNotionJobs(env,{commit});assert.equal(calls.length,before,'Retry-After must defer scheduled work');await call('/api/notion/pause','POST',{});assert.equal((await(await call('/api/notion/status')).json()).enabled,false);assert.equal((await runNotionConnection(env,orgId,{commit})).skipped,true);const one=new NotionConnector({token:TOKEN,maxRequests:0});await assert.rejects(one.testConnection(),PollBudgetExceeded);});
-test.after(()=>{globalThis.fetch=previousFetch;rmSync(directory,{recursive:true,force:true});});
+test('Notion completion uses the inspection workflow and preserves one completion across retries', async () => {
+  let current = await state();
+  const a = current.state.assets[1];
+  let r = await call('/api/teamMembers', 'POST', {
+    revision: current.revision,
+    record: {
+      name: '巡回担当',
+      specialty: '点検',
+      contact: '',
+      active: true,
+      color: '#224466',
+    },
+  });
+  const member = (await r.json()).record;
+  current = await state();
+  r = await call('/api/tasks', 'POST', {
+    revision: current.revision,
+    record: {
+      title: 'Notionで点検を完了',
+      kind: 'inspection',
+      assetId: a.id,
+      drawingId: a.drawingId,
+      assigneeId: member.id,
+      checklist: [
+        {
+          id: 'c1',
+          text: '異音を確認',
+          done: false,
+        },
+      ],
+    },
+  });
+  const task = (await r.json()).record;
+  await cycle();
+  const day = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const next = new Date(day + 'T00:00:00Z');
+  next.setUTCDate(next.getUTCDate() + 7);
+  const date = next.toISOString().slice(0, 10);
+  editPage(
+    'tasks',
+    task.id,
+    'checklist',
+    JSON.stringify([
+      {
+        id: 'c1',
+        text: '異音を確認',
+        done: true,
+      },
+    ]),
+  );
+  editPage('tasks', task.id, 'inspectionDate', {
+    start: day,
+  });
+  editPage('tasks', task.id, 'inspectionResult', {
+    name: '要対応',
+  });
+  editPage('tasks', task.id, 'inspectionText', '振動を確認。補修の手配。');
+  editPage('tasks', task.id, 'inspector', '巡回担当');
+  editPage('tasks', task.id, 'nextDate', {
+    start: date,
+  });
+  editPage('tasks', task.id, 'updateNextDate', true);
+  editPage('tasks', task.id, 'createFollowup', true);
+  editPage('tasks', task.id, 'followupDueDate', {
+    start: date,
+  });
+  editPage('tasks', task.id, 'status', {
+    name: '完了',
+  });
+  await cycle();
+  current = await state();
+  assert.equal(current.state.tasks.find((t) => t.id === task.id).status, 'done');
+  assert.equal(current.state.tasks.filter((t) => t.followupFor === task.id).length, 1);
+  assert.equal(current.state.assets[1].history.filter((h) => h.taskId === task.id).length, 1);
+  assert.equal(current.state.assets[1].properties.nextInspection, date);
+  const revision = current.revision;
+  await cycle();
+  assert.equal((await state()).revision, revision, 'completed inspection must not loop');
+});
+test('renamed local select options retain values and unrelated Notion columns are preserved', async () => {
+  const current = await state();
+  const category = current.state.propertyDefinitions.find((p) => p.id === 'category');
+  const choice = category.options.find((o) => o.id === current.state.assets[1].properties.category);
+  choice.label = '電気設備（変更）';
+  current.state.assets[1].name = '変更した設備名';
+  await call('/api/state', 'PUT', current);
+  const source = sourceFor('assets');
+  const remote = sources.get(source.id);
+  remote.properties['社内メモ'] = {
+    id: 'unmanaged',
+    type: 'rich_text',
+    name: '社内メモ',
+    rich_text: {},
+  };
+  const page = pageFor('assets', current.state.assets[1].id);
+  page.properties['社内メモ'] = {
+    id: 'unmanaged',
+    type: 'rich_text',
+    rich_text: [
+      {
+        text: {
+          content: '保持するメモ',
+        },
+        plain_text: '保持するメモ',
+      },
+    ],
+  };
+  await cycle();
+  assert.equal(page.properties['社内メモ'].rich_text[0].plain_text, '保持するメモ');
+  assert.equal((await state()).state.assets[1].properties.category, choice.id);
+});
+test('uncertain create is recovered by stable ID lookup without duplicate pages', async () => {
+  const current = await state();
+  const r = await call('/api/teamMembers', 'POST', {
+    revision: current.revision,
+    record: {
+      name: '通信再試行の担当',
+      specialty: '',
+      contact: '',
+      active: true,
+      color: '#445566',
+    },
+  });
+  const member = (await r.json()).record;
+  uncertainCreate = true;
+  await call('/api/notion/run', 'POST', {});
+  let failed;
+  for (let i = 0; i < 60; i++) {
+    failed = await runNotionConnection(env, orgId, {
+      commit,
+    });
+    if (failed.status === 'error') {
+      break;
+    }
+  }
+  assert.equal(failed.status, 'error');
+  await cycle();
+  const source = sourceFor('teamMembers');
+  assert.equal(
+    [...pages.values()].filter(
+      (p) =>
+        p.parent.data_source_id === source.id &&
+        Object.values(p.properties).some(
+          (v) =>
+            v.id === source.properties._id &&
+            v.rich_text?.map((x) => x.plain_text).join('') === member.id,
+        ),
+    ).length,
+    1,
+  );
+});
+test('new Notion rows retain a stable local ID after an interrupted import', async () => {
+  const source = sourceFor('teamMembers');
+  const notion = new NotionConnector({
+    token: TOKEN,
+    minIntervalMs: 0,
+  });
+  const properties = {};
+  const f = (key, value) => {
+    const definition = fields('teamMembers', null).find((f) => f.key === key);
+    properties[source.properties[key]] = encodeProperty(definition, value);
+  };
+  f('title', 'Notionから追加する担当');
+  f('specialty', '配管');
+  f('contact', '内線500');
+  f('active', true);
+  f('color', '#224466');
+  const remote = await notion.createPage(source.id, properties);
+  failNextPageRead = true;
+  await call('/api/notion/run', 'POST', {});
+  for (let i = 0; i < 60; i++) {
+    const r = await runNotionConnection(env, orgId, {
+      commit,
+    });
+    if (r.status === 'error') {
+      break;
+    }
+    if (i === 59) {
+      assert.fail('expected interrupted import');
+    }
+  }
+  await cycle();
+  const members = (await state()).state.teamMembers.filter(
+    (m) => m.name === 'Notionから追加する担当',
+  );
+  assert.equal(members.length, 1);
+  assert.equal(members[0].id, 'notion-' + remote.id);
+});
+test('projects and forward task relations round trip without erasing dependencies; computed progress refreshes after pulls', async () => {
+  let current = await state();
+  const r = await call('/api/projects', 'POST', {
+    revision: current.revision,
+    record: {
+      name: 'Notion連携の更新案件',
+      status: 'active',
+      goal: '工程と受入の確認',
+    },
+  });
+  assert.equal(r.status, 201);
+  const project = (await r.json()).record;
+  current = await state();
+  const tasks = [
+    {
+      id: 'z-first',
+      title: '先行確認',
+      status: 'done',
+    },
+    {
+      id: 'a-next',
+      title: '次の工程',
+      dependsOnIds: ['z-first'],
+    },
+    {
+      id: 'z-parent',
+      title: '親工程',
+    },
+    {
+      id: 'a-child',
+      title: '子工程',
+      parentId: 'z-parent',
+    },
+  ];
+  assert.equal(
+    (
+      await call('/api/batch', 'POST', {
+        revision: current.revision,
+        operations: tasks.map((record) => ({
+          kind: 'tasks',
+          method: 'POST',
+          record: {
+            ...record,
+            projectId: project.id,
+          },
+        })),
+      })
+    ).status,
+    200,
+  );
+  await cycle();
+  current = await state();
+  assert.deepEqual(current.state.tasks.find((t) => t.id === 'a-next').dependsOnIds, ['z-first']);
+  assert.equal(current.state.tasks.find((t) => t.id === 'a-child').parentId, 'z-parent');
+  const taskSource = sourceFor('tasks');
+  const nextPage = pageFor('tasks', 'a-next');
+  assert.equal(
+    Object.values(nextPage.properties).find((p) => p.id === taskSource.properties.dependsOnIds)
+      .relation[0].id,
+    pageFor('tasks', 'z-first').id,
+  );
+  editPage('tasks', 'a-child', 'status', {
+    name: '完了',
+  });
+  editPage('projects', project.id, 'goal', 'Notionで受入条件を更新');
+  await cycle();
+  current = await state();
+  assert.equal(
+    current.state.projects.find((p) => p.id === project.id).goal,
+    'Notionで受入条件を更新',
+  );
+  assert.equal(current.state.tasks.find((t) => t.id === 'a-child').status, 'done');
+  const projectSource = sourceFor('projects');
+  const progress = Object.values(pageFor('projects', project.id).properties).find(
+    (p) => p.id === projectSource.properties._progress,
+  );
+  assert.equal(progress.number, 50, 'project totals must refresh after task imports');
+  editPage('tasks', 'a-next', 'status', {
+    name: '完了',
+  });
+  editPage('tasks', 'z-parent', 'status', {
+    name: '完了',
+  });
+  editPage('projects', project.id, 'status', {
+    name: '完了',
+  });
+  await cycle();
+  current = await state();
+  assert.equal(
+    current.state.projects.find((p) => p.id === project.id).status,
+    'done',
+    'project completion must follow task imports within the same polling cycle',
+  );
+  assert.ok(
+    !(await (await call('/api/notion/issues')).json()).items.some(
+      (i) => i.kind === 'projects' && i.local_id === project.id,
+    ),
+  );
+  const revision = current.revision;
+  await cycle();
+  assert.equal((await state()).revision, revision, 'workflow sync must remain idempotent');
+});
+test('rate limits, leases, pause and scheduled due checks are safe', async () => {
+  rateLimit = true;
+  await call('/api/notion/run', 'POST', {});
+  const limited = await runNotionConnection(env, orgId, {
+    commit,
+  });
+  assert.equal(limited.status, 'error');
+  const before = calls.length;
+  await runNotionJobs(env, {
+    commit,
+  });
+  assert.equal(calls.length, before, 'Retry-After must defer scheduled work');
+  await call('/api/notion/pause', 'POST', {});
+  assert.equal((await (await call('/api/notion/status')).json()).enabled, false);
+  assert.equal(
+    (
+      await runNotionConnection(env, orgId, {
+        commit,
+      })
+    ).skipped,
+    true,
+  );
+  const one = new NotionConnector({
+    token: TOKEN,
+    maxRequests: 0,
+  });
+  await assert.rejects(one.testConnection(), PollBudgetExceeded);
+});
+test.after(() => {
+  globalThis.fetch = previousFetch;
+  rmSync(directory, {
+    recursive: true,
+    force: true,
+  });
+});

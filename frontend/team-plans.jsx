@@ -1,13 +1,499 @@
-import React,{useRef,useState} from 'react';
-import {api,today,priorityNames,Modal,Person} from './team-shared.jsx';
-export function Plans({state,onRefresh,onOpenTask}){
- const [edit,E]=useState(null),[preview,P]=useState(null),[message,M]=useState(''),[busy,B]=useState(false);
- const run=async fn=>{B(true);M('');try{await fn();}catch(e){M(e.message);}finally{B(false);}};
- return <><div className="team-section-heading"><div><h2>点検計画</h2><p>設備・周期・担当・確認項目を保存。予定分の作業をまとめて作成できます。</p></div><button className="primary-product" onClick={()=>E({})}>＋ 点検計画を作成</button></div><p className="team-error" role="status">{message}</p><div className="table-scroll work-surface"><table className="inspection-plan-table"><thead><tr><th>計画名・対象</th><th>次回予定</th><th>周期</th><th>担当者</th><th>作業</th><th>操作</th></tr></thead><tbody>{state.inspectionPlans.map(p=><tr key={p.id} className="inspection-plan-card"><td><strong>{p.name}</strong><small>{p.active?'運用中':'休止中'} · {p.assetIds.length}台 · 確認{p.checklist.length}項目</small></td><td className={p.active&&p.nextDue<today()?'task-overdue':''}>{p.nextDue}</td><td>{p.intervalDays}日ごと<small>1台 {p.estimatedMinutes}分</small></td><td><Person state={state} id={p.assigneeId}/></td><td><span>未完了 {state.tasks.filter(t=>t.origin?.planId===p.id&&!['done','cancelled'].includes(t.status)).length}件</span>{state.tasks.some(t=>t.origin?.planId===p.id)&&<details><summary>この計画の作業</summary>{state.tasks.filter(t=>t.origin?.planId===p.id).slice(-20).map(t=><button className="team-plan-task" key={t.id} onClick={()=>onOpenTask(t)}>{t.status==='done'?'✓':'○'} {t.title} · {t.dueDate}</button>)}</details>}</td><td><div className="product-actions"><button disabled={busy||!p.active} onClick={()=>run(async()=>P({...await api('/api/inspectionPlans/'+p.id+'/preview'),name:p.name}))}>今回の点検を起票</button><button onClick={()=>E(p)}>計画を編集</button></div></td></tr>)}</tbody></table></div>{!state.inspectionPlans.length&&<div className="team-empty"><strong>点検計画は未登録です。</strong><p>「点検計画を作成」から追加できます。</p></div>}{edit&&<PlanDialog state={state} record={edit.id?edit:null} onClose={()=>E(null)} onRefresh={onRefresh}/>} {preview&&<Modal title="点検作業の作成前確認" onClose={()=>P(null)}><h3>{preview.name}</h3><p>今回の期限：{preview.cycleDate}<br/>起票後の次回予定：{preview.nextDue}</p><p><strong>新規作業 {preview.created}件</strong> / 起票済み {preview.skipped}件</p><p className="team-help">今回の予定分だけを作業にします。過去の未起票日を何回分も作ることはありません。起票済みの同じ設備・予定日は重複しません。起票はこのボタンで行います。</p><div className="plan-preview-items">{preview.items.map(a=><div key={a.assetId}><span>{a.code} · {a.name}</span><small>{a.exists?'起票済み':'新規'}</small></div>)}</div><p className="team-error" role="alert">{message}</p><div className="product-actions"><button className="primary-product" disabled={busy} onClick={()=>run(async()=>{const r=await api('/api/inspectionPlans/'+preview.planId+'/generate',{method:'POST',body:{revision:preview.revision,cycleDate:preview.cycleDate}});await onRefresh();P(null);M(r.created+'件の点検作業を作成しました。');})}>確認して作業を作成</button><button disabled={busy} onClick={()=>P(null)}>閉じる</button></div></Modal>}</>;
+import React, { useRef, useState } from 'react';
+import { api, today, priorityNames, Modal, Person } from './team-shared.jsx';
+export function Plans({ state, onRefresh, onOpenTask }) {
+  const [edit, setEdit] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  const run = async (fn) => {
+    setBusy(true);
+    setMessage('');
+    try {
+      await fn();
+    } catch (e) {
+      setMessage(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <div className="team-section-heading">
+        <div>
+          <h2>点検計画</h2>
+          <p>設備・周期・担当・確認項目を保存。予定分の作業をまとめて作成できます。</p>
+        </div>
+        <button className="primary-product" onClick={() => setEdit({})}>
+          ＋ 点検計画を作成
+        </button>
+      </div>
+      <p className="team-error" role="status">
+        {message}
+      </p>
+      <div className="table-scroll work-surface">
+        <table className="inspection-plan-table">
+          <thead>
+            <tr>
+              <th>計画名・対象</th>
+              <th>次回予定</th>
+              <th>周期</th>
+              <th>担当者</th>
+              <th>作業</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.inspectionPlans.map((p) => (
+              <tr key={p.id} className="inspection-plan-card">
+                <td>
+                  <strong>{p.name}</strong>
+                  <small>
+                    {p.active ? '運用中' : '休止中'} · {p.assetIds.length}台 · 確認
+                    {p.checklist.length}項目
+                  </small>
+                </td>
+                <td className={p.active && p.nextDue < today() ? 'task-overdue' : ''}>
+                  {p.nextDue}
+                </td>
+                <td>
+                  {p.intervalDays}日ごと<small>1台 {p.estimatedMinutes}分</small>
+                </td>
+                <td>
+                  <Person state={state} id={p.assigneeId} />
+                </td>
+                <td>
+                  <span>
+                    未完了{' '}
+                    {
+                      state.tasks.filter(
+                        (t) =>
+                          t.origin?.planId === p.id && !['done', 'cancelled'].includes(t.status),
+                      ).length
+                    }
+                    件
+                  </span>
+                  {state.tasks.some((t) => t.origin?.planId === p.id) && (
+                    <details>
+                      <summary>この計画の作業</summary>
+                      {state.tasks
+                        .filter((t) => t.origin?.planId === p.id)
+                        .slice(-20)
+                        .map((t) => (
+                          <button
+                            className="team-plan-task"
+                            key={t.id}
+                            onClick={() => onOpenTask(t)}
+                          >
+                            {t.status === 'done' ? '✓' : '○'} {t.title} · {t.dueDate}
+                          </button>
+                        ))}
+                    </details>
+                  )}
+                </td>
+                <td>
+                  <div className="product-actions">
+                    <button
+                      disabled={busy || !p.active}
+                      onClick={() =>
+                        run(async () =>
+                          setPreview({
+                            ...(await api('/api/inspectionPlans/' + p.id + '/preview')),
+                            name: p.name,
+                          }),
+                        )
+                      }
+                    >
+                      今回の点検を起票
+                    </button>
+                    <button onClick={() => setEdit(p)}>計画を編集</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {!state.inspectionPlans.length && (
+        <div className="team-empty">
+          <strong>点検計画は未登録です。</strong>
+          <p>「点検計画を作成」から追加できます。</p>
+        </div>
+      )}
+      {edit && (
+        <PlanDialog
+          state={state}
+          record={edit.id ? edit : null}
+          onClose={() => setEdit(null)}
+          onRefresh={onRefresh}
+        />
+      )}{' '}
+      {preview && (
+        <Modal title="点検作業の作成前確認" onClose={() => setPreview(null)}>
+          <h3>{preview.name}</h3>
+          <p>
+            今回の期限：{preview.cycleDate}
+            <br />
+            起票後の次回予定：{preview.nextDue}
+          </p>
+          <p>
+            <strong>新規作業 {preview.created}件</strong> / 起票済み {preview.skipped}件
+          </p>
+          <p className="team-help">
+            今回の予定分だけを作業にします。過去の未起票日を何回分も作ることはありません。起票済みの同じ設備・予定日は重複しません。起票はこのボタンで行います。
+          </p>
+          <div className="plan-preview-items">
+            {preview.items.map((a) => (
+              <div key={a.assetId}>
+                <span>
+                  {a.code} · {a.name}
+                </span>
+                <small>{a.exists ? '起票済み' : '新規'}</small>
+              </div>
+            ))}
+          </div>
+          <p className="team-error" role="alert">
+            {message}
+          </p>
+          <div className="product-actions">
+            <button
+              className="primary-product"
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  const r = await api('/api/inspectionPlans/' + preview.planId + '/generate', {
+                    method: 'POST',
+                    body: {
+                      revision: preview.revision,
+                      cycleDate: preview.cycleDate,
+                    },
+                  });
+                  await onRefresh();
+                  setPreview(null);
+                  setMessage(r.created + '件の点検作業を作成しました。');
+                })
+              }
+            >
+              確認して作業を作成
+            </button>
+            <button disabled={busy} onClick={() => setPreview(null)}>
+              閉じる
+            </button>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
 }
-function PlanDialog({state,record,onClose,onRefresh}){
- const [d,D]=useState(()=>structuredClone(record||{name:'',description:'',assetIds:[],intervalDays:30,nextDue:today(),assigneeId:'',active:true,priority:'normal',estimatedMinutes:20,checklist:[]})),[query,Q]=useState(''),[category,C]=useState(''),[error,E]=useState(''),[busy,B]=useState(false),[checkText,T]=useState((record?.checklist||[]).map(c=>c.text).join('\n'));
- const revision=useRef(window.FactoryAPI.revision),set=(k,v)=>D(d=>({...d,[k]:v})),items=state.assets.filter(a=>(!category||a.properties.category===category)&&[a.code,a.name,a.location].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase()));
- const run=async fn=>{B(true);E('');try{await fn();}catch(e){E(e.message);}finally{B(false);}};
- return <Modal title={record?'点検計画を編集':'点検計画を作成'} onClose={()=>{if(!busy)onClose();}} wide><fieldset disabled={busy} className="team-plan-fields"><label>計画名<input aria-label="点検計画名" value={d.name} maxLength="150" onChange={e=>set('name',e.target.value)} placeholder="例：空調機の月次巡回"/></label><div className="team-form-grid"><label>点検周期（日）<input aria-label="点検周期（日）" type="number" min="1" max="730" value={d.intervalDays} onChange={e=>set('intervalDays',Number(e.target.value))}/></label><label>次回予定日<input aria-label="計画の次回予定日" type="date" value={d.nextDue} onChange={e=>set('nextDue',e.target.value)}/></label><label>担当者<select aria-label="点検計画の担当者" value={d.assigneeId} onChange={e=>set('assigneeId',e.target.value)}><option value="">未割り当て</option>{state.teamMembers.filter(m=>m.active||m.id===d.assigneeId).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label>優先度<select aria-label="点検計画の優先度" value={d.priority} onChange={e=>set('priority',e.target.value)}>{Object.entries(priorityNames).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><label>1台あたりの見積（分）<input aria-label="計画の見積時間" type="number" min="0" max="10080" value={d.estimatedMinutes} onChange={e=>set('estimatedMinutes',Number(e.target.value))}/></label><label className="team-checkbox"><input type="checkbox" aria-label="点検計画を運用する" checked={d.active} onChange={e=>set('active',e.target.checked)}/>この計画を運用する</label></div><label>作業内容<textarea aria-label="点検計画の作業内容" value={d.description} onChange={e=>set('description',e.target.value)}/></label><label>確認項目（1行に1項目）<textarea aria-label="計画の確認項目" value={checkText} onChange={e=>T(e.target.value)} placeholder={'外観・漏れを確認\n異音・振動を確認'}/></label><h3>対象設備 <small>{d.assetIds.length}台を選択</small></h3><div className="team-form-grid"><input aria-label="計画の対象設備を検索" placeholder="設備ID・名前・場所で検索" value={query} onChange={e=>Q(e.target.value)}/><select aria-label="計画の対象設備分類" value={category} onChange={e=>C(e.target.value)}><option value="">すべての分類</option>{state.propertyDefinitions.find(p=>p.id==='category')?.options?.map(o=><option key={o.id} value={o.id}>{o.label}</option>)}</select></div><div className="product-actions"><button onClick={()=>set('assetIds',[...new Set([...d.assetIds,...items.map(a=>a.id)])].slice(0,500))}>絞り込み結果を追加</button><button onClick={()=>set('assetIds',d.assetIds.filter(id=>!items.some(a=>a.id===id)))}>絞り込み結果を外す</button></div><div className="plan-asset-picker">{items.slice(0,200).map(a=><label key={a.id}><input type="checkbox" aria-label={'計画の対象 '+a.code} checked={d.assetIds.includes(a.id)} onChange={e=>set('assetIds',e.target.checked?[...d.assetIds,a.id]:d.assetIds.filter(id=>id!==a.id))}/><span><b>{a.name}</b><small>{a.code} · {a.location}</small></span></label>)}</div><small className="team-help">選択は絞り込みを変えても保持します。最大500台。候補は200件まで表示します。</small></fieldset><p className="team-error" role="alert">{error}</p><div className="task-dialog-actions"><button className="primary-product" disabled={busy||!d.name.trim()||!d.assetIds.length} onClick={()=>run(async()=>{const fields=['name','description','assetIds','intervalDays','nextDue','assigneeId','active','priority','estimatedMinutes'],recordBody={...Object.fromEntries(fields.map(k=>[k,d[k]])),checklist:checkText.split('\n').filter(x=>x.trim()).map((text,i)=>d.checklist[i]?.text===text?d.checklist[i]:{id:crypto.randomUUID(),text})};await api('/api/inspectionPlans'+(record?'/'+record.id:''),{method:record?'PATCH':'POST',body:{revision:revision.current,record:recordBody}});await onRefresh();onClose();})}>点検計画を保存</button>{record&&<button disabled={busy} onClick={()=>run(async()=>{if(!confirm('この計画を削除しますか？すでに起票した作業は残ります。'))return;await api('/api/inspectionPlans/'+record.id,{method:'DELETE',body:{revision:revision.current}});await onRefresh();onClose();})}>計画を削除</button>}<button disabled={busy} onClick={onClose}>閉じる</button></div></Modal>;
+function PlanDialog({ state, record, onClose, onRefresh }) {
+  const [draft, setDraft] = useState(() =>
+    structuredClone(
+      record || {
+        name: '',
+        description: '',
+        assetIds: [],
+        intervalDays: 30,
+        nextDue: today(),
+        assigneeId: '',
+        active: true,
+        priority: 'normal',
+        estimatedMinutes: 20,
+        checklist: [],
+      },
+    ),
+  );
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [checkText, setCheckText] = useState(
+    (record?.checklist || []).map((c) => c.text).join('\n'),
+  );
+  const revision = useRef(window.FactoryAPI.revision);
+  const set = (k, v) =>
+    setDraft((d) => ({
+      ...d,
+      [k]: v,
+    }));
+  const items = state.assets.filter(
+    (a) =>
+      (!category || a.properties.category === category) &&
+      [a.code, a.name, a.location]
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(query.toLocaleLowerCase()),
+  );
+  const run = async (fn) => {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal
+      title={record ? '点検計画を編集' : '点検計画を作成'}
+      onClose={() => {
+        if (!busy) {
+          onClose();
+        }
+      }}
+      wide
+    >
+      <fieldset disabled={busy} className="team-plan-fields">
+        <label>
+          計画名
+          <input
+            aria-label="点検計画名"
+            value={draft.name}
+            maxLength="150"
+            onChange={(e) => set('name', e.target.value)}
+            placeholder="例：空調機の月次巡回"
+          />
+        </label>
+        <div className="team-form-grid">
+          <label>
+            点検周期（日）
+            <input
+              aria-label="点検周期（日）"
+              type="number"
+              min="1"
+              max="730"
+              value={draft.intervalDays}
+              onChange={(e) => set('intervalDays', Number(e.target.value))}
+            />
+          </label>
+          <label>
+            次回予定日
+            <input
+              aria-label="計画の次回予定日"
+              type="date"
+              value={draft.nextDue}
+              onChange={(e) => set('nextDue', e.target.value)}
+            />
+          </label>
+          <label>
+            担当者
+            <select
+              aria-label="点検計画の担当者"
+              value={draft.assigneeId}
+              onChange={(e) => set('assigneeId', e.target.value)}
+            >
+              <option value="">未割り当て</option>
+              {state.teamMembers
+                .filter((m) => m.active || m.id === draft.assigneeId)
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label>
+            優先度
+            <select
+              aria-label="点検計画の優先度"
+              value={draft.priority}
+              onChange={(e) => set('priority', e.target.value)}
+            >
+              {Object.entries(priorityNames).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            1台あたりの見積（分）
+            <input
+              aria-label="計画の見積時間"
+              type="number"
+              min="0"
+              max="10080"
+              value={draft.estimatedMinutes}
+              onChange={(e) => set('estimatedMinutes', Number(e.target.value))}
+            />
+          </label>
+          <label className="team-checkbox">
+            <input
+              type="checkbox"
+              aria-label="点検計画を運用する"
+              checked={draft.active}
+              onChange={(e) => set('active', e.target.checked)}
+            />
+            この計画を運用する
+          </label>
+        </div>
+        <label>
+          作業内容
+          <textarea
+            aria-label="点検計画の作業内容"
+            value={draft.description}
+            onChange={(e) => set('description', e.target.value)}
+          />
+        </label>
+        <label>
+          確認項目（1行に1項目）
+          <textarea
+            aria-label="計画の確認項目"
+            value={checkText}
+            onChange={(e) => setCheckText(e.target.value)}
+            placeholder={'外観・漏れを確認\n異音・振動を確認'}
+          />
+        </label>
+        <h3>
+          対象設備 <small>{draft.assetIds.length}台を選択</small>
+        </h3>
+        <div className="team-form-grid">
+          <input
+            aria-label="計画の対象設備を検索"
+            placeholder="設備ID・名前・場所で検索"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <select
+            aria-label="計画の対象設備分類"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option value="">すべての分類</option>
+            {state.propertyDefinitions
+              .find((p) => p.id === 'category')
+              ?.options?.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div className="product-actions">
+          <button
+            onClick={() =>
+              set(
+                'assetIds',
+                [...new Set([...draft.assetIds, ...items.map((a) => a.id)])].slice(0, 500),
+              )
+            }
+          >
+            絞り込み結果を追加
+          </button>
+          <button
+            onClick={() =>
+              set(
+                'assetIds',
+                draft.assetIds.filter((id) => !items.some((a) => a.id === id)),
+              )
+            }
+          >
+            絞り込み結果を外す
+          </button>
+        </div>
+        <div className="plan-asset-picker">
+          {items.slice(0, 200).map((a) => (
+            <label key={a.id}>
+              <input
+                type="checkbox"
+                aria-label={'計画の対象 ' + a.code}
+                checked={draft.assetIds.includes(a.id)}
+                onChange={(e) =>
+                  set(
+                    'assetIds',
+                    e.target.checked
+                      ? [...draft.assetIds, a.id]
+                      : draft.assetIds.filter((id) => id !== a.id),
+                  )
+                }
+              />
+              <span>
+                <b>{a.name}</b>
+                <small>
+                  {a.code} · {a.location}
+                </small>
+              </span>
+            </label>
+          ))}
+        </div>
+        <small className="team-help">
+          選択は絞り込みを変えても保持します。最大500台。候補は200件まで表示します。
+        </small>
+      </fieldset>
+      <p className="team-error" role="alert">
+        {error}
+      </p>
+      <div className="task-dialog-actions">
+        <button
+          className="primary-product"
+          disabled={busy || !draft.name.trim() || !draft.assetIds.length}
+          onClick={() =>
+            run(async () => {
+              const fields = [
+                'name',
+                'description',
+                'assetIds',
+                'intervalDays',
+                'nextDue',
+                'assigneeId',
+                'active',
+                'priority',
+                'estimatedMinutes',
+              ];
+              const recordBody = {
+                ...Object.fromEntries(fields.map((k) => [k, draft[k]])),
+                checklist: checkText
+                  .split('\n')
+                  .filter((x) => x.trim())
+                  .map((text, i) =>
+                    draft.checklist[i]?.text === text
+                      ? draft.checklist[i]
+                      : {
+                          id: crypto.randomUUID(),
+                          text,
+                        },
+                  ),
+              };
+              await api('/api/inspectionPlans' + (record ? '/' + record.id : ''), {
+                method: record ? 'PATCH' : 'POST',
+                body: {
+                  revision: revision.current,
+                  record: recordBody,
+                },
+              });
+              await onRefresh();
+              onClose();
+            })
+          }
+        >
+          点検計画を保存
+        </button>
+        {record && (
+          <button
+            disabled={busy}
+            onClick={() =>
+              run(async () => {
+                if (!confirm('この計画を削除しますか？すでに起票した作業は残ります。')) {
+                  return;
+                }
+                await api('/api/inspectionPlans/' + record.id, {
+                  method: 'DELETE',
+                  body: {
+                    revision: revision.current,
+                  },
+                });
+                await onRefresh();
+                onClose();
+              })
+            }
+          >
+            計画を削除
+          </button>
+        )}
+        <button disabled={busy} onClick={onClose}>
+          閉じる
+        </button>
+      </div>
+    </Modal>
+  );
 }

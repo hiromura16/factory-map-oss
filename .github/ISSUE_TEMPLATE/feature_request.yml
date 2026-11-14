@@ -1,0 +1,16 @@
+name: 改善の提案
+description: 現場の作業や管理を改善する案を共有する
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: どの作業に困っているか
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 望む動作・使う場面
+    validations:
+      required: true

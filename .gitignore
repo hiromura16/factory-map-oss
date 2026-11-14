@@ -20,3 +20,8 @@ frontend/node_modules/
 node_modules/
 cloudflare/dist/
 .deploy/
+
+# Build output. Recreate with npm run build.
+/public/
+/vendor/factory-ui.js
+/vendor/factory-ui.js.LICENSE.txt

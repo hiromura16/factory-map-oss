@@ -7,14 +7,8 @@
       "type": "sample",
       "asset": "assets/site-plan.svg",
       "bounds": [
-        [
-          0,
-          0
-        ],
-        [
-          1100,
-          2000
-        ]
+        [0, 0],
+        [1100, 2000]
       ],
       "metres": true
     },
@@ -24,14 +18,8 @@
       "type": "sample",
       "asset": "assets/floor-plan.svg",
       "bounds": [
-        [
-          0,
-          0
-        ],
-        [
-          480,
-          800
-        ]
+        [0, 0],
+        [480, 800]
       ],
       "metres": false
     }
@@ -46,30 +34,15 @@
       "start": "2026-11-09",
       "end": "2026-11-20",
       "status": "active",
-      "impacts": [
-        "通行止め",
-        "騒音"
-      ],
+      "impacts": ["通行止め", "騒音"],
       "notes": "老朽化した給水配管の更新を行います。\n作業中は南側通路を通行できません。A棟北側の通路へ迂回してください。\n\n作業時間：8:30〜17:00（土日を除く）",
       "contact": "施設グループ 設備担当",
       "phone": "2101",
       "points": [
-        [
-          310,
-          595
-        ],
-        [
-          765,
-          595
-        ],
-        [
-          765,
-          655
-        ],
-        [
-          310,
-          655
-        ]
+        [310, 595],
+        [765, 595],
+        [765, 655],
+        [310, 655]
       ],
       "updatedAt": "2026-11-11T05:30:00Z",
       "attachments": [
@@ -81,10 +54,7 @@
           "size": 682
         }
       ],
-      "assetIds": [
-        "eq-pipe-01",
-        "a1"
-      ]
+      "assetIds": ["eq-pipe-01", "a1"]
     },
     {
       "id": "w2",
@@ -95,35 +65,19 @@
       "start": "2026-11-10",
       "end": "2026-11-27",
       "status": "active",
-      "impacts": [
-        "車両通行"
-      ],
+      "impacts": ["車両通行"],
       "notes": "外壁の補修に伴い、作業車両が出入りします。\n誘導員の案内に従って通行してください。",
       "contact": "施設グループ 建築担当",
       "phone": "2102",
       "points": [
-        [
-          1435,
-          675
-        ],
-        [
-          1490,
-          675
-        ],
-        [
-          1490,
-          895
-        ],
-        [
-          1435,
-          895
-        ]
+        [1435, 675],
+        [1490, 675],
+        [1490, 895],
+        [1435, 895]
       ],
       "updatedAt": "2026-11-10T00:10:00Z",
       "attachments": [],
-      "assetIds": [
-        "eq-building-04"
-      ]
+      "assetIds": ["eq-building-04"]
     },
     {
       "id": "w3",
@@ -134,35 +88,19 @@
       "start": "2026-11-12",
       "end": "2026-11-14",
       "status": "active",
-      "impacts": [
-        "通行止め"
-      ],
+      "impacts": ["通行止め"],
       "notes": "段差解消のため舗装を補修します。\n西側・東側の指定迂回路をご利用ください。",
       "contact": "施設グループ 土木担当",
       "phone": "2103",
       "points": [
-        [
-          800,
-          535
-        ],
-        [
-          935,
-          535
-        ],
-        [
-          935,
-          625
-        ],
-        [
-          800,
-          625
-        ]
+        [800, 535],
+        [935, 535],
+        [935, 625],
+        [800, 625]
       ],
       "updatedAt": "2026-11-11T08:00:00Z",
       "attachments": [],
-      "assetIds": [
-        "eq-building-05"
-      ]
+      "assetIds": ["eq-building-05"]
     },
     {
       "id": "w4",
@@ -173,35 +111,19 @@
       "start": "2026-11-16",
       "end": "2026-11-18",
       "status": "planned",
-      "impacts": [
-        "騒音"
-      ],
+      "impacts": ["騒音"],
       "notes": "空調設備の入れ替えを予定しています。\n詳細な作業時間は確定後に追記します。",
       "contact": "施設グループ 設備担当",
       "phone": "2101",
       "points": [
-        [
-          1560,
-          645
-        ],
-        [
-          1800,
-          645
-        ],
-        [
-          1800,
-          685
-        ],
-        [
-          1560,
-          685
-        ]
+        [1560, 645],
+        [1800, 645],
+        [1800, 685],
+        [1560, 685]
       ],
       "updatedAt": "2026-11-10T04:00:00Z",
       "attachments": [],
-      "assetIds": [
-        "eq-hvac-01"
-      ]
+      "assetIds": ["eq-hvac-01"]
     },
     {
       "id": "w5",
@@ -217,28 +139,14 @@
       "contact": "施設グループ 建築担当",
       "phone": "2102",
       "points": [
-        [
-          440,
-          225
-        ],
-        [
-          610,
-          225
-        ],
-        [
-          610,
-          265
-        ],
-        [
-          440,
-          265
-        ]
+        [440, 225],
+        [610, 225],
+        [610, 265],
+        [440, 265]
       ],
       "updatedAt": "2026-11-06T08:00:00Z",
       "attachments": [],
-      "assetIds": [
-        "eq-handling-04"
-      ]
+      "assetIds": ["eq-handling-04"]
     },
     {
       "id": "w6",
@@ -254,28 +162,14 @@
       "contact": "施設グループ 設備担当",
       "phone": "2101",
       "points": [
-        [
-          600,
-          260
-        ],
-        [
-          735,
-          260
-        ],
-        [
-          735,
-          410
-        ],
-        [
-          600,
-          410
-        ]
+        [600, 260],
+        [735, 260],
+        [735, 410],
+        [600, 410]
       ],
       "updatedAt": "2026-11-11T02:00:00Z",
       "attachments": [],
-      "assetIds": [
-        "a4"
-      ]
+      "assetIds": ["a4"]
     }
   ],
   "assets": [
@@ -285,10 +179,7 @@
       "name": "A棟 空調室外機",
       "code": "AC-A-001",
       "location": "A棟 北側",
-      "point": [
-        550,
-        900
-      ],
+      "point": [550, 900],
       "history": [
         {
           "date": "2026-10-05",
@@ -336,9 +227,7 @@
         "nextInspection": "2026-12-05",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly"
-        ]
+        "tags": ["monthly"]
       }
     },
     {
@@ -347,10 +236,7 @@
       "name": "受変電盤",
       "code": "EL-001",
       "location": "受変電設備",
-      "point": [
-        1670,
-        380
-      ],
+      "point": [1670, 380],
       "history": [
         {
           "date": "2026-09-20",
@@ -372,9 +258,7 @@
         "nextInspection": "2026-12-05",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "monthly"
-        ]
+        "tags": ["monthly"]
       }
     },
     {
@@ -383,10 +267,7 @@
       "name": "給水ポンプ",
       "code": "WP-001",
       "location": "動力棟 南側",
-      "point": [
-        1700,
-        620
-      ],
+      "point": [1700, 620],
       "history": [
         {
           "date": "2026-11-02",
@@ -408,9 +289,7 @@
         "nextInspection": "2026-12-05",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly"
-        ]
+        "tags": ["monthly"]
       }
     },
     {
@@ -419,10 +298,7 @@
       "name": "空調機 AHU-01",
       "code": "AHU-A-001",
       "location": "A棟1F 空調機械室",
-      "point": [
-        675,
-        345
-      ],
+      "point": [675, 345],
       "history": [
         {
           "date": "2026-10-05",
@@ -444,9 +320,7 @@
         "nextInspection": "2026-12-05",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly"
-        ]
+        "tags": ["monthly"]
       }
     },
     {
@@ -455,10 +329,7 @@
       "code": "HVAC-001",
       "name": "パッケージ空調機",
       "location": "A棟 / 空調・換気",
-      "point": [
-        230,
-        180
-      ],
+      "point": [230, 180],
       "properties": {
         "category": "hvac",
         "model": "DEMO-HVAC-01",
@@ -469,9 +340,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -503,10 +372,7 @@
       "code": "HVAC-002",
       "name": "エアハンドリングユニット",
       "location": "B棟 / 空調・換気",
-      "point": [
-        395,
-        180
-      ],
+      "point": [395, 180],
       "properties": {
         "category": "hvac",
         "model": "DEMO-HVAC-02",
@@ -517,10 +383,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -552,10 +415,7 @@
       "code": "HVAC-003",
       "name": "屋上排気ファン",
       "location": "C棟 / 空調・換気",
-      "point": [
-        560,
-        180
-      ],
+      "point": [560, 180],
       "properties": {
         "category": "hvac",
         "model": "DEMO-HVAC-03",
@@ -566,9 +426,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -600,10 +458,7 @@
       "code": "HVAC-004",
       "name": "給気ファン",
       "location": "動力棟 / 空調・換気",
-      "point": [
-        725,
-        180
-      ],
+      "point": [725, 180],
       "properties": {
         "category": "hvac",
         "model": "DEMO-HVAC-04",
@@ -614,9 +469,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -648,10 +501,7 @@
       "code": "HVAC-005",
       "name": "事務所エアコン",
       "location": "構内共用 / 空調・換気",
-      "point": [
-        890,
-        180
-      ],
+      "point": [890, 180],
       "properties": {
         "category": "hvac",
         "model": "DEMO-HVAC-05",
@@ -662,9 +512,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -696,10 +544,7 @@
       "code": "WATER-001",
       "name": "給水ポンプ",
       "location": "A棟 / 給排水",
-      "point": [
-        1055,
-        180
-      ],
+      "point": [1055, 180],
       "properties": {
         "category": "water",
         "model": "DEMO-WATER-01",
@@ -710,9 +555,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -744,10 +587,7 @@
       "code": "WATER-002",
       "name": "受水槽",
       "location": "B棟 / 給排水",
-      "point": [
-        1220,
-        180
-      ],
+      "point": [1220, 180],
       "properties": {
         "category": "water",
         "model": "DEMO-WATER-02",
@@ -758,10 +598,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -793,10 +630,7 @@
       "code": "WATER-003",
       "name": "高架水槽",
       "location": "C棟 / 給排水",
-      "point": [
-        1385,
-        180
-      ],
+      "point": [1385, 180],
       "properties": {
         "category": "water",
         "model": "DEMO-WATER-03",
@@ -807,9 +641,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -841,10 +673,7 @@
       "code": "WATER-004",
       "name": "温水循環ポンプ",
       "location": "動力棟 / 給排水",
-      "point": [
-        1550,
-        180
-      ],
+      "point": [1550, 180],
       "properties": {
         "category": "water",
         "model": "DEMO-WATER-04",
@@ -855,9 +684,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -889,10 +716,7 @@
       "code": "WATER-005",
       "name": "雨水排水ポンプ",
       "location": "構内共用 / 給排水",
-      "point": [
-        1715,
-        180
-      ],
+      "point": [1715, 180],
       "properties": {
         "category": "water",
         "model": "DEMO-WATER-05",
@@ -903,9 +727,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -937,10 +759,7 @@
       "code": "PIPE-001",
       "name": "蒸気主管",
       "location": "A棟 / 配管",
-      "point": [
-        230,
-        305
-      ],
+      "point": [230, 305],
       "properties": {
         "category": "pipe",
         "model": "DEMO-PIPE-01",
@@ -951,9 +770,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -985,10 +802,7 @@
       "code": "PIPE-002",
       "name": "圧縮空気主管",
       "location": "B棟 / 配管",
-      "point": [
-        395,
-        305
-      ],
+      "point": [395, 305],
       "properties": {
         "category": "pipe",
         "model": "DEMO-PIPE-02",
@@ -999,10 +813,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -1034,10 +845,7 @@
       "code": "PIPE-003",
       "name": "冷却水主管",
       "location": "C棟 / 配管",
-      "point": [
-        560,
-        305
-      ],
+      "point": [560, 305],
       "properties": {
         "category": "pipe",
         "model": "DEMO-PIPE-03",
@@ -1048,9 +856,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1082,10 +888,7 @@
       "code": "PIPE-004",
       "name": "工業用水バルブ",
       "location": "動力棟 / 配管",
-      "point": [
-        725,
-        305
-      ],
+      "point": [725, 305],
       "properties": {
         "category": "pipe",
         "model": "DEMO-PIPE-04",
@@ -1096,9 +899,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1130,10 +931,7 @@
       "code": "PIPE-005",
       "name": "排水配管",
       "location": "構内共用 / 配管",
-      "point": [
-        890,
-        305
-      ],
+      "point": [890, 305],
       "properties": {
         "category": "pipe",
         "model": "DEMO-PIPE-05",
@@ -1144,9 +942,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1178,10 +974,7 @@
       "code": "POWER-001",
       "name": "高圧変圧器",
       "location": "A棟 / 電気",
-      "point": [
-        1055,
-        305
-      ],
+      "point": [1055, 305],
       "properties": {
         "category": "power",
         "model": "DEMO-POWER-01",
@@ -1192,9 +985,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1226,10 +1017,7 @@
       "code": "POWER-002",
       "name": "低圧配電盤",
       "location": "B棟 / 電気",
-      "point": [
-        1220,
-        305
-      ],
+      "point": [1220, 305],
       "properties": {
         "category": "power",
         "model": "DEMO-POWER-02",
@@ -1240,10 +1028,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -1275,10 +1060,7 @@
       "code": "POWER-003",
       "name": "UPS",
       "location": "C棟 / 電気",
-      "point": [
-        1385,
-        305
-      ],
+      "point": [1385, 305],
       "properties": {
         "category": "power",
         "model": "DEMO-POWER-03",
@@ -1289,9 +1071,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1323,10 +1103,7 @@
       "code": "POWER-004",
       "name": "非常用発電機",
       "location": "動力棟 / 電気",
-      "point": [
-        1550,
-        305
-      ],
+      "point": [1550, 305],
       "properties": {
         "category": "power",
         "model": "DEMO-POWER-04",
@@ -1337,9 +1114,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1371,10 +1146,7 @@
       "code": "POWER-005",
       "name": "屋外照明盤",
       "location": "構内共用 / 電気",
-      "point": [
-        1715,
-        305
-      ],
+      "point": [1715, 305],
       "properties": {
         "category": "power",
         "model": "DEMO-POWER-05",
@@ -1385,9 +1157,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1419,10 +1189,7 @@
       "code": "AIR-001",
       "name": "スクリューコンプレッサー",
       "location": "A棟 / 圧縮空気",
-      "point": [
-        230,
-        430
-      ],
+      "point": [230, 430],
       "properties": {
         "category": "air",
         "model": "DEMO-AIR-01",
@@ -1433,9 +1200,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1467,10 +1232,7 @@
       "code": "AIR-002",
       "name": "空気タンク",
       "location": "B棟 / 圧縮空気",
-      "point": [
-        395,
-        430
-      ],
+      "point": [395, 430],
       "properties": {
         "category": "air",
         "model": "DEMO-AIR-02",
@@ -1481,10 +1243,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -1516,10 +1275,7 @@
       "code": "AIR-003",
       "name": "冷凍式ドライヤー",
       "location": "C棟 / 圧縮空気",
-      "point": [
-        560,
-        430
-      ],
+      "point": [560, 430],
       "properties": {
         "category": "air",
         "model": "DEMO-AIR-03",
@@ -1530,9 +1286,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1564,10 +1318,7 @@
       "code": "AIR-004",
       "name": "ラインフィルター",
       "location": "動力棟 / 圧縮空気",
-      "point": [
-        725,
-        430
-      ],
+      "point": [725, 430],
       "properties": {
         "category": "air",
         "model": "DEMO-AIR-04",
@@ -1578,9 +1329,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1612,10 +1361,7 @@
       "code": "AIR-005",
       "name": "減圧弁",
       "location": "構内共用 / 圧縮空気",
-      "point": [
-        890,
-        430
-      ],
+      "point": [890, 430],
       "properties": {
         "category": "air",
         "model": "DEMO-AIR-05",
@@ -1626,9 +1372,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1660,10 +1404,7 @@
       "code": "FIRE-001",
       "name": "屋内消火栓",
       "location": "A棟 / 防災",
-      "point": [
-        1055,
-        430
-      ],
+      "point": [1055, 430],
       "properties": {
         "category": "fire",
         "model": "DEMO-FIRE-01",
@@ -1674,9 +1415,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1708,10 +1447,7 @@
       "code": "FIRE-002",
       "name": "スプリンクラー制御弁",
       "location": "B棟 / 防災",
-      "point": [
-        1220,
-        430
-      ],
+      "point": [1220, 430],
       "properties": {
         "category": "fire",
         "model": "DEMO-FIRE-02",
@@ -1722,10 +1458,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -1757,10 +1490,7 @@
       "code": "FIRE-003",
       "name": "火災受信機",
       "location": "C棟 / 防災",
-      "point": [
-        1385,
-        430
-      ],
+      "point": [1385, 430],
       "properties": {
         "category": "fire",
         "model": "DEMO-FIRE-03",
@@ -1771,9 +1501,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1805,10 +1533,7 @@
       "code": "FIRE-004",
       "name": "消火器",
       "location": "動力棟 / 防災",
-      "point": [
-        1550,
-        430
-      ],
+      "point": [1550, 430],
       "properties": {
         "category": "fire",
         "model": "DEMO-FIRE-04",
@@ -1819,9 +1544,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1853,10 +1576,7 @@
       "code": "FIRE-005",
       "name": "消火ポンプ",
       "location": "構内共用 / 防災",
-      "point": [
-        1715,
-        430
-      ],
+      "point": [1715, 430],
       "properties": {
         "category": "fire",
         "model": "DEMO-FIRE-05",
@@ -1867,9 +1587,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1901,10 +1619,7 @@
       "code": "HEAT-001",
       "name": "ボイラー",
       "location": "A棟 / 熱源・蒸気",
-      "point": [
-        230,
-        555
-      ],
+      "point": [230, 555],
       "properties": {
         "category": "heat",
         "model": "DEMO-HEAT-01",
@@ -1915,9 +1630,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -1949,10 +1662,7 @@
       "code": "HEAT-002",
       "name": "温水器",
       "location": "B棟 / 熱源・蒸気",
-      "point": [
-        395,
-        555
-      ],
+      "point": [395, 555],
       "properties": {
         "category": "heat",
         "model": "DEMO-HEAT-02",
@@ -1963,10 +1673,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -1998,10 +1705,7 @@
       "code": "HEAT-003",
       "name": "熱交換器",
       "location": "C棟 / 熱源・蒸気",
-      "point": [
-        560,
-        555
-      ],
+      "point": [560, 555],
       "properties": {
         "category": "heat",
         "model": "DEMO-HEAT-03",
@@ -2012,9 +1716,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2046,10 +1748,7 @@
       "code": "HEAT-004",
       "name": "スチームトラップ",
       "location": "動力棟 / 熱源・蒸気",
-      "point": [
-        725,
-        555
-      ],
+      "point": [725, 555],
       "properties": {
         "category": "heat",
         "model": "DEMO-HEAT-04",
@@ -2060,9 +1759,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2094,10 +1791,7 @@
       "code": "HEAT-005",
       "name": "軟水装置",
       "location": "構内共用 / 熱源・蒸気",
-      "point": [
-        890,
-        555
-      ],
+      "point": [890, 555],
       "properties": {
         "category": "heat",
         "model": "DEMO-HEAT-05",
@@ -2108,9 +1802,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2142,10 +1834,7 @@
       "code": "COOL-001",
       "name": "チラー",
       "location": "A棟 / 冷却水",
-      "point": [
-        1055,
-        555
-      ],
+      "point": [1055, 555],
       "properties": {
         "category": "cool",
         "model": "DEMO-COOL-01",
@@ -2156,9 +1845,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2190,10 +1877,7 @@
       "code": "COOL-002",
       "name": "冷却塔",
       "location": "B棟 / 冷却水",
-      "point": [
-        1220,
-        555
-      ],
+      "point": [1220, 555],
       "properties": {
         "category": "cool",
         "model": "DEMO-COOL-02",
@@ -2204,10 +1888,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -2239,10 +1920,7 @@
       "code": "COOL-003",
       "name": "冷却水ポンプ",
       "location": "C棟 / 冷却水",
-      "point": [
-        1385,
-        555
-      ],
+      "point": [1385, 555],
       "properties": {
         "category": "cool",
         "model": "DEMO-COOL-03",
@@ -2253,9 +1931,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2287,10 +1963,7 @@
       "code": "COOL-004",
       "name": "プレート熱交換器",
       "location": "動力棟 / 冷却水",
-      "point": [
-        1550,
-        555
-      ],
+      "point": [1550, 555],
       "properties": {
         "category": "cool",
         "model": "DEMO-COOL-04",
@@ -2301,9 +1974,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2335,10 +2006,7 @@
       "code": "COOL-005",
       "name": "ストレーナー",
       "location": "構内共用 / 冷却水",
-      "point": [
-        1715,
-        555
-      ],
+      "point": [1715, 555],
       "properties": {
         "category": "cool",
         "model": "DEMO-COOL-05",
@@ -2349,9 +2017,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2383,10 +2049,7 @@
       "code": "BUILDING-001",
       "name": "屋根防水",
       "location": "A棟 / 建築",
-      "point": [
-        230,
-        680
-      ],
+      "point": [230, 680],
       "properties": {
         "category": "building",
         "model": "DEMO-BUILDING-01",
@@ -2397,9 +2060,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2431,10 +2092,7 @@
       "code": "BUILDING-002",
       "name": "電動シャッター",
       "location": "B棟 / 建築",
-      "point": [
-        395,
-        680
-      ],
+      "point": [395, 680],
       "properties": {
         "category": "building",
         "model": "DEMO-BUILDING-02",
@@ -2445,10 +2103,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -2480,10 +2135,7 @@
       "code": "BUILDING-003",
       "name": "防火戸",
       "location": "C棟 / 建築",
-      "point": [
-        560,
-        680
-      ],
+      "point": [560, 680],
       "properties": {
         "category": "building",
         "model": "DEMO-BUILDING-03",
@@ -2494,9 +2146,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2528,10 +2178,7 @@
       "code": "BUILDING-004",
       "name": "外壁",
       "location": "動力棟 / 建築",
-      "point": [
-        725,
-        680
-      ],
+      "point": [725, 680],
       "properties": {
         "category": "building",
         "model": "DEMO-BUILDING-04",
@@ -2542,9 +2189,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2576,10 +2221,7 @@
       "code": "BUILDING-005",
       "name": "雨どい",
       "location": "構内共用 / 建築",
-      "point": [
-        890,
-        680
-      ],
+      "point": [890, 680],
       "properties": {
         "category": "building",
         "model": "DEMO-BUILDING-05",
@@ -2590,9 +2232,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2624,10 +2264,7 @@
       "code": "HANDLING-001",
       "name": "天井ホイスト",
       "location": "A棟 / 搬送・荷役",
-      "point": [
-        1055,
-        680
-      ],
+      "point": [1055, 680],
       "properties": {
         "category": "handling",
         "model": "DEMO-HANDLING-01",
@@ -2638,9 +2275,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2672,10 +2307,7 @@
       "code": "HANDLING-002",
       "name": "荷物用昇降機",
       "location": "B棟 / 搬送・荷役",
-      "point": [
-        1220,
-        680
-      ],
+      "point": [1220, 680],
       "properties": {
         "category": "handling",
         "model": "DEMO-HANDLING-02",
@@ -2686,10 +2318,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -2721,10 +2350,7 @@
       "code": "HANDLING-003",
       "name": "搬送コンベヤー",
       "location": "C棟 / 搬送・荷役",
-      "point": [
-        1385,
-        680
-      ],
+      "point": [1385, 680],
       "properties": {
         "category": "handling",
         "model": "DEMO-HANDLING-03",
@@ -2735,9 +2361,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2769,10 +2393,7 @@
       "code": "HANDLING-004",
       "name": "ドックレベラー",
       "location": "動力棟 / 搬送・荷役",
-      "point": [
-        1550,
-        680
-      ],
+      "point": [1550, 680],
       "properties": {
         "category": "handling",
         "model": "DEMO-HANDLING-04",
@@ -2783,9 +2404,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2817,10 +2436,7 @@
       "code": "HANDLING-005",
       "name": "充電設備",
       "location": "構内共用 / 搬送・荷役",
-      "point": [
-        1715,
-        680
-      ],
+      "point": [1715, 680],
       "properties": {
         "category": "handling",
         "model": "DEMO-HANDLING-05",
@@ -2831,9 +2447,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2865,10 +2479,7 @@
       "code": "EFFLUENT-001",
       "name": "pH計",
       "location": "A棟 / 排水処理",
-      "point": [
-        230,
-        805
-      ],
+      "point": [230, 805],
       "properties": {
         "category": "effluent",
         "model": "DEMO-EFFLUENT-01",
@@ -2879,9 +2490,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -2913,10 +2522,7 @@
       "code": "EFFLUENT-002",
       "name": "汚泥ポンプ",
       "location": "B棟 / 排水処理",
-      "point": [
-        395,
-        805
-      ],
+      "point": [395, 805],
       "properties": {
         "category": "effluent",
         "model": "DEMO-EFFLUENT-02",
@@ -2927,10 +2533,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -2962,10 +2565,7 @@
       "code": "EFFLUENT-003",
       "name": "曝気ブロワー",
       "location": "C棟 / 排水処理",
-      "point": [
-        560,
-        805
-      ],
+      "point": [560, 805],
       "properties": {
         "category": "effluent",
         "model": "DEMO-EFFLUENT-03",
@@ -2976,9 +2576,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -3010,10 +2608,7 @@
       "code": "EFFLUENT-004",
       "name": "移送ポンプ",
       "location": "動力棟 / 排水処理",
-      "point": [
-        725,
-        805
-      ],
+      "point": [725, 805],
       "properties": {
         "category": "effluent",
         "model": "DEMO-EFFLUENT-04",
@@ -3024,9 +2619,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -3058,10 +2651,7 @@
       "code": "EFFLUENT-005",
       "name": "薬注ポンプ",
       "location": "構内共用 / 排水処理",
-      "point": [
-        890,
-        805
-      ],
+      "point": [890, 805],
       "properties": {
         "category": "effluent",
         "model": "DEMO-EFFLUENT-05",
@@ -3072,9 +2662,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -3106,10 +2694,7 @@
       "code": "SAFETY-001",
       "name": "AED",
       "location": "A棟 / 安全・環境",
-      "point": [
-        1055,
-        805
-      ],
+      "point": [1055, 805],
       "properties": {
         "category": "safety",
         "model": "DEMO-SAFETY-01",
@@ -3120,9 +2705,7 @@
         "nextInspection": "2026-11-30",
         "operation": "operating",
         "critical": true,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -3154,10 +2737,7 @@
       "code": "SAFETY-002",
       "name": "ガス検知器",
       "location": "B棟 / 安全・環境",
-      "point": [
-        1220,
-        805
-      ],
+      "point": [1220, 805],
       "properties": {
         "category": "safety",
         "model": "DEMO-SAFETY-02",
@@ -3168,10 +2748,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "monthly",
-          "contract"
-        ]
+        "tags": ["monthly", "contract"]
       },
       "history": [
         {
@@ -3203,10 +2780,7 @@
       "code": "SAFETY-003",
       "name": "局所排気装置",
       "location": "C棟 / 安全・環境",
-      "point": [
-        1385,
-        805
-      ],
+      "point": [1385, 805],
       "properties": {
         "category": "safety",
         "model": "DEMO-SAFETY-03",
@@ -3217,9 +2791,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -3251,10 +2823,7 @@
       "code": "SAFETY-004",
       "name": "洗眼器",
       "location": "動力棟 / 安全・環境",
-      "point": [
-        1550,
-        805
-      ],
+      "point": [1550, 805],
       "properties": {
         "category": "safety",
         "model": "DEMO-SAFETY-04",
@@ -3265,9 +2834,7 @@
         "nextInspection": "2026-12-15",
         "operation": "operating",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {
@@ -3299,10 +2866,7 @@
       "code": "SAFETY-005",
       "name": "騒音計",
       "location": "構内共用 / 安全・環境",
-      "point": [
-        1715,
-        805
-      ],
+      "point": [1715, 805],
       "properties": {
         "category": "safety",
         "model": "DEMO-SAFETY-05",
@@ -3313,9 +2877,7 @@
         "nextInspection": "2026-12-15",
         "operation": "repair",
         "critical": false,
-        "tags": [
-          "annual"
-        ]
+        "tags": ["annual"]
       },
       "history": [
         {

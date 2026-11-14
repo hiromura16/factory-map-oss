@@ -1,18 +1,446 @@
-import React,{useState,useRef} from 'react';
-import {api,Modal,Person,projectStatusNames,today,openTask} from './team-shared.jsx';
-
-export function Projects({state,onRefresh,onShowTasks,onNewTask}){
- const [edit,E]=useState(null),[query,Q]=useState(''),[status,S]=useState('open'),[error,M]=useState(''),[busy,B]=useState(false);
- const list=(state.projects||[]).filter(p=>(status==='all'||(status==='open'?!['done','cancelled'].includes(p.status):p.status===status))&&[p.name,p.description,p.goal].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase()));
- return <><div className="team-section-heading"><h2>案件・改善プロジェクト</h2><button className="primary-product" onClick={()=>E({})}>＋ 案件を追加</button></div><div className="project-search"><input type="search" aria-label="案件を検索" placeholder="案件名・目的で検索" value={query} onChange={e=>Q(e.target.value)}/><select aria-label="案件の表示条件" value={status} onChange={e=>S(e.target.value)}><option value="open">未完了の案件</option><option value="all">すべての案件</option>{Object.entries(projectStatusNames).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></div><div className="team-project-grid">{list.map(p=>{const tasks=state.tasks.filter(t=>t.projectId===p.id&&t.status!=='cancelled'),done=tasks.filter(t=>t.status==='done').length,overdue=tasks.filter(t=>openTask(t)&&t.dueDate&&t.dueDate<today()).length,progress=tasks.length?Math.round(done/tasks.length*100):0;return <article className="product-card team-project-card" data-project-card={p.id} key={p.id} style={{borderTopColor:p.color}}><div className="section-heading"><span className="plan-pill">{projectStatusNames[p.status]}</span><button onClick={()=>E(p)} aria-label={p.name+'を編集'}>編集</button></div><h3>{p.name}</h3>{p.goal&&<p className="project-goal">{p.goal}</p>}<Person state={state} id={p.ownerId}/><div className="project-progress"><label>{done} / {tasks.length} 作業完了<strong>{progress}%</strong></label><progress aria-label={p.name+'の進捗'} value={progress} max="100"/></div><p className="team-help">{p.startDate||'着手日未設定'} → {p.dueDate||'期限未設定'}{overdue>0&&<b className="task-overdue"> · 期限超過 {overdue}件</b>}</p><div className="product-actions"><button onClick={()=>onShowTasks(p.id)}>案件の作業を見る</button><button onClick={()=>onNewTask({projectId:p.id,assigneeId:p.ownerId,dueDate:p.dueDate||today()})}>＋ 作業を追加</button></div></article>;})}</div>{!state.tasks.length&&!state.teamMembers.length&&!state.inspectionPlans.length&&!state.projects?.length&&<section className="team-demo-banner"><div><strong>案件と工程をサンプルで試す</strong><p>架空の案件3件・作業16件・担当4名・点検計画1件を追加します。</p></div><button disabled={busy} onClick={async()=>{B(true);M('');try{await api('/api/team/workflow-demo',{method:'POST',body:{revision:window.FactoryAPI.revision}});await onRefresh();}catch(e){M(e.message);}finally{B(false);}}}>案件と工程のサンプルを追加</button></section>}<p className="team-error" role="alert">{error}</p>{!list.length&&<p className="team-empty">条件に合う案件はありません。設備更新・修繕・工事調整を、責任者と完了条件のある案件としてまとめられます。</p>}{edit&&<ProjectDialog record={edit.id?edit:null} state={state} onRefresh={onRefresh} onClose={()=>E(null)}/>}</>;
+import React, { useState, useRef } from 'react';
+import { api, Modal, Person, projectStatusNames, today, openTask } from './team-shared.jsx';
+export function Projects({ state, onRefresh, onShowTasks, onNewTask }) {
+  const [edit, setEdit] = useState(null);
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('open');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const list = (state.projects || []).filter(
+    (p) =>
+      (status === 'all' ||
+        (status === 'open' ? !['done', 'cancelled'].includes(p.status) : p.status === status)) &&
+      [p.name, p.description, p.goal]
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(query.toLocaleLowerCase()),
+  );
+  return (
+    <>
+      <div className="team-section-heading">
+        <h2>案件・改善プロジェクト</h2>
+        <button className="primary-product" onClick={() => setEdit({})}>
+          ＋ 案件を追加
+        </button>
+      </div>
+      <div className="project-search">
+        <input
+          type="search"
+          aria-label="案件を検索"
+          placeholder="案件名・目的で検索"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <select
+          aria-label="案件の表示条件"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="open">未完了の案件</option>
+          <option value="all">すべての案件</option>
+          {Object.entries(projectStatusNames).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="team-project-grid">
+        {list.map((p) => {
+          const tasks = state.tasks.filter((t) => t.projectId === p.id && t.status !== 'cancelled');
+          const done = tasks.filter((t) => t.status === 'done').length;
+          const overdue = tasks.filter(
+            (t) => openTask(t) && t.dueDate && t.dueDate < today(),
+          ).length;
+          const progress = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+          return (
+            <article
+              className="product-card team-project-card"
+              data-project-card={p.id}
+              key={p.id}
+              style={{
+                borderTopColor: p.color,
+              }}
+            >
+              <div className="section-heading">
+                <span className="plan-pill">{projectStatusNames[p.status]}</span>
+                <button onClick={() => setEdit(p)} aria-label={p.name + 'を編集'}>
+                  編集
+                </button>
+              </div>
+              <h3>{p.name}</h3>
+              {p.goal && <p className="project-goal">{p.goal}</p>}
+              <Person state={state} id={p.ownerId} />
+              <div className="project-progress">
+                <label>
+                  {done} / {tasks.length} 作業完了<strong>{progress}%</strong>
+                </label>
+                <progress aria-label={p.name + 'の進捗'} value={progress} max="100" />
+              </div>
+              <p className="team-help">
+                {p.startDate || '着手日未設定'} → {p.dueDate || '期限未設定'}
+                {overdue > 0 && <b className="task-overdue"> · 期限超過 {overdue}件</b>}
+              </p>
+              <div className="product-actions">
+                <button onClick={() => onShowTasks(p.id)}>案件の作業を見る</button>
+                <button
+                  onClick={() =>
+                    onNewTask({
+                      projectId: p.id,
+                      assigneeId: p.ownerId,
+                      dueDate: p.dueDate || today(),
+                    })
+                  }
+                >
+                  ＋ 作業を追加
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      {!state.tasks.length &&
+        !state.teamMembers.length &&
+        !state.inspectionPlans.length &&
+        !state.projects?.length && (
+          <section className="team-demo-banner">
+            <div>
+              <strong>案件と工程をサンプルで試す</strong>
+              <p>架空の案件3件・作業16件・担当4名・点検計画1件を追加します。</p>
+            </div>
+            <button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError('');
+                try {
+                  await api('/api/team/workflow-demo', {
+                    method: 'POST',
+                    body: {
+                      revision: window.FactoryAPI.revision,
+                    },
+                  });
+                  await onRefresh();
+                } catch (e) {
+                  setError(e.message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              案件と工程のサンプルを追加
+            </button>
+          </section>
+        )}
+      <p className="team-error" role="alert">
+        {error}
+      </p>
+      {!list.length && (
+        <p className="team-empty">
+          条件に合う案件はありません。設備更新・修繕・工事調整を、責任者と完了条件のある案件としてまとめられます。
+        </p>
+      )}
+      {edit && (
+        <ProjectDialog
+          record={edit.id ? edit : null}
+          state={state}
+          onRefresh={onRefresh}
+          onClose={() => setEdit(null)}
+        />
+      )}
+    </>
+  );
 }
-
-function ProjectDialog({record,state,onRefresh,onClose}){
- const [d,D]=useState({...{name:'',description:'',goal:'',status:'planning',ownerId:'',startDate:'',dueDate:'',color:'#287f91'},...record}),[error,E]=useState(''),[busy,B]=useState(false),revision=useRef(window.FactoryAPI.revision),set=(k,v)=>D(d=>({...d,[k]:v}));
- return <Modal title={record?'案件を編集':'案件を追加'} onClose={()=>{if(!busy)onClose();}}><fieldset disabled={busy} className="team-plan-fields"><label>案件名<input aria-label="案件名" value={d.name} maxLength="150" onChange={e=>set('name',e.target.value)}/></label><label>目的・完了条件<textarea aria-label="案件の目的・完了条件" value={d.goal} maxLength="2000" onChange={e=>set('goal',e.target.value)} placeholder="例：配管更新と漏れ検査が完了し、通常通行に戻っている"/></label><div className="team-form-grid"><label>責任者<select aria-label="案件の責任者" value={d.ownerId} onChange={e=>set('ownerId',e.target.value)}><option value="">未割り当て</option>{state.teamMembers.filter(m=>m.active||m.id===d.ownerId).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label>状態<select aria-label="案件の状態" value={d.status} onChange={e=>set('status',e.target.value)}>{Object.entries(projectStatusNames).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><label>着手予定<input aria-label="案件の着手予定" type="date" value={d.startDate} onChange={e=>set('startDate',e.target.value)}/></label><label>期限<input aria-label="案件の期限" type="date" value={d.dueDate} onChange={e=>set('dueDate',e.target.value)}/></label></div><label>補足・関係者への連絡<textarea aria-label="案件の内容" maxLength="5000" value={d.description} onChange={e=>set('description',e.target.value)}/></label><label>表示色<input aria-label="案件の色" type="color" value={d.color} onChange={e=>set('color',e.target.value)}/></label></fieldset><p className="team-help">進捗は中止を除く作業の完了率です。未完了の作業が残っている案件は完了にできません。</p><p className="team-error" role="alert">{error}</p><div className="product-actions"><button disabled={busy||!d.name.trim()} className="primary-product" onClick={async()=>{B(true);E('');try{await api('/api/projects'+(record?'/'+record.id:''),{method:record?'PATCH':'POST',body:{revision:revision.current,record:Object.fromEntries(['name','description','goal','status','ownerId','startDate','dueDate','color'].map(k=>[k,d[k]]))}});await onRefresh();onClose();}catch(e){E(e.message);}finally{B(false);}}}>案件を保存</button><button disabled={busy} onClick={onClose}>閉じる</button></div></Modal>;
+function ProjectDialog({ record, state, onRefresh, onClose }) {
+  const [draft, setDraft] = useState({
+    ...{
+      name: '',
+      description: '',
+      goal: '',
+      status: 'planning',
+      ownerId: '',
+      startDate: '',
+      dueDate: '',
+      color: '#287f91',
+    },
+    ...record,
+  });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const revision = useRef(window.FactoryAPI.revision);
+  const set = (k, v) =>
+    setDraft((d) => ({
+      ...d,
+      [k]: v,
+    }));
+  return (
+    <Modal
+      title={record ? '案件を編集' : '案件を追加'}
+      onClose={() => {
+        if (!busy) {
+          onClose();
+        }
+      }}
+    >
+      <fieldset disabled={busy} className="team-plan-fields">
+        <label>
+          案件名
+          <input
+            aria-label="案件名"
+            value={draft.name}
+            maxLength="150"
+            onChange={(e) => set('name', e.target.value)}
+          />
+        </label>
+        <label>
+          目的・完了条件
+          <textarea
+            aria-label="案件の目的・完了条件"
+            value={draft.goal}
+            maxLength="2000"
+            onChange={(e) => set('goal', e.target.value)}
+            placeholder="例：配管更新と漏れ検査が完了し、通常通行に戻っている"
+          />
+        </label>
+        <div className="team-form-grid">
+          <label>
+            責任者
+            <select
+              aria-label="案件の責任者"
+              value={draft.ownerId}
+              onChange={(e) => set('ownerId', e.target.value)}
+            >
+              <option value="">未割り当て</option>
+              {state.teamMembers
+                .filter((m) => m.active || m.id === draft.ownerId)
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label>
+            状態
+            <select
+              aria-label="案件の状態"
+              value={draft.status}
+              onChange={(e) => set('status', e.target.value)}
+            >
+              {Object.entries(projectStatusNames).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            着手予定
+            <input
+              aria-label="案件の着手予定"
+              type="date"
+              value={draft.startDate}
+              onChange={(e) => set('startDate', e.target.value)}
+            />
+          </label>
+          <label>
+            期限
+            <input
+              aria-label="案件の期限"
+              type="date"
+              value={draft.dueDate}
+              onChange={(e) => set('dueDate', e.target.value)}
+            />
+          </label>
+        </div>
+        <label>
+          補足・関係者への連絡
+          <textarea
+            aria-label="案件の内容"
+            maxLength="5000"
+            value={draft.description}
+            onChange={(e) => set('description', e.target.value)}
+          />
+        </label>
+        <label>
+          表示色
+          <input
+            aria-label="案件の色"
+            type="color"
+            value={draft.color}
+            onChange={(e) => set('color', e.target.value)}
+          />
+        </label>
+      </fieldset>
+      <p className="team-help">
+        進捗は中止を除く作業の完了率です。未完了の作業が残っている案件は完了にできません。
+      </p>
+      <p className="team-error" role="alert">
+        {error}
+      </p>
+      <div className="product-actions">
+        <button
+          disabled={busy || !draft.name.trim()}
+          className="primary-product"
+          onClick={async () => {
+            setBusy(true);
+            setError('');
+            try {
+              await api('/api/projects' + (record ? '/' + record.id : ''), {
+                method: record ? 'PATCH' : 'POST',
+                body: {
+                  revision: revision.current,
+                  record: Object.fromEntries(
+                    [
+                      'name',
+                      'description',
+                      'goal',
+                      'status',
+                      'ownerId',
+                      'startDate',
+                      'dueDate',
+                      'color',
+                    ].map((k) => [k, draft[k]]),
+                  ),
+                },
+              });
+              await onRefresh();
+              onClose();
+            } catch (e) {
+              setError(e.message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          案件を保存
+        </button>
+        <button disabled={busy} onClick={onClose}>
+          閉じる
+        </button>
+      </div>
+    </Modal>
+  );
 }
-
-export function TaskRelations({state,draft,onChange,record,onOpenTask,onAddChild}){
- const [query,Q]=useState(''),project=state.projects?.find(p=>p.id===draft.projectId),children=state.tasks.filter(t=>t.parentId===record?.id),choices=state.tasks.filter(t=>t.id!==record?.id&&[t.title,t.id].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase()));
- return <section className="task-relations"><h3>案件・作業のつながり</h3><label>案件<select aria-label="作業の案件" value={draft.projectId||''} onChange={e=>{onChange('projectId',e.target.value);if(state.tasks.find(t=>t.id===draft.parentId)?.projectId!==e.target.value)onChange('parentId','');}}><option value="">案件に属さない</option>{(state.projects||[]).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>{project?.goal&&<p className="team-help">案件の完了条件：{project.goal}</p>}<label>親作業<select aria-label="親作業" value={draft.parentId||''} onChange={e=>onChange('parentId',e.target.value)}><option value="">親作業なし</option>{state.tasks.filter(t=>t.id!==record?.id&&(t.projectId||'')===(draft.projectId||'')).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></label><details open={!!draft.dependsOnIds?.length}><summary>先行作業 {draft.dependsOnIds?.length||0}件</summary><p className="team-help">選んだ作業が完了すると、この作業を開始できます。</p><input type="search" aria-label="先行作業を検索" value={query} placeholder="作業名で検索" onChange={e=>Q(e.target.value)}/><div className="dependency-options">{choices.slice(0,50).map(t=><label className="team-checkbox" key={t.id}><input type="checkbox" aria-label={t.title+'を先行作業にする'} checked={(draft.dependsOnIds||[]).includes(t.id)} onChange={e=>onChange('dependsOnIds',e.target.checked?[...(draft.dependsOnIds||[]),t.id]:(draft.dependsOnIds||[]).filter(id=>id!==t.id))}/><span>{t.title}<small>{t.status==='done'?'完了':'未完了'}</small></span></label>)}</div>{choices.length>50&&<p className="team-help">先頭50件を表示。検索して絞り込めます。</p>}</details>{record&&<><div className="section-heading"><h4>子作業 {children.length}件</h4>{!record.inspectionId&&<button type="button" onClick={()=>onAddChild?.({parentId:record.id,projectId:draft.projectId||'',assetId:draft.assetId,assigneeId:draft.assigneeId,drawingId:draft.drawingId,dueDate:draft.dueDate})}>＋ 子作業を追加</button>}</div>{children.map(t=><button type="button" className="task-child-link" key={t.id} onClick={()=>onOpenTask?.(t)}>{t.status==='done'?'✓':'○'} {t.title}</button>)}</>}</section>;
+export function TaskRelations({ state, draft, onChange, record, onOpenTask, onAddChild }) {
+  const [query, setQuery] = useState('');
+  const project = state.projects?.find((p) => p.id === draft.projectId);
+  const children = state.tasks.filter((t) => t.parentId === record?.id);
+  const choices = state.tasks.filter(
+    (t) =>
+      t.id !== record?.id &&
+      [t.title, t.id].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+  );
+  return (
+    <section className="task-relations">
+      <h3>案件・作業のつながり</h3>
+      <label>
+        案件
+        <select
+          aria-label="作業の案件"
+          value={draft.projectId || ''}
+          onChange={(e) => {
+            onChange('projectId', e.target.value);
+            if (state.tasks.find((t) => t.id === draft.parentId)?.projectId !== e.target.value) {
+              onChange('parentId', '');
+            }
+          }}
+        >
+          <option value="">案件に属さない</option>
+          {(state.projects || []).map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {project?.goal && <p className="team-help">案件の完了条件：{project.goal}</p>}
+      <label>
+        親作業
+        <select
+          aria-label="親作業"
+          value={draft.parentId || ''}
+          onChange={(e) => onChange('parentId', e.target.value)}
+        >
+          <option value="">親作業なし</option>
+          {state.tasks
+            .filter((t) => t.id !== record?.id && (t.projectId || '') === (draft.projectId || ''))
+            .map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.title}
+              </option>
+            ))}
+        </select>
+      </label>
+      <details open={!!draft.dependsOnIds?.length}>
+        <summary>先行作業 {draft.dependsOnIds?.length || 0}件</summary>
+        <p className="team-help">選んだ作業が完了すると、この作業を開始できます。</p>
+        <input
+          type="search"
+          aria-label="先行作業を検索"
+          value={query}
+          placeholder="作業名で検索"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <div className="dependency-options">
+          {choices.slice(0, 50).map((t) => (
+            <label className="team-checkbox" key={t.id}>
+              <input
+                type="checkbox"
+                aria-label={t.title + 'を先行作業にする'}
+                checked={(draft.dependsOnIds || []).includes(t.id)}
+                onChange={(e) =>
+                  onChange(
+                    'dependsOnIds',
+                    e.target.checked
+                      ? [...(draft.dependsOnIds || []), t.id]
+                      : (draft.dependsOnIds || []).filter((id) => id !== t.id),
+                  )
+                }
+              />
+              <span>
+                {t.title}
+                <small>{t.status === 'done' ? '完了' : '未完了'}</small>
+              </span>
+            </label>
+          ))}
+        </div>
+        {choices.length > 50 && <p className="team-help">先頭50件を表示。検索して絞り込めます。</p>}
+      </details>
+      {record && (
+        <>
+          <div className="section-heading">
+            <h4>子作業 {children.length}件</h4>
+            {!record.inspectionId && (
+              <button
+                type="button"
+                onClick={() =>
+                  onAddChild?.({
+                    parentId: record.id,
+                    projectId: draft.projectId || '',
+                    assetId: draft.assetId,
+                    assigneeId: draft.assigneeId,
+                    drawingId: draft.drawingId,
+                    dueDate: draft.dueDate,
+                  })
+                }
+              >
+                ＋ 子作業を追加
+              </button>
+            )}
+          </div>
+          {children.map((t) => (
+            <button
+              type="button"
+              className="task-child-link"
+              key={t.id}
+              onClick={() => onOpenTask?.(t)}
+            >
+              {t.status === 'done' ? '✓' : '○'} {t.title}
+            </button>
+          ))}
+        </>
+      )}
+    </section>
+  );
 }

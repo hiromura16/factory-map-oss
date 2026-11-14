@@ -4,6 +4,8 @@
   "description": "型付きプロパティ変換と3方向マージに対応した、ポーリング同期用のNotion APIコネクター",
   "type": "module",
   "exports": "./index.mjs",
-  "engines": {"node": ">=22"},
+  "engines": {
+    "node": ">=22"
+  },
   "license": "MIT"
 }

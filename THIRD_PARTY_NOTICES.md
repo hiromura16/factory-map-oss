@@ -2,11 +2,11 @@
 
 ブラウザーで使用するファイルはローカルに同梱しているため、セルフホスト時にCDNへアクセスせず利用できます。
 
-| ライブラリ | バージョン | ライセンス | 同梱ライセンスファイル |
-| --- | --- | --- | --- |
-| Leaflet | 1.9.4 | BSD-2-Clause | vendor/LICENSE-leaflet.txt |
-| Leaflet-Geoman Free | 2.18.3 | MIT | vendor/LICENSE-geoman.txt |
-| dxf-parser | 1.1.2 | MIT | vendor/LICENSE-dxf-parser.txt |
+| ライブラリ          | バージョン | ライセンス   | 同梱ライセンスファイル        |
+| ------------------- | ---------- | ------------ | ----------------------------- |
+| Leaflet             | 1.9.4      | BSD-2-Clause | vendor/LICENSE-leaflet.txt    |
+| Leaflet-Geoman Free | 2.18.3     | MIT          | vendor/LICENSE-geoman.txt     |
+| dxf-parser          | 1.1.2      | MIT          | vendor/LICENSE-dxf-parser.txt |
 
 配布元のソース：
 

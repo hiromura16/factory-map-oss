@@ -2,17 +2,25 @@
   "name": "plantdesk",
   "main": "worker.mjs",
   "compatibility_date": "2026-11-13",
-  "workers_dev": true,
+  "workers_dev": false,
   "preview_urls": false,
-  "triggers": {"crons": ["* * * * *"]},
-  "observability": {"enabled":true,"traces":{"enabled":true}},
+  "routes": [
+    {
+      "pattern": "plantdesk.chaoslab.fyi",
+      "custom_domain": true,
+      "enabled": true,
+      "previews_enabled": false,
+    },
+  ],
+  "triggers": { "crons": ["* * * * *"] },
+  "observability": { "enabled": true, "traces": { "enabled": true } },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "factory-map-saas-demo",
       "database_id": "375e3015-0558-48c7-a54c-fe9aa1695592",
-      "migrations_dir": "migrations"
-    }
+      "migrations_dir": "migrations",
+    },
   ],
   "vars": {
     "ACCESS_TEAM": "https://komagibase.cloudflareaccess.com",
@@ -21,11 +29,11 @@
     "AUTH_AUDIENCE": "REPLACE_WITH_CLIENT_ID",
     "AUTH_JWKS_URL": "https://REPLACE_WITH_OIDC_ISSUER/.well-known/jwks.json",
     "ALLOW_REGISTRATION": "false",
-    "MOCK_BILLING": "false"
+    "MOCK_BILLING": "false",
   },
   "assets": {
     "directory": "../public",
     "binding": "ASSETS",
-    "run_worker_first": true
-  }
+    "run_worker_first": true,
+  },
 }

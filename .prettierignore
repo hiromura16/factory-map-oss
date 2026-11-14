@@ -1,0 +1,13 @@
+node_modules/
+frontend/node_modules/
+cloudflare/node_modules/
+vendor/
+public/
+assets/
+.runtime/
+.deploy/
+.wrangler/
+server/target/
+**/package-lock.json
+server/Cargo.lock
+preview-*.png
